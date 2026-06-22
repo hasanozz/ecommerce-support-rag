@@ -1,0 +1,11 @@
+data/reports/
+*.log
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.idea/
+.vscode/
+data/raw/
+data/processed/rag_chunks.jsonl
