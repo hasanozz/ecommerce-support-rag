@@ -34,7 +34,7 @@
       "Hesapta görünen ödeme bilgileriyle banka hareketlerinin uyuşmaması"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kartla Ödeme i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Kartla Ödeme için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -86,7 +86,7 @@
       "Önemli Not"
     ],
     "istisnalar": [],
-    "standart_yanit": "Ödeme Başarısız Hatası i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Ödeme Başarısız Hatası için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -131,7 +131,7 @@
       "Sipariş oluşturulamamışsa ödeme tutarı ilgili banka süreçleri doğrultusunda kullanıcıya geri yansıtılabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Karttan Para Çekildi Ama Sipariş Oluşmadı i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Karttan Para Çekildi Ama Sipariş Oluşmadı için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -185,7 +185,7 @@
       "Çözüm Süreci"
     ],
     "istisnalar": [],
-    "standart_yanit": "Çift Çekim Problemi i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Çift Çekim Problemi için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -239,7 +239,7 @@
       "Kullanıcı ödeme adımında kart bilgilerini girdikten sonra, uygun kartlar için taksit seçenekleri görüntülenir. Kullanıcı bu ekrandan istediği taksit sayısını seçerek ödemeyi tamamlar."
     ],
     "istisnalar": [],
-    "standart_yanit": "Taksitli Ödeme i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Taksitli Ödeme için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -292,7 +292,7 @@
       "Ödeme uzun süre “beklemede” kaldıysa"
     ],
     "istisnalar": [],
-    "standart_yanit": "Havale / EFT ile Ödeme i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Havale / EFT ile Ödeme için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -347,7 +347,7 @@
       "Her siparişte sunulmayabilir"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kapıda Ödeme i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Kapıda Ödeme için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -396,7 +396,7 @@
       "Kampanya veya kupon kullanılan siparişlerde iade tutarı değişebilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Para İadesi Süreci i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Para İadesi Süreci için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -443,7 +443,7 @@
       "Kupon kodu doğru girilmelidir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Kupon / Puan Kullanılan Ödemeler i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Kupon / Puan Kullanılan Ödemeler için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -491,7 +491,7 @@
       "Kart bilgilerinin güvenliğinden şüphe ediliyorsa"
     ],
     "istisnalar": [],
-    "standart_yanit": "Ödeme Güvenliği i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Ödeme Güvenliği için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -556,7 +556,7 @@
       "Normal Kabul Edilen Durumlar"
     ],
     "istisnalar": [],
-    "standart_yanit": "Fatura ve Ödeme Uyuşmazlığı i?in ?deme bilgilerinizi ve sipari? durumunuzu kontrol edin. Sorun devam ederse ayn? i?lem i?in tekrar ?deme yapmadan ?nce destek ekibine sipari?, ?deme ve banka hareketi bilgilerini iletin.",
+      "standart_yanit": "Fatura ve Ödeme Uyuşmazlığı için ödeme bilgilerinizi ve sipariş durumunuzu kontrol edin. Sorun devam ederse aynı işlem için tekrar ödeme yapmadan önce destek ekibine sipariş, ödeme ve banka hareketi bilgilerini iletin.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {

@@ -51,7 +51,7 @@
       "Teslimat adresini teslimattan önce kontrol edebilir (kargo aşamasına göre değişebilir)"
     ],
     "istisnalar": [],
-    "standart_yanit": "Teslimat Süreci i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Teslimat Süreci için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -109,7 +109,7 @@
     ],
     "adimlar": [],
     "istisnalar": [],
-    "standart_yanit": "Tahmini Teslimat Tarihi i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Tahmini Teslimat Tarihi için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -162,7 +162,7 @@
       "Teslim edildi görünmesine rağmen ürün ulaşmadıysa"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kargo Takip İşlemi i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Kargo Takip İşlemi için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -220,7 +220,7 @@
       "Yeni kargo firması belirlenir"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kargo Firması Seçimi / Değişikliği i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Kargo Firması Seçimi / Değişikliği için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -274,7 +274,7 @@
       "Kullanıcıya bilgi verilir"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kargonun Teslim Edilememesi i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Kargonun Teslim Edilememesi için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -323,7 +323,7 @@
       "Sistemsel Güncelleme Hataları"
     ],
     "istisnalar": [],
-    "standart_yanit": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -378,7 +378,7 @@
       "İade veya Değişim Süreci"
     ],
     "istisnalar": [],
-    "standart_yanit": "Hasarlı Teslimat i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Hasarlı Teslimat için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -434,7 +434,7 @@
       "Teslimat Süresinin Güncellenmesi"
     ],
     "istisnalar": [],
-    "standart_yanit": "Geç Teslimat i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Geç Teslimat için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -488,7 +488,7 @@
       "Kullanıcıya bilgi verilir"
     ],
     "istisnalar": [],
-    "standart_yanit": "Şubeden Teslim Alma i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Şubeden Teslim Alma için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -542,7 +542,7 @@
       "Her kargo firması sınırsız yeniden teslimat yapmaz"
     ],
     "istisnalar": [],
-    "standart_yanit": "Adrese Yeniden Teslimat i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Adrese Yeniden Teslimat için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -595,7 +595,7 @@
       "FİNE-TUNİNG"
     ],
     "istisnalar": [],
-    "standart_yanit": "Birden Fazla Kargo ile Teslimat i?in sipari? detay?ndaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyu?mazl??? varsa takip numaras? ve sipari? numaras?yla destek ekibine ba?vurun.",
+      "standart_yanit": "Birden Fazla Kargo ile Teslimat için sipariş detayındaki kargo ve teslimat bilgilerini kontrol edin. Gecikme, hasar veya teslimat uyuşmazlığı varsa takip numarası ve sipariş numarasıyla destek ekibine başvurun.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {

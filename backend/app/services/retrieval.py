@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Chunk
 from .embedding import EmbeddingService, get_embedding_service
+from .embedding_compatibility import ensure_active_ingest_compatible
 
 
 @dataclass(slots=True)
@@ -35,6 +36,7 @@ class GroupedDocument:
 
 SECTION_LABELS = {
     "amac": "Amaç",
+    "amac_tanim": "Amaç ve Tanım",
     "kapsam": "Kapsam",
     "tanim": "Tanım",
     "genel_bilgiler": "Genel Bilgiler",
@@ -43,17 +45,20 @@ SECTION_LABELS = {
     "istisnalar": "İstisnalar",
     "surec": "Süreç",
     "standart_yanit": "Standart Yanıt",
+    "sik_yapilan_hatalar": "Sık Yapılan Hatalar",
 }
 SECTION_ORDER = {
     "tanim": 0,
-    "kapsam": 1,
-    "kosullar": 2,
-    "genel_bilgiler": 3,
-    "adimlar": 4,
-    "istisnalar": 5,
-    "surec": 6,
-    "standart_yanit": 7,
-    "amac": 8,
+    "amac_tanim": 1,
+    "kapsam": 2,
+    "kosullar": 3,
+    "genel_bilgiler": 4,
+    "adimlar": 5,
+    "sik_yapilan_hatalar": 6,
+    "istisnalar": 7,
+    "surec": 8,
+    "standart_yanit": 9,
+    "amac": 10,
 }
 CATEGORY_LABELS = {
     "SIPARIS": "Sipariş",
@@ -66,8 +71,10 @@ CATEGORY_LABELS = {
 
 
 def _base_section(section: str) -> str:
+    if section in SECTION_LABELS:
+        return section
     for name in SECTION_LABELS:
-        if section == name or section.startswith(f"{name}_"):
+        if section.startswith(f"{name}_"):
             return name
     return section
 
@@ -138,9 +145,19 @@ class RetrievalService:
     def __init__(self, embedding_service: EmbeddingService | None = None) -> None:
         self.embedding_service = embedding_service or get_embedding_service()
 
+    @property
+    def minimum_score(self) -> float:
+        settings = self.embedding_service.settings
+        if settings.embedding_provider == "hashing":
+            return settings.hashing_min_retrieval_score
+        return settings.min_retrieval_score
+
     async def search(
         self, session: AsyncSession, query: str, limit: int = 10
     ) -> list[RetrievedChunk]:
+        await ensure_active_ingest_compatible(
+            session, self.embedding_service.settings
+        )
         query_vector = self.embedding_service.embed_query(query)
         distance = Chunk.embedding.cosine_distance(query_vector)
         statement = (
@@ -173,10 +190,12 @@ class RetrievalService:
         max_documents: int = 3,
         max_sections: int = 6,
     ) -> list[GroupedDocument]:
+        # TODO(RAG): Contextual retrieval providerı eklendiğinde aday sorgusu
+        # bu sözleşme korunarak genişletilecek.
         chunks = await self.search(session, query, limit=candidate_limit)
         return group_chunks(
             chunks,
             max_documents=max_documents,
             max_sections=max_sections,
-            min_score=self.embedding_service.settings.min_retrieval_score,
+            min_score=self.minimum_score,
         )

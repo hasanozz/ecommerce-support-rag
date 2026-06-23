@@ -8,6 +8,7 @@ from typing import Any
 
 SECTION_LABELS = {
     "amac": "Amaç",
+    "amac_tanim": "Amaç ve Tanım",
     "kapsam": "Kapsam",
     "tanim": "Tanım",
     "genel_bilgiler": "Genel Bilgiler",
@@ -16,6 +17,7 @@ SECTION_LABELS = {
     "istisnalar": "İstisnalar",
     "surec": "Süreç",
     "standart_yanit": "Standart Yanıt",
+    "sik_yapilan_hatalar": "Sık Yapılan Hatalar",
 }
 CATEGORY_LABELS = {
     "SIPARIS": "Sipariş",
@@ -80,6 +82,20 @@ def build_context(document: dict, section_label: str, content: str) -> str:
     )
 
 
+def build_clean_chunk_context(chunk: dict) -> str:
+    category = CATEGORY_LABELS.get(chunk["category"], chunk["category"])
+    section_label = SECTION_LABELS.get(
+        chunk["section"], str(chunk["section"]).replace("_", " ").title()
+    )
+    return (
+        f"Doküman: {chunk['title']}\n"
+        f"Kategori: {category}\n"
+        f"Alt kategori: {chunk['subcategory']}\n"
+        f"Bölüm: {section_label}\n\n"
+        f"İçerik:\n{chunk['content']}"
+    )
+
+
 def document_to_chunks(document: dict) -> list[dict]:
     raw_sections = []
     for section in SECTION_ORDER:
@@ -139,6 +155,93 @@ def load_documents(path: Path) -> list[dict]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def load_final_documents(directory: Path) -> list[dict]:
+    if not directory.exists():
+        raise FileNotFoundError(f"RAG doküman klasörü bulunamadı: {directory}")
+    documents: list[dict] = []
+    for path in sorted(directory.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            data = [data]
+        if not isinstance(data, list):
+            raise ValueError(f"RAG doküman dosyası liste veya obje olmalı: {path}")
+        for item in data:
+            if not isinstance(item, dict):
+                raise ValueError(f"RAG dokümanı obje olmalı: {path}")
+            documents.append(item)
+    ids = [item.get("id") for item in documents]
+    duplicate_ids = sorted({item for item in ids if ids.count(item) > 1})
+    if duplicate_ids:
+        raise ValueError("Tekrarlı RAG doküman id değerleri: " + ", ".join(duplicate_ids))
+    return documents
+
+
+def load_clean_chunks(path: Path, documents: list[dict]) -> list[dict]:
+    if not path.exists():
+        raise FileNotFoundError(f"RAG chunk dosyası bulunamadı: {path}")
+    document_ids = {item["id"] for item in documents}
+    required_fields = {
+        "chunk_id",
+        "doc_id",
+        "category",
+        "subcategory",
+        "title",
+        "section",
+        "content",
+    }
+    chunks: list[dict] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        missing = required_fields.difference(item)
+        if missing:
+            raise ValueError(
+                f"{path}:{line_number} eksik chunk alanları: "
+                + ", ".join(sorted(missing))
+            )
+        if item["doc_id"] not in document_ids:
+            raise ValueError(
+                f"{path}:{line_number} bilinmeyen doc_id: {item['doc_id']}"
+            )
+        content = normalize_text(str(item["content"]))
+        if not content:
+            raise ValueError(f"{path}:{line_number} boş chunk content")
+        chunk = {
+            "chunk_id": item["chunk_id"],
+            "doc_id": item["doc_id"],
+            "category": item["category"],
+            "subcategory": item["subcategory"],
+            "title": item["title"],
+            "section": item["section"],
+            "content": content,
+        }
+        chunk["contextual_content"] = build_clean_chunk_context(chunk)
+        chunks.append(chunk)
+    chunk_ids = [item["chunk_id"] for item in chunks]
+    duplicate_chunk_ids = sorted({item for item in chunk_ids if chunk_ids.count(item) > 1})
+    if duplicate_chunk_ids:
+        raise ValueError(
+            "Tekrarlı RAG chunk_id değerleri: " + ", ".join(duplicate_chunk_ids)
+        )
+    return chunks
+
+
+def load_final_rag_sources(documents_directory: Path, chunks_path: Path) -> tuple[list[dict], list[dict]]:
+    documents = load_final_documents(documents_directory)
+    chunks = load_clean_chunks(chunks_path, documents)
+    standard_answers = {
+        chunk["doc_id"]: chunk["content"]
+        for chunk in chunks
+        if chunk["section"] == "standart_yanit"
+    }
+    for document in documents:
+        standard_answer = standard_answers.get(document["id"])
+        if standard_answer and "?" in str(document.get("standart_yanit", "")):
+            document["standart_yanit"] = standard_answer
+    return documents, chunks
 
 
 def create_chunks(input_path: Path, output_path: Path) -> list[dict]:

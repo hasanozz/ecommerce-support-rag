@@ -44,7 +44,7 @@
       "Şifre gerekli güvenlik koşullarını sağlamıyorsa sistem hesap oluşturulmasına izin vermez."
     ],
     "istisnalar": [],
-    "standart_yanit": "Hesap Oluşturma i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Hesap Oluşturma işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -104,7 +104,7 @@
       "Şüpheli hesap faaliyetleri tespit edilirse doğrulama işlemi ek güvenlik kontrollerine tabi tutulabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Hesap Doğrulama i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Hesap Doğrulama işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -173,7 +173,7 @@
       "Şüpheli faaliyet tespit edilen hesaplar kullanıcı güvenliğini korumak amacıyla geçici olarak erişime kapatılabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Giriş Yapamama i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Giriş Yapamama işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -243,7 +243,7 @@
       "Yeni şifre belirlenen güvenlik kurallarını karşılamıyorsa sistem şifrenin kaydedilmesine izin vermez."
     ],
     "istisnalar": [],
-    "standart_yanit": "Şifre Sıfırlama i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Şifre Sıfırlama işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -303,7 +303,7 @@
       "Sistem bakım çalışmaları sırasında değişiklik işlemleri geçici olarak gerçekleştirilemeyebilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "E-posta Değiştirme i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "E-posta Değiştirme işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -368,7 +368,7 @@
       "Şüpheli faaliyet tespit edilmesi durumunda ek doğrulama süreçleri uygulanabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Telefon Numarası Değiştirme i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Telefon Numarası Değiştirme işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -431,7 +431,7 @@
       "Sık Karşılaşılan Durumlar"
     ],
     "istisnalar": [],
-    "standart_yanit": "Hesap Silme i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Hesap Silme işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -508,7 +508,7 @@
       "Şüpheli faaliyetlerin yoğunlaştığı durumlarda hesap geçici olarak koruma altına alınabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Şüpheli Giriş Bildirimi i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Şüpheli Giriş Bildirimi işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -575,7 +575,7 @@
       "Şüpheli faaliyet tespit edildiğinde hesap geçici olarak koruma altına alınabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "İki Aşamalı Doğrulama i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "İki Aşamalı Doğrulama işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -650,7 +650,7 @@
       "Şüpheli faaliyet tespit edilmesi durumunda sistem kullanıcı müdahalesi olmadan koruma amaçlı oturum kapatma işlemi uygulayabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Bağlı Cihazlar ve Oturum Yönetimi i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Bağlı Cihazlar ve Oturum Yönetimi işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -718,7 +718,7 @@
       "Devam eden incelemeler süresince hesap erişimi sınırlandırılabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Hesap Askıya Alma i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Hesap Askıya Alma işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -803,7 +803,7 @@
       "Dolandırıcılık ve kötüye kullanımın önlenmesi amacıyla ek veri incelemeleri gerçekleştirilebilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Kişisel Veri Güvenliği i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Kişisel Veri Güvenliği işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
@@ -882,7 +882,7 @@
       "Güvenlik amacıyla bazı işlemler kullanıcı talebi olmaksızın geçici olarak durdurulabilir."
     ],
     "istisnalar": [],
-    "standart_yanit": "Yetkisiz Sipariş / Ödeme Bildirimi i?lemi i?in hesab?n?z?n g?ncel ve do?rulanm?? ileti?im bilgilerini kullan?n. G?venlik riski veya eri?im sorunu varsa i?lemi tekrarlamadan destek ekibinden yard?m al?n.",
+      "standart_yanit": "Yetkisiz Sipariş / Ödeme Bildirimi işlemi için hesabınızın güncel ve doğrulanmış iletişim bilgilerini kullanın. Güvenlik riski veya erişim sorunu varsa işlemi tekrarlamadan destek ekibinden yardım alın.",
     "sik_yapilan_hatalar": [],
     "ilgili_dokumanlar": [],
     "metadata": {
