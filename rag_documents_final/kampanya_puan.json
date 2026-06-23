@@ -1,0 +1,511 @@
+[
+  {
+    "id": "CAMPAIGN_POINT_CAMPAIGN_USE_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KAMPANYA_KULLANIMI",
+    "title": "Kampanya Kullanımı",
+    "amac": "Kampanya kullanımının amacı, kullanıcıların alışverişlerinde belirli ürün, kategori veya sepet koşullarına bağlı indirimlerden yararlanmasını sağlamaktır. Kampanya sistemi, uygun",
+    "kapsam": "",
+    "tanim": "Kampanya, belirli",
+    "genel_bilgiler": [],
+    "kosullar": [
+      "sağlandığında kullanıcıya indirim veya avantaj sağlayan sistem kuralıdır. Kampanyalar belirli ürünlerde, kategorilerde, kullanıcı gruplarında veya sepet tutarlarında geçerli olabilir.",
+      "sağlandığında indirimi otomatik olarak hesaplar ve kullanıcıya sepet aşamasında gösterir.",
+      "Ürün bazlı kampanyalar",
+      "Kategori bazlı kampanyalar",
+      "Sepet tutarına bağlı kampanyalar",
+      "Kullanıcıya özel kampanyalar",
+      "Otomatik indirim uygulama süreci",
+      "Kampanyanın sepete yansımadığı durumlar",
+      "Kampanyalar süre, stok, kullanıcı grubu veya ürün kapsamı ile sınırlı olabilir.",
+      "Kampanya indirimi genellikle sepet veya ödeme ekranında görünür.",
+      "Kampanya aktif tarih aralığında olmalıdır.",
+      "Kampanya stok veya kullanım limiti dolmamış olmalıdır.",
+      "Kampanya başka bir indirimle çakışmamalıdır veya sistem birlikte kullanıma izin vermelidir.",
+      "Sistem aktif kampanyaları kontrol eder ve sepetin hangi kampanyalara uygun olduğunu belirler.",
+      "Bu aşamada ürün, kategori, sepet tutarı, kullanıcı uygunluğu ve kampanya süresi değerlendirilir.",
+      "Birden fazla kampanya uygunsa sistem kampanya kurallarına göre değerlendirme yapar.",
+      "Çakışma olmayan kampanyalar birlikte değerlendirilebilir. Çakışma varsa kullanıcıya en avantajlı olan kampanya uygulanabilir.",
+      "Kullanıcı indirimli tutarı sepet veya ödeme ekranında görüntüleyebilir.",
+      "Sepette ürün çıkarılması, adet değiştirilmesi veya stok değişikliği olması durumunda kampanya yeniden hesaplanabilir.",
+      "İstisnalar",
+      "Kampanya süresi dolmuşsa indirim uygulanmaz.",
+      "Stok bitmesi durumunda kampanya devre dışı kalabilir.",
+      "Bazı kampanyalar yalnızca belirli kullanıcı grupları için geçerli olabilir.",
+      "Sistem bakım çalışmaları sırasında kampanya hesaplamalarında gecikme yaşanabilir.",
+      "Sepet içeriği değişirse kampanya indirimi yeniden hesaplanabilir.",
+      "Kampanyaların manuel olarak seçileceğini düşünmek.",
+      "Sepette ürün değiştirildiğinde kampanyanın aynı kalacağını varsaymak.",
+      "Aynı anda tüm kampanyaların birlikte uygulanacağını düşünmek.",
+      "Aynı ürün veya sepet için birden fazla kampanya uygun olabilir."
+    ],
+    "adimlar": [
+      "Kullanıcının çoğu kampanya için manuel seçim yapmasına gerek yoktur.",
+      "Sistem sepetteki ürünleri, kategorileri ve toplam tutarı analiz etmeye başlar."
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Kampanyalar sistem tarafından otomatik olarak kontrol edilir. Sepetiniz kampanya koşullarını sağlıyorsa uygun indirim sepetinize yansıtılır. Kampanya görünmesine rağmen indirim uygulanmıyorsa ürün, sepet tutarı, kampanya süresi veya kullanıcı uygunluğu şartlarından biri sağlanmıyor olabilir.”",
+    "sik_yapilan_hatalar": [
+      "Her kampanyanın tüm ürünlerde geçerli olduğunu düşünmek."
+    ],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_COUPON_USE_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KUPON_KODU_KULLANIMI",
+    "title": "Kupon Kodu Kullanımı",
+    "amac": "Kupon kodu kullanımının amacı, kullanıcıların belirli kampanyalar kapsamında ek indirimlerden yararlanmasını sağlamaktır. Kuponlar, sistem tarafından doğrulandıktan sonra ödeme aşamasında indirim uygulanmasını sağlar.",
+    "kapsam": "",
+    "tanim": "Kupon kodu, belirli şartlar altında kullanıcılara indirim sağlayan ve ödeme aşamasında girilen promosyon kodudur. Kuponlar genel kullanıma açık, kullanıcıya özel veya belirli kampanyalara özel olabilir.",
+    "genel_bilgiler": [
+      "Kupon kodları ödeme aşamasında kullanılır."
+    ],
+    "kosullar": [
+      "Kupon kodu kullanımı",
+      "Bazı kuponlar belirli kullanıcılar için tanımlanmış olabilir.",
+      "Kuponlar tek kullanımlık veya çok kullanımlık olabilir.",
+      "Kuponlar belirli bir süre boyunca aktif kalır.",
+      "Kuponlar bazı kampanyalarla birlikte kullanılabilirken bazı kampanyalarla birlikte kullanılamayabilir.",
+      "Kupon aktif olmalıdır.",
+      "Kuponun kullanım süresi dolmamış olmalıdır.",
+      "Kullanıcı kuponu daha önce kullanmamış olmalıdır.",
+      "Kupon kullanım limiti dolmamış olmalıdır.",
+      "Kupon başka bir kampanya ile çakışmamalıdır.",
+      "Kullanım limiti",
+      "Kupon kullanım limiti dolmuş olabilir.",
+      "Başka bir kampanya nedeniyle kupon kullanımı engellenebilir.",
+      "Sistemsel gecikmeler nedeniyle kupon doğrulaması kısa süreli başarısız olabilir.",
+      "Kupon süresi dolmuş olabilir.",
+      "Kupon daha önce kullanılmış olabilir.",
+      "Kupon kodunu yanlış girmek. Süresi dolmuş kupon kullanmaya çalışmak. Minimum sepet tutarını karşılamadan kupon kullanmaya çalışmak. Kuponun tüm ürünlerde geçerli olduğunu düşünmek. Aynı kuponu birden fazla kez kullanmaya çalışmak. Kuponun her kampanya ile birlikte kullanılacağını varsaymak."
+    ],
+    "adimlar": [
+      "Sepete kupon uygulanması",
+      "Kupon ile kampanya ilişkisi",
+      "Kullanıcı ödeme aşamasına ilerler.",
+      "Kullanıcı kupon kodunu ilgili alana girer.",
+      "Kuponun varlığı",
+      "Kullanım süresi",
+      "Tüm şartlar sağlanıyorsa kupon indirimi otomatik olarak sepete uygulanır.",
+      "Kullanıcı indirimli tutarı ödeme ekranında görüntüleyebilir.",
+      "İstisnalar"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "\"Kupon kodunuz sistem tarafından kontrol edilmektedir. Kupon kullanım koşulları sağlandığında indirim otomatik olarak sepetinize uygulanır. Kuponun geçerli olmaması durumunda kullanım süresi, sepet koşulları ve ürün uygunluğu tekrar kontrol edilmelidir.\"",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_COUPON_INVALID_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KUPON_GECERSIZ_HATASI",
+    "title": "Kupon Geçersiz Hatası",
+    "amac": "Bu dokümanın amacı, kullanıcıların kupon kullanımı sırasında karşılaştıkları \"kupon geçersiz\" hatasının nedenlerini açıklamak ve çözüm sürecini standart hale getirmektir.",
+    "kapsam": "",
+    "tanim": "Kupon geçersiz hatası, kullanıcının girdiği kupon kodunun sistem kurallarına uygun olmaması veya kullanım koşullarının sağlanmaması durumunda ortaya çıkan hata durumudur.",
+    "genel_bilgiler": [],
+    "kosullar": [
+      "Sistem kuponları otomatik olarak doğrular. Geçersiz kuponlar indirim uygulamaz. Kuponun geçersiz olması birden fazla nedenden kaynaklanabilir. Bazı kuponlar belirli kullanıcılar için tanımlanmıştır.",
+      "Geçersiz kupon hatası",
+      "Süresi dolmuş kuponlar",
+      "Daha önce kullanılmış kuponlar",
+      "Kullanıcıya özel kuponlar",
+      "Kampanya çakışmaları",
+      "Sistemsel doğrulama problemleri",
+      "Sepet içeriği kupon kullanımını etkileyebilir.",
+      "Kuponun kullanım süresi dolmuşsa.",
+      "Kupon daha önce kullanılmışsa.",
+      "Minimum sepet tutarı sağlanmıyorsa.",
+      "Kupon kullanım limiti dolmuşsa.",
+      "Kupon başka bir kampanya ile çakışıyorsa.",
+      "Kullanım süresi",
+      "Kullanım limiti",
+      "Kampanya çakışmaları nedeniyle kupon devre dışı kalabilir.",
+      "Kampanya güncellemeleri nedeniyle kupon geçici olarak kullanılamayabilir.",
+      "Sistemsel gecikmeler kısa süreli doğrulama hatalarına neden olabilir."
+    ],
+    "adimlar": [
+      "Kullanıcı ödeme ekranında kupon kodunu girer.",
+      "Kullanıcıya kuponun uygulanamadığı bilgisi gösterilir.",
+      "İstisnalar",
+      "Kullanıcıya özel kuponlar başka hesaplarda kullanılamaz."
+    ],
+    "istisnalar": [],
+    "standart_yanit": "\"Girdiğiniz kupon kodu kullanım şartlarını karşılamadığı için uygulanamamıştır. Kuponun kullanım süresi, sepet koşulları, ürün uygunluğu ve kullanım hakları kontrol edilerek tekrar denenmesi önerilir.\"",
+    "sik_yapilan_hatalar": [
+      "Kupon kodunu yanlış girmek. Süresi dolmuş kupon kullanmaya çalışmak. Daha önce kullanılmış kuponu tekrar kullanmaya çalışmak. Minimum sepet tutarını sağlamadan kupon kullanmaya çalışmak. Kuponun tüm ürünlerde geçerli olduğunu düşünmek. Başka kullanıcıya ait kuponu kullanmaya çalışmak."
+    ],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_MINIMUM_CART_AMOUNT_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "MINIMUM_SEPET_TUTARI_SARTI",
+    "title": "Minimum Sepet Tutarı Şartı",
+    "amac": "Bu dokümanın amacı, kampanya veya kupon kullanımında minimum sepet tutarı şartının nasıl çalıştığını açıklamak ve kullanıcıların karşılaştığı sorunları doğru şekilde yönlendirmektir.",
+    "kapsam": "",
+    "tanim": "Minimum sepet tutarı, bir kampanya veya kuponun kullanılabilmesi için kullanıcının sepetinde bulunması gereken asgari alışveriş tutarıdır. Bu tutar sağlanmadığında ilgili kampanya veya kupon uygulanmaz.",
+    "genel_bilgiler": [
+      "Minimum sepet tutarı kampanyalara göre değişebilir."
+    ],
+    "kosullar": [
+      "Sepet toplamı hesaplama mantığı",
+      "Kampanya ve kupon ilişkisi",
+      "Minimum sepet tutarı şartı ürün veya kategori bazında uygulanabilir.",
+      "Kampanya ve kuponlar farklı minimum tutar şartlarına sahip olabilir.",
+      "Sepet toplamı belirlenen tutarı karşılamalıdır.",
+      "Ürünler stokta olmalıdır.",
+      "Kampanya süresi devam ediyor olmalıdır.",
+      "Başka bir kampanya ile çakışma bulunmamalıdır.",
+      "Sepet tutarı gerekli şartı sağlıyorsa kampanya veya kupon kullanılabilir hale gelir.",
+      "İstisnalar",
+      "Sepetten ürün çıkarılması kampanyanın iptal olmasına neden olabilir.",
+      "Sistemsel gecikmeler nedeniyle sepet tutarı güncellenmesinde kısa süreli farklılıklar oluşabilir.",
+      "Sepetten ürün çıkardıktan sonra kampanyanın devam edeceğini varsaymak.",
+      "Kampanya ve kuponların aynı minimum tutara sahip olduğunu düşünmek."
+    ],
+    "adimlar": [
+      "Sistem sepet toplamını hesaplar."
+    ],
+    "istisnalar": [],
+    "standart_yanit": "\"Seçtiğiniz kampanya veya kupon için belirlenen minimum sepet tutarı şartı henüz sağlanmamaktadır. Sepet tutarınızı artırarak veya kampanya kapsamındaki ürünleri ekleyerek tekrar deneyebilirsiniz.\"",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_EARN_POINTS_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "PUAN_KAZANMA",
+    "title": "Puan Kazanma",
+    "amac": "Puan kazanma sisteminin amacı, kullanıcıların yaptıkları alışverişler üzerinden ödüllendirilmesini sağlamak ve sadakat mekanizması oluşturmaktır. Kullanıcılar harcamalarına bağlı olarak puan kazanır ve bu puanlar sonraki alışverişlerde indirim olarak kullanılabilir.",
+    "kapsam": "",
+    "tanim": "Puan kazanma, kullanıcıların tamamlanan siparişleri üzerinden belirli oranlarda puan elde etmesini sağlayan sistem mekanizmasıdır.",
+    "genel_bilgiler": [],
+    "kosullar": [
+      "Puan kazanım kuralları",
+      "Sipariş bazlı puan hesaplama",
+      "Kampanya etkileri",
+      "İade ve iptal durumları",
+      "Puanların hesaba eklenme zamanı",
+      "Siparişin teslim edilmiş olması gerekir",
+      "Siparişin iptal edilmemiş olması gerekir"
+    ],
+    "adimlar": [
+      "Puanlar yalnızca tamamlanan siparişler üzerinden kazanılır İptal edilen siparişlerde puan verilmez İade edilen siparişlerde kazanılan puanlar geri alınabilir Puanlar kullanıcı hesabına otomatik olarak eklenir Kampanyalar puan kazanım oranını değiştirebilir",
+      "Kullanıcı ürünleri satın alır ve siparişi tamamlar.",
+      "Sipariş teslim edildikten sonra sistem puan hesaplamasını başlatır.",
+      "Sistem sipariş tutarına göre kazanılacak puanı hesaplar.",
+      "Hesaplanan puanlar kullanıcı hesabına eklenir.",
+      "İstisnalar",
+      "Kampanya dönemlerinde puan oranları değişebilir",
+      "Bazı ürünler puan kazandırmayabilir",
+      "Sistem bakımında puan ekleme gecikebilir",
+      "İade edilen siparişlerde puan geri alınır",
+      "Teslimat sürecini tamamlanmış sanmak"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Puanlarınız siparişiniz teslim edildikten sonra otomatik olarak hesabınıza eklenir. İptal veya iade edilen siparişlerde puan kazanımı gerçekleşmez.”",
+    "sik_yapilan_hatalar": [
+      "Puanların sipariş anında kazanıldığını düşünmek İade edilen siparişten puan beklemek"
+    ],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_USE_POINTS_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "PUAN_KULLANMA",
+    "title": "Puan Kullanma",
+    "amac": "Puan kullanma sisteminin amacı, kullanıcıların biriktirdikleri puanları alışverişlerinde indirim olarak kullanabilmesini sağlamaktır. Bu sistem, kullanıcıya sadakat ödüllerini doğrudan ekonomik faydaya dönüştürme imkânı sunar.",
+    "kapsam": "",
+    "tanim": "Puan kullanma, kullanıcının hesabında bulunan puanların sepet toplamından düşülerek ödeme tutarının azaltılması işlemidir.",
+    "genel_bilgiler": [],
+    "kosullar": [
+      "Puanlar yalnızca ödeme aşamasında kullanılabilir Puanlar nakit olarak çekilemez Puanlar kısmi olarak kullanılabilir Puan kullanımı kullanıcı tarafından manuel seçilir Her siparişte maksimum puan kullanım limiti olabilir",
+      "Puan kullanım süreci",
+      "Ödeme ekranında puan uygulama",
+      "Kısmi puan kullanımı",
+      "Kampanya ve kupon ile etkileşim",
+      "Kullanıcının yeterli puana sahip olması gerekir",
+      "Siparişin ödeme aşamasına gelmiş olması gerekir",
+      "Kampanya kurallarının puan kullanımına izin vermesi gerekir",
+      "İstisnalar",
+      "Minimum ödeme tutarı nedeniyle puan kullanımı kısıtlanabilir",
+      "Bazı kampanyalar puan kullanımını devre dışı bırakabilir",
+      "Sistem belirli ürünlerde puan kullanımına izin vermeyebilir",
+      "Teknik sorunlar nedeniyle puan uygulaması gecikebilir"
+    ],
+    "adimlar": [
+      "Kullanıcı ödeme ekranına ilerler.",
+      "Kullanıcı kullanmak istediği puan miktarını seçer.",
+      "Ürün bazlı kısıtlamaları göz ardı etmek"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Puanlarınız ödeme aşamasında sistem kurallarına uygun şekilde kullanılabilir. Kampanya ve sepet koşullarına bağlı olarak puan kullanımı sınırlanabilir.”",
+    "sik_yapilan_hatalar": [
+      "Puanların otomatik kullanıldığını düşünmek Kampanya ile birlikte sınırsız kullanım beklemek"
+    ],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_RETURN_POINTS_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "IADE_SONRASI_PUAN_DURUMU",
+    "title": "İade Sonrası Puan Durumu",
+    "amac": "Bu dokümanın amacı, iade işlemleri sonrasında kullanıcıların kazandığı veya kullandığı puanların nasıl etkilendiğini açıklamaktır. İade süreçlerinde puanların doğru şekilde güncellenmesi, sistem tutarlılığı ve kullanıcı hesaplarının doğru yönetimi açısından önemlidir.",
+    "kapsam": "",
+    "tanim": "İade sonrası puan durumu, bir siparişin tamamen veya kısmen iade edilmesi durumunda kullanıcı puanlarının yeniden hesaplanması sürecidir.",
+    "genel_bilgiler": [
+      "İade edilen siparişlerde kazanılan puanlar geri alınır Kullanılmış puanlar iade tutarına göre geri yüklenebilir Kısmi iadelerde puanlar oransal olarak güncellenir"
+    ],
+    "kosullar": [
+      "Siparişin puan hesaplamasına dahil edilmiş olması gerekir",
+      "İade türünün (tam veya kısmi) belirlenmiş olması gerekir",
+      "Kampanya dönemlerinde verilen bonus puanlar farklı kurallara tabi olabilir",
+      "Sistemsel gecikmeler nedeniyle puan güncellemesi zaman alabilir"
+    ],
+    "adimlar": [
+      "Kullanılan puanların iade edilmesi",
+      "Kısmi iade durumları",
+      "İade sonrası puan güncelleme süreci",
+      "Kampanya kaynaklı puan değişimleri",
+      "Kampanya kaynaklı puanlar ayrıca değerlendirilir",
+      "Kullanıcının puan bakiyesi sistemde aktif olmalıdır",
+      "Kullanıcı ilgili sipariş için iade talebi oluşturur.",
+      "Ürün teslim alındıktan sonra iade işlemi sistem tarafından tamamlanır.",
+      "Sistem iade edilen ürünlere göre puanları yeniden hesaplar.",
+      "Güncel puan bakiyesi kullanıcı hesabına yansıtılır.",
+      "İade Türlerine Göre Puan Durumu",
+      "Tam İade",
+      "Kazanılan tüm puanlar geri alınır",
+      "Kullanılan puanlar kullanıcıya iade edilir",
+      "Kısmi İade",
+      "Sadece iade edilen ürünlere ait puanlar güncellenir",
+      "Puanlar oransal olarak azaltılabilir",
+      "İstisnalar",
+      "Bazı promosyon puanları iade edilmeyebilir",
+      "Yasal veya finansal incelemeler sırasında puanlar geçici olarak dondurulabilir"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“İade işleminiz tamamlandıktan sonra kazanılan puanlar sistem tarafından yeniden hesaplanır ve hesabınıza otomatik olarak yansıtılır. Kullanılmış puanlar iade tutarına göre güncellenebilir.”",
+    "sik_yapilan_hatalar": [
+      "Puanların anında geri döneceğini düşünmek Kısmi iadelerde tam puan iadesi beklemek Kampanya puanlarını standart puanlarla karıştırmak İade süreci tamamlanmadan puan güncellemesi beklemek"
+    ],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_CONDITIONS_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KAMPANYA_KOSULLARI",
+    "title": "Kampanya Koşulları",
+    "amac": "Bu dokümanın amacı, kampanyaların hangi kurallara göre çalıştığını ve kullanıcıların neden bazı kampanyalardan faydalanamadığını açıklamaktır. Kampanya koşulları, sistemin indirimleri kontrollü ve doğru şekilde uygulamasını sağlar.",
+    "kapsam": "",
+    "tanim": "Kampanya koşulları, bir kampanyanın geçerli olabilmesi için sağlanması gereken teknik ve iş kurallarıdır.",
+    "genel_bilgiler": [
+      "Kampanya süresinin aktif olması",
+      "Stok durumunun yeterli olması",
+      "İstisnalar",
+      "Kampanya stokları anlık değişebilir",
+      "Sepet tutarını yanlış hesaplamak"
+    ],
+    "kosullar": [
+      "Kampanyalar kullanıcı, ürün veya sepet bazlı olabilir",
+      "Kampanyanın maksimum kullanım limitinin dolmamış olması",
+      "Kullanıcı bazlı kısıtlamalar",
+      "Zaman ve stok kısıtları",
+      "Kampanya doğrulama süreci",
+      "Kampanya süresinin aktif olması",
+      "Stok durumunun yeterli olması",
+      "İstisnalar",
+      "Kampanya stokları anlık değişebilir",
+      "Sepet tutarını yanlış hesaplamak"
+    ],
+    "adimlar": [
+      "Kampanya için tanımlanan tüm kurallar tek tek kontrol edilir.",
+      "Sistem sepet ve kullanıcı bilgilerini analiz eder.",
+      "Bazı kampanyalar sadece belirli kullanıcı segmentlerine açıktır",
+      "Bölgesel kısıtlamalar kampanya erişimini engelleyebilir",
+      "Aynı anda birden fazla kampanya kısıtlanabilir"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Seçtiğiniz kampanya belirlenen koşullara bağlı olarak değerlendirilmiştir. Kampanya şartları sağlanmadığı için indirim uygulanmamış olabilir. Sistem her zaman en uygun ve geçerli kampanyayı otomatik olarak seçer.”",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_COMBINING_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+    "title": "Kampanyaların Birleştirilmesi",
+    "amac": "Bu dokümanın amacı, birden fazla kampanyanın aynı sepet üzerinde nasıl çalıştığını ve hangi durumlarda birlikte uygulanabildiğini açıklamaktır. Sistem, kullanıcıya en avantajlı sonucu sunarken kampanya çakışmalarını da kontrollü şekilde yönetir.",
+    "kapsam": "",
+    "tanim": "Kampanyaların birleştirilmesi, aynı alışveriş sepetinde birden fazla kampanyanın birlikte veya alternatifli şekilde değerlendirilmesi sürecidir.",
+    "genel_bilgiler": [],
+    "kosullar": [
+      "Her kampanya aynı anda uygulanmayabilir Sistem en avantajlı kampanyayı seçer Bazı kampanyalar birlikte çalışabilir Çoğu kampanya çakışma kuralına tabidir Kampanyalar ürün, sepet veya kullanıcı bazlı olabilir",
+      "Aynı sepette birden fazla kampanya kullanımı",
+      "Kampanya çakışma kuralları",
+      "Önceliklendirme mantığı",
+      "Otomatik kampanya seçimi",
+      "Kullanıcıya yansıyan nihai indirim",
+      "Kampanyaların çakışma kuralının izin vermesi gerekir",
+      "Sistem tarafından aynı anda uygulanabilir olarak işaretlenmiş olması gerekir",
+      "Çakışan kampanyalarda en avantajlı olan seçilir",
+      "İstisnalar",
+      "Bazı kampanyalar diğer kampanyalarla kesin olarak çakışır",
+      "Sistem sadece tek kampanya uygulamayı tercih edebilir",
+      "Kampanya kombinasyonları sistem güncellemeleri ile değişebilir",
+      "Yoğun kampanya dönemlerinde sınırlamalar uygulanabilir",
+      "Tüm kampanyaların birlikte uygulanacağını varsaymak Manuel kampanya seçimi beklemek Çakışma kurallarını bilmemek Aynı ürün için birden fazla indirim beklemek Sistem seçim mantığını yanlış yorumlamak"
+    ],
+    "adimlar": [
+      "Sistem kampanyaları avantaj seviyesine göre sıralar."
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Sistem, sepetiniz için en avantajlı kampanya kombinasyonunu otomatik olarak değerlendirir. Çakışan kampanyalar durumunda yalnızca en yüksek faydayı sağlayan indirim uygulanır.”",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_EXPIRED_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "SURESI_DOLAN_KUPON_PUAN",
+    "title": "Süresi Dolan Kupon / Puan",
+    "amac": "Bu dokümanın amacı, süresi dolmuş kupon ve puanların sistemde nasıl yönetildiğini ve kullanıcıya nasıl yansıdığını açıklamaktır. Sistem, geçerlilik süresi dolan indirim ve puanları otomatik olarak devre dışı bırakır.",
+    "kapsam": "",
+    "tanim": "Süresi dolan kupon ve puanlar, belirlenen geçerlilik tarihini aşan ve artık kullanılamayan indirim haklarıdır. Bu değerler sistem tarafından otomatik olarak pasif hale getirilir.",
+    "genel_bilgiler": [
+      "Kupon ve puanların geçerlilik süresi sistem tarafından belirlenir Süre dolduğunda kullanım hakkı otomatik olarak kaldırılır Kullanıcıya kullanım süresi dolmadan önce bilgilendirme yapılabilir Süresi dolan kupon ve puanlar geri getirilemez"
+    ],
+    "kosullar": [
+      "Süresi dolan kuponların yönetimi",
+      "Süresi dolan puanların silinmesi",
+      "Varsa kullanıcıya süre dolumu hakkında bilgilendirme yapılabilir.",
+      "Bazı özel kuponlar süre uzatımına tabi olabilir",
+      "Kuponun süresiz olduğunu düşünmek Puanların kalıcı olduğunu varsaymak"
+    ],
+    "adimlar": [
+      "Kullanıcı bilgilendirme süreci",
+      "Kuponun son kullanım tarihi geçmiştir",
+      "Puanların geçerlilik süresi tamamlanmıştır",
+      "Kampanya süresi resmi olarak sona ermiştir",
+      "Sistem kupon ve puanların son kullanım tarihlerini sürekli takip eder.",
+      "Belirlenen tarih geçtiğinde kupon veya puan geçersiz hale gelir.",
+      "Geçersiz hale gelen kupon ve puanlar kullanıcı hesabından kaldırılır veya pasif duruma getirilir.",
+      "İstisnalar",
+      "Kampanya uzatmaları kupon süresini etkileyebilir",
+      "Yasal veya operasyonel durumlarda puanlar geçici olarak korunabilir",
+      "Kampanya uzatmalarını göz ardı etmek"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Kupon veya puanınızın kullanım süresi dolduğu için artık aktif değildir. Süresi dolan indirimler sistem tarafından otomatik olarak devre dışı bırakılmaktadır.”",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  },
+  {
+    "id": "CAMPAIGN_POINT_CATEGORY_CAMPAIGNS_001",
+    "category": "KAMPANYA_PUAN",
+    "subcategory": "KATEGORIYE_OZEL_KAMPANYALAR",
+    "title": "Kategoriye Özel Kampanyalar",
+    "amac": "Bu dokümanın amacı, belirli ürün kategorilerine özel olarak tanımlanan kampanyaların nasıl çalıştığını ve hangi kurallara göre uygulandığını açıklamaktır. Kategori bazlı kampanyalar, belirli ürün gruplarında hedefli indirim sağlamak için kullanılır.",
+    "kapsam": "",
+    "tanim": "Kategoriye özel kampanya, yalnızca belirli ürün kategorilerinde geçerli olan ve diğer kategorilerde uygulanmayan indirim türüdür.",
+    "genel_bilgiler": [
+      "Kampanyalar kategori bazında tanımlanabilir"
+    ],
+    "kosullar": [
+      "Kategori bazlı kampanya tanımları",
+      "Ürün eşleştirme mantığı",
+      "Kategori değişiklikleri kampanya sonucunu etkileyebilir",
+      "Ürünün ilgili kategoriye dahil olması gerekir",
+      "Kampanya süresinin aktif olması gerekir",
+      "Ürünün stokta bulunması gerekir",
+      "İstisnalar",
+      "Ürün yanlış kategoriye atanmış olabilir",
+      "Sistem kategori güncellemelerini gecikmeli yansıtabilir",
+      "Bazı ürünler birden fazla kategoriye dahil olabilir",
+      "Kampanya sadece alt kategori seviyesinde geçerli olabilir",
+      "Stok değişiklikleri kampanya uygulanmasını etkileyebilir",
+      "Aynı ürün birden fazla kategoriye bağlı olabilir",
+      "Ürünün kampanya kategorisinde olduğunu varsaymak Alt kategori farkını göz ardı etmek"
+    ],
+    "adimlar": [
+      "Kategori kampanyası için gerekli şartların sağlanıp sağlanmadığı kontrol edilir.",
+      "Kampanya uygulama kuralları",
+      "Yanlış kategori eşleşme senaryoları",
+      "Ürün kategorileri aktif kampanyalar ile eşleştirilir.",
+      "Tüm ürünlerde kampanya geçerli sanmak",
+      "Sistem eşleştirmesini yanlış yorumlamak"
+    ],
+    "istisnalar": [],
+    "standart_yanit": "“Seçtiğiniz ürünler ilgili kategori kampanyası kapsamında değerlendirilmiştir. Kampanya yalnızca belirlenen kategoriye dahil ürünlerde geçerlidir ve sistem en uygun indirimi otomatik olarak uygular.”",
+    "sik_yapilan_hatalar": [],
+    "ilgili_dokumanlar": [],
+    "metadata": {
+      "version": "1.0",
+      "language": "tr",
+      "document_type": "procedure",
+      "source": "internal_knowledge_base"
+    }
+  }
+]

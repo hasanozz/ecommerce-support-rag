@@ -143,3 +143,40 @@ Bu aşamada `llm_context` yalnızca önizleme amacıyla hazırlanır; LLM çağr
 ```
 
 Query rewriting, reranking, classifier, feedback, ticket ve explainability bu MVP'nin kapsamı dışındadır; servis katmanları sonradan eklenebilecek şekilde ayrılmıştır.
+
+## Proje Yapısı
+
+```
+ecommerce-support-rag/
+│
+├── backend/                    ← FastAPI sunucusu
+├── frontend/                   ← HTML/CSS/JS arayüzü
+├── scripts/                    ← Yardımcı betikler
+│
+├── rag_documents_final/        ← ✓ Tek gerçek RAG bilgi kaynağı
+│   ├── siparis.json
+│   ├── iade.json
+│   ├── odemeler.json
+│   ├── kargo_teslimat.json
+│   ├── hesap_guvenlik.json
+│   └── kampanya_puan.json
+│
+├── rag_chunks/                 ← Chunk dosyaları (gelecek)
+├── embeddings/                 ← Embedding vektörleri (gelecek)
+├── logs/                       ← Uygulama günlükleri (gelecek)
+│
+├── archive/                    ← İşlem geçmişi
+│   ├── rag_documents/          ← İlk çıkarma (archive)
+│   ├── rag_documents_structured/
+│   └── rag_documents_clean/
+│
+├── data/                       ← Diğer veri dosyaları
+├── docker-compose.yml
+├── README.md
+└── requirements.txt
+```
+
+### Kaynaklar
+
+- `rag_documents_final/`: Kategorilere ayrılmış nihai RAG dokümanları. Tüm sistem bu klasördeki JSON dosyalarını okur.
+- `archive/`: İşlem aşamaları ve deneme çalışmaları. Referans amacıyla saklanır.

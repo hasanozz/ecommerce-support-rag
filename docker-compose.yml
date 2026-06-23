@@ -1,16 +1,17 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: ecommerce_rag_postgres
     environment:
-      POSTGRES_DB: destekai
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce_rag
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: ecommerce_pass
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d destekai"]
+      test: ["CMD-SHELL", "pg_isready -U ecommerce_user -d ecommerce_rag"]
       interval: 5s
       timeout: 5s
       retries: 10
