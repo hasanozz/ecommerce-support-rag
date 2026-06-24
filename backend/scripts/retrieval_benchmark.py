@@ -11,6 +11,28 @@ from backend.app.services.retrieval import RetrievalService
 
 
 DEFAULT_FIXTURE = Path("backend/tests/fixtures/retrieval_benchmark.json")
+EXPECTED_EMBEDDING_PROVIDER = "sentence_transformers"
+EXPECTED_EMBEDDING_MODEL = "BAAI/bge-m3"
+EXPECTED_EMBEDDING_DIMENSION = 1024
+
+
+def validate_benchmark_embedding_config(
+    provider: str, model: str, dimension: int
+) -> None:
+    expected = (
+        EXPECTED_EMBEDDING_PROVIDER,
+        EXPECTED_EMBEDDING_MODEL,
+        EXPECTED_EMBEDDING_DIMENSION,
+    )
+    if (provider, model, dimension) != expected:
+        raise RuntimeError(
+            "Retrieval benchmark requires "
+            f"provider={EXPECTED_EMBEDDING_PROVIDER}, "
+            f"model={EXPECTED_EMBEDDING_MODEL}, "
+            f"dimension={EXPECTED_EMBEDDING_DIMENSION}. "
+            "Active config: "
+            f"provider={provider}, model={model}, dimension={dimension}."
+        )
 
 
 def reciprocal_rank(ranked_ids: list[str], expected_doc_id: str) -> float:
@@ -45,8 +67,14 @@ async def evaluate_case(
 
 
 async def main() -> None:
-    cases = json.loads(DEFAULT_FIXTURE.read_text(encoding="utf-8"))
     service = RetrievalService()
+    settings = service.embedding_service.settings
+    validate_benchmark_embedding_config(
+        settings.embedding_provider,
+        settings.embedding_model,
+        settings.embedding_dimension,
+    )
+    cases = json.loads(DEFAULT_FIXTURE.read_text(encoding="utf-8"))
     results = [await evaluate_case(service, case) for case in cases]
     summary = {
         "case_count": len(results),
