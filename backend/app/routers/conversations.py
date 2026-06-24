@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from ..config import get_settings
 from ..database import get_db
-from ..models import Conversation, Message, User
+from ..models import Conversation, Feedback, Message, User
 from ..schemas.conversation import (
     AssistantAnswerResponse,
     ConversationCreate,
@@ -88,6 +88,15 @@ async def conversation_detail(
     if conversation is None:
         raise HTTPException(404, "Görüşme bulunamadı.")
     messages = sorted(conversation.messages, key=lambda item: item.id)
+    feedback_rows = (
+        await session.execute(
+            select(Feedback.message_id, Feedback.value).where(
+                Feedback.user_id == user.id,
+                Feedback.message_id.in_([item.id for item in messages]),
+            )
+        )
+    ).all()
+    feedback_map = {message_id: value for message_id, value in feedback_rows}
     return ConversationDetail(
         id=conversation.id,
         title=conversation.title,
@@ -105,6 +114,7 @@ async def conversation_detail(
                 sources=item.sources,
                 helpful_count=item.helpful_count,
                 unhelpful_count=item.unhelpful_count,
+                user_feedback=feedback_map.get(item.id),
                 created_at=item.created_at,
             )
             for item in messages
@@ -131,7 +141,7 @@ async def send_message(
     safe_query = sanitize_query(payload.message, settings)
     conversation = await owned_conversation(session, conversation_id, user.id)
     assistant, canonical, grouped, similar, classification = await SupportPipeline(settings).run(
-        session, conversation, safe_query, ip_hash
+        session, conversation, user, safe_query, ip_hash
     )
     return AssistantAnswerResponse(
         assistant_message_id=assistant.id,

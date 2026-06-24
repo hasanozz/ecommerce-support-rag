@@ -57,6 +57,7 @@ class MessageResponse(BaseModel):
     sources: list[dict]
     helpful_count: int
     unhelpful_count: int
+    user_feedback: Literal["HELPFUL", "UNHELPFUL"] | None = None
     created_at: datetime
 
 

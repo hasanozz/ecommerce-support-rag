@@ -20,6 +20,7 @@ class RagRun(Base):
     )
     rewritten_query: Mapped[str] = mapped_column(String(2000))
     retrieval_results: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+    customer_context: Mapped[dict] = mapped_column(JSONB, default=dict)
     few_shot_examples: Mapped[list[dict]] = mapped_column(JSONB, default=list)
     model_name: Mapped[str] = mapped_column(String(128), default="")
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

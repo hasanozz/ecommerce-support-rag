@@ -199,3 +199,40 @@ class RetrievalService:
             max_sections=max_sections,
             min_score=self.minimum_score,
         )
+
+    async def grouped_by_category(
+        self,
+        session: AsyncSession,
+        category: str,
+        *,
+        max_documents: int = 3,
+        max_sections: int = 6,
+    ) -> list[GroupedDocument]:
+        rows = (
+            await session.scalars(
+                select(Chunk)
+                .where(Chunk.category == category)
+                .order_by(Chunk.title, Chunk.chunk_id)
+                .limit(max_documents * max_sections)
+            )
+        ).all()
+        chunks = [
+            RetrievedChunk(
+                chunk_id=chunk.chunk_id,
+                doc_id=chunk.doc_id,
+                title=chunk.title,
+                category=chunk.category,
+                subcategory=chunk.subcategory,
+                section=chunk.section,
+                content=chunk.content,
+                contextual_content=chunk.contextual_content,
+                score=0.0,
+            )
+            for chunk in rows
+        ]
+        return group_chunks(
+            chunks,
+            max_documents=max_documents,
+            max_sections=max_sections,
+            min_score=0.0,
+        )

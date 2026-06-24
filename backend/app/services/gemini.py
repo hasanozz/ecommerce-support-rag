@@ -248,6 +248,8 @@ class GeminiService:
     async def answer(
         self,
         canonical_query: str,
+        conversation_history: list[str],
+        customer_context: str,
         llm_context: str,
         few_shots: list[dict],
         *,
@@ -259,7 +261,13 @@ class GeminiService:
                 "answer": "",
                 "cited_doc_ids": [],
             }
-        prompt = build_answer_user_prompt(canonical_query, llm_context, few_shots)
+        prompt = build_answer_user_prompt(
+            canonical_query,
+            conversation_history,
+            customer_context,
+            llm_context,
+            few_shots,
+        )
         return await self._generate_json(
             prompt,
             {

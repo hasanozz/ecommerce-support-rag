@@ -16,6 +16,7 @@ from .database import SessionLocal
 from .routers import (
     auth_router,
     conversation_router,
+    demo_commerce_router,
     feedback_router,
     rag_router,
     ticket_router,
@@ -69,6 +70,7 @@ async def disable_frontend_cache_in_development(request: Request, call_next):
 app.include_router(rag_router, prefix=settings.api_prefix)
 app.include_router(auth_router)
 app.include_router(conversation_router)
+app.include_router(demo_commerce_router)
 app.include_router(feedback_router)
 app.include_router(ticket_router)
 

@@ -1,6 +1,16 @@
 from .base import Base
 from .chunk import Chunk
 from .document import Document
+from .demo_commerce import (
+    DemoCart,
+    DemoCartItem,
+    DemoCoupon,
+    DemoOrder,
+    DemoOrderItem,
+    DemoPaymentAttempt,
+    DemoProduct,
+    DemoShipment,
+)
 from .query_log import QueryLog
 from .conversation import Conversation
 from .email_outbox import EmailOutbox
@@ -18,6 +28,14 @@ from .user_session import UserSession
 __all__ = [
     "Base",
     "Document",
+    "DemoProduct",
+    "DemoCart",
+    "DemoCartItem",
+    "DemoCoupon",
+    "DemoOrder",
+    "DemoOrderItem",
+    "DemoPaymentAttempt",
+    "DemoShipment",
     "Chunk",
     "QueryLog",
     "User",

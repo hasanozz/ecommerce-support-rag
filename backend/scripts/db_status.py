@@ -16,6 +16,11 @@ from backend.app.models import (
     SimilarSolutionImpression,
     Ticket,
     User,
+    DemoCart,
+    DemoCoupon,
+    DemoOrder,
+    DemoPaymentAttempt,
+    DemoProduct,
 )
 
 
@@ -50,6 +55,13 @@ async def main() -> None:
             .select_from(EmbeddingIngest)
             .where(EmbeddingIngest.is_active.is_(True))
         )
+        product_count = await session.scalar(select(func.count()).select_from(DemoProduct))
+        coupon_count = await session.scalar(select(func.count()).select_from(DemoCoupon))
+        cart_count = await session.scalar(select(func.count()).select_from(DemoCart))
+        order_count = await session.scalar(select(func.count()).select_from(DemoOrder))
+        payment_attempt_count = await session.scalar(
+            select(func.count()).select_from(DemoPaymentAttempt)
+        )
 
         print(f"pgvector: {'enabled' if vector_enabled else 'missing'}")
         print(f"documents: {document_count}")
@@ -62,6 +74,11 @@ async def main() -> None:
         print(f"similar_solutions: {solution_count}")
         print(f"similar_solution_impressions: {impression_count}")
         print(f"active_embedding_ingests: {active_ingest_count}")
+        print(f"demo_products: {product_count}")
+        print(f"demo_coupons: {coupon_count}")
+        print(f"demo_carts: {cart_count}")
+        print(f"demo_orders: {order_count}")
+        print(f"demo_payment_attempts: {payment_attempt_count}")
 
     await close_database()
 
