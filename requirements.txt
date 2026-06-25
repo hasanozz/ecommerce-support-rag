@@ -6,6 +6,10 @@ pgvector==0.4.1
 pydantic-settings==2.10.1
 httpx==0.28.1
 sentence-transformers==4.1.0
+psycopg2-binary
 python-dotenv==1.1.1
 pytest==8.4.1
 pytest-asyncio==1.0.0
+alembic==1.16.2
+itsdangerous==2.2.0
+email-validator==2.2.0

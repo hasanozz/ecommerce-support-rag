@@ -16,6 +16,8 @@ class GroupedSearchResult(BaseModel):
     category: str
     subcategory: str
     best_score: float
+    retrieval_score: float
+    reranker_score: float | None = None
     matched_sections: list[str]
     combined_context: str
 
@@ -24,6 +26,7 @@ class SearchResponse(BaseModel):
     query: str
     grouped_results: list[GroupedSearchResult]
     llm_context: str
+    reranker_enabled: bool = False
 
 
 class ChatRequest(BaseModel):

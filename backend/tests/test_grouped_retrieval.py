@@ -33,3 +33,18 @@ def test_group_chunks_merges_by_document_and_limits_sections():
     assert "Doküman: Başlık DOC_1" in grouped[0].combined_context
     assert "Kategori: Ödemeler" in grouped[0].combined_context
     assert "Tanım:\nTanım metni" in grouped[0].combined_context
+
+
+def test_group_chunks_supports_clean_rag_sections():
+    grouped = group_chunks(
+        [
+            chunk("DOC_1", "sik_yapilan_hatalar", "Hata metni", 0.90),
+            chunk("DOC_1", "amac_tanim", "Amaç ve tanım metni", 0.88),
+        ],
+        max_documents=1,
+        max_sections=2,
+    )
+
+    assert grouped[0].matched_sections == ["amac_tanim", "sik_yapilan_hatalar"]
+    assert "Amaç ve Tanım:\nAmaç ve tanım metni" in grouped[0].combined_context
+    assert "Sık Yapılan Hatalar:\nHata metni" in grouped[0].combined_context

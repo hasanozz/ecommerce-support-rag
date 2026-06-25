@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import re
+import unicodedata
 
 from fastapi import HTTPException, status
 
@@ -10,10 +11,19 @@ from ..config import Settings, get_settings
 
 JAILBREAK_PATTERNS = [
     r"önceki talimatları unut",
+    r"(tüm|bütün) (önceki )?talimatları (unut|yok say)",
+    r"(kuralları|güvenlik kurallarını) (yok say|devre dışı bırak)",
+    r"rolünü değiştir",
+    r"şimdi sen .* ol",
     r"ignore (all )?previous instructions",
+    r"disregard (all )?(previous|prior) instructions",
+    r"reveal (the )?(system|developer) prompt",
     r"system prompt",
     r"developer message",
     r"admin mode",
+    r"developer mode",
+    r"jailbreak",
+    r"prompt injection",
     r"api[\s_-]?key",
     r"gizli talimat",
 ]
@@ -50,7 +60,12 @@ OBVIOUSLY_OUT_OF_SCOPE = {
 
 def sanitize_query(raw_query: str, settings: Settings | None = None) -> str:
     config = settings or get_settings()
-    query = html.unescape(raw_query or "")
+    query = unicodedata.normalize("NFKC", html.unescape(raw_query or ""))
+    query = "".join(
+        character
+        for character in query
+        if character in "\n\t" or not unicodedata.category(character).startswith("C")
+    )
     query = re.sub(
         r"<\s*(script|style)[^>]*>.*?<\s*/\s*\1\s*>",
         " ",

@@ -13,6 +13,12 @@ class EmbeddingService:
         self.settings = settings or get_settings()
         self._model = None
 
+    @property
+    def model_identity(self) -> str:
+        if self.settings.embedding_provider == "hashing":
+            return "hashing-sha256-v1"
+        return self.settings.embedding_model
+
     def _load_model(self):
         if self._model is None:
             from sentence_transformers import SentenceTransformer

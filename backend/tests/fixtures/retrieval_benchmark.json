@@ -1,0 +1,122 @@
+[
+  {
+    "query": "Kartımdan para çekildi ama siparişim oluşmadı",
+    "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Siparişimi nasıl iptal edebilirim?",
+    "expected_doc_id": "ORDER_CANCEL_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Kargom teslim edildi görünüyor ama bana ulaşmadı",
+    "expected_doc_id": "SHIPPING_MARKED_DELIVERED_NOT_RECEIVED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "İade talebi nasıl oluşturulur?",
+    "expected_doc_id": "RETURN_REQUEST_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Kupon kodum geçersiz hatası veriyor",
+    "expected_doc_id": "CAMPAIGN_POINT_COUPON_INVALID_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Hesabıma giriş yapamıyorum",
+    "expected_doc_id": "ACCOUNT_SECURITY_LOGIN_ISSUE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şifremi unuttum nasıl sıfırlarım?",
+    "expected_doc_id": "ACCOUNT_SECURITY_PASSWORD_RESET_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Ödeme başarısız oldu ne yapmalıyım?",
+    "expected_doc_id": "PAYMENT_FAILED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ücret iadem ne zaman hesabıma geçer?",
+    "expected_doc_id": "PAYMENT_REFUND_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "İade kargo kodunu nereden alırım?",
+    "expected_doc_id": "RETURN_CODE_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Hasarlı ürün teslim aldım",
+    "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişim geç teslim edildi",
+    "expected_doc_id": "SHIPPING_LATE_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişimde eksik ürün var",
+    "expected_doc_id": "ORDER_MISSING_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Yanlış ürün gönderildi",
+    "expected_doc_id": "ORDER_WRONG_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Taksitli ödeme yapmak istiyorum",
+    "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Puanlarımı nasıl kullanırım?",
+    "expected_doc_id": "CAMPAIGN_POINT_USE_POINTS_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "İade sonrası puanlarım ne olur?",
+    "expected_doc_id": "CAMPAIGN_POINT_RETURN_POINTS_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Telefon numaramı değiştirmek istiyorum",
+    "expected_doc_id": "ACCOUNT_SECURITY_PHONE_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabımı silmek istiyorum",
+    "expected_doc_id": "ACCOUNT_SECURITY_DELETE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Siparişimin faturasını nereden görebilirim?",
+    "expected_doc_id": "ORDER_INVOICE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Kargo takip numaramı nereden öğrenirim?",
+    "expected_doc_id": "SHIPPING_TRACKING_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Çift çekim olmuş ne yapmalıyım?",
+    "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kampanya koşulları nelerdir?",
+    "expected_doc_id": "CAMPAIGN_POINT_CONDITIONS_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Şüpheli giriş bildirimi aldım",
+    "expected_doc_id": "ACCOUNT_SECURITY_SUSPICIOUS_LOGIN_001",
+    "expected_category": "HESAP_GUVENLIK"
+  }
+]

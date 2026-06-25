@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from backend.app.rag.chunking import document_to_chunks, load_documents
+from backend.app.rag.chunking import (
+    document_to_chunks,
+    load_clean_chunks,
+    load_final_documents,
+)
 
 
 def test_empty_sections_are_not_chunked():
@@ -27,11 +31,17 @@ def test_empty_sections_are_not_chunked():
     assert all("Kategori: Sipariş" in chunk["contextual_content"] for chunk in chunks)
 
 
-def test_project_documents_create_unique_chunks():
-    source = Path("data/processed/rag_documents.jsonl")
-    documents = load_documents(source)
-    chunks = [chunk for document in documents for chunk in document_to_chunks(document)]
+def test_final_rag_sources_are_valid():
+    documents = load_final_documents(Path("rag_documents_final"))
+    chunks = load_clean_chunks(Path("rag_chunks/rag_chunks_clean.jsonl"), documents)
+
+    assert len(documents) == 70
+    assert len(chunks) == 411
+    assert len({document["id"] for document in documents}) == len(documents)
     assert len({chunk["chunk_id"] for chunk in chunks}) == len(chunks)
     assert {chunk["doc_id"] for chunk in chunks} == {
         document["id"] for document in documents
     }
+    assert all("contextual_content" in chunk for chunk in chunks)
+    assert all("metadata" not in chunk for chunk in chunks)
+    assert all("İçerik:" in chunk["contextual_content"] for chunk in chunks)
