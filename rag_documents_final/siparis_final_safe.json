@@ -1,0 +1,515 @@
+[
+  {
+    "doc_id": "SIPARIS_ORDER_CREATE_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_OLUSTURMA",
+    "title": "Sipariş Oluşturma",
+    "amac": "Kullanıcının platform üzerinden geçerli bir sipariş oluşturma sürecini anlamasını sağlar.",
+    "kapsam": "Siparişin sepete eklenmesinden onaylanmasına kadar olan aşamaları, gerekli adres, ödeme ve stok kontrollerini kapsar.",
+    "tanim": "Sipariş oluşturma, kullanıcının seçtiği ürünleri teslimat ve ödeme bilgileriyle birlikte onaylayıp satın alma sürecini başlatmasıdır.",
+    "kullanici_ifadeleri": [
+      "Siparişimi nasıl oluşturacağım?",
+      "Sepetime eklediğim ürünleri nasıl onaylarım?",
+      "Teslimat adresini nasıl eklerim?",
+      "Ödeme bilgilerini girdikten sonra siparişim ne zaman oluşur?",
+      "Sipariş oluşturulmadıysa ne yapmalıyım?"
+    ],
+    "kosullar": [
+      "Ürünler stokta bulunmalıdır.",
+      "Teslimat adresi geçerli ve teslimat kapsamına uygun olmalıdır.",
+      "Seçilen ödeme yöntemi işlem için geçerli olmalıdır.",
+      "Kullanıcının hesabında siparişe engel bir kısıtlama olmamalıdır.",
+      "Kampanya, kupon veya puan koşulları sipariş aşamasında uygun olmalıdır."
+    ],
+    "adimlar": [
+      "Sepete almak istediği ürünleri ekler.",
+      "Teslimat ve fatura adresini seçer veya yeni adres ekler.",
+      "Ödeme yöntemini belirler.",
+      "Sipariş özetini kontrol eder.",
+      "Siparişi onaylar."
+    ],
+    "istisnalar": [
+      "Ürün stokta yoksa sipariş oluşturulamayabilir.",
+      "Adres teslimat bölgesi dışında ise işlem başarısız olabilir.",
+      "Ödeme yöntemi onaylanmazsa sipariş tamamlanmayabilir.",
+      "Kullanıcı hesabındaki güvenlik kısıtları siparişe engel olabilir.",
+      "Kampanya veya kupon koşulları tutmazsa sipariş sepeti güncellenebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş onaylandı ama sipariş numarası görünmüyorsa.",
+      "Teslimat adresimi girdim ama sipariş oluşturulamıyorsa.",
+      "Ödeme yapıldı ama sipariş oluşmadıysa.",
+      "Kampanya veya kupon aktif görünmüyorsa.",
+      "Sipariş oluştuğu halde hesabımda görünmüyorsa."
+    ],
+    "standart_yanit": "Siparişiniz, seçtiğiniz ürünler, teslimat adresi ve ödeme bilgileri doğrulandığında oluşturulur. Oluşmayan siparişlerde adres, stok ve ödeme bilgilerini kontrol edin.",
+    "sik_yapilan_hatalar": [
+      "Teslimat adresini eksik veya hatalı girmek.",
+      "Ödeme yöntemini onaylamadan çıkmak.",
+      "Stok durumunu kontrol etmemek.",
+      "Kampanya koşullarını göz ardı etmek.",
+      "Sipariş numarasını beklemeden süreci sonlandırmak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_ADDRESS_REDELIVERY_001", "PAYMENT_CHARGED_ORDER_NOT_CREATED_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "PAYMENT_AUTHORIZATION_PENDING_001"],
+    "expected_action": "RAG_ANSWER",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Sipariş oluşturma sonrası işlemler ve ödeme onayı kaydı kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_ORDER_STATUS_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_DURUMLARI",
+    "title": "Sipariş Durumları",
+    "amac": "Kullanıcının bir siparişin hangi aşamalardan geçtiğini ve sipariş durumlarının ne anlama geldiğini anlamasını sağlar.",
+    "kapsam": "Siparişin oluşturulmasından teslimata ve iptal/ iade süreçlerine kadar durum bilgisinin nasıl takip edildiğini kapsar.",
+    "tanim": "Sipariş durumu, kullanıcının oluşturduğu siparişin hangi aşamada olduğunu gösteren sistem bilgisidir.",
+    "kullanici_ifadeleri": [
+      "Sipariş durumumu nasıl takip edebilirim?",
+      "Siparişim neden beklemede gösteriliyor?",
+      "Sipariş durumum uzun süredir değişmiyor.",
+      "Siparişimde hangi aşamalar var?",
+      "İade sürecine nasıl girildiğini nasıl anlarım?"
+    ],
+    "kosullar": [
+      "Siparişin sistemde kaydedilmiş olması gerekir.",
+      "Sipariş bilgilerinin güncel olması gerekir.",
+      "Kullanıcının “Siparişlerim” sayfasına erişimi olmalıdır.",
+      "Kargo veya depo güncellemeleri sipariş durumunu etkileyebilir.",
+      "İptal ve iade süreçleri sipariş durumuna yansıtılmalıdır."
+    ],
+    "adimlar": [
+      "Kullanıcı hesabına giriş yapar.",
+      "Siparişlerim sayfasına gider.",
+      "İlgili siparişi seçer.",
+      "Sipariş durumunu kontrol eder.",
+      "Durum değişikliğini gerektiğinde destek ile paylaşır."
+    ],
+    "istisnalar": [
+      "Kargo firması bilgilerinin geç yansıması olabilir.",
+      "Sistem kaynaklı gecikmeler durum güncellemesini etkileyebilir.",
+      "Sipariş durumu yanlış görülebilir.",
+      "İade veya iptal sonrasında durum geç güncellenebilir.",
+      "Sipariş bilgileri eksikse durum yanlış olabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş durumum beklenenden farklı görünüyorsa.",
+      "Sipariş durumu uzun süre güncellenmiyorsa.",
+      "Sipariş teslim edildiği halde durumu farklı görünüyorsa.",
+      "İptal veya iade sürecine girmiş siparişler net değilse.",
+      "Sipariş durumu kayıtlarında tutarsızlık varsa."
+    ],
+    "standart_yanit": "Sipariş durumu, sistem tarafından siparişin ilerlemesine göre güncellenir. En güncel bilgiyi Siparişlerim sayfasından kontrol edin.",
+    "sik_yapilan_hatalar": [
+      "Sipariş durumu ile kargo durumunu karıştırmak.",
+      "Güncellemeleri anında beklemek.",
+      "Sipariş durumu görüntüsünü kontrol etmemek.",
+      "Teslimat bilgilerini sadece kargo firması sitesinden aramak.",
+      "İade ve iptal durumlarını aynı saymak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_TRACKING_001", "SHIPPING_MULTI_PACKAGE_DELIVERY_001"],
+    "related_documents": ["SIPARIS_ORDER_CREATE_001", "SIPARIS_ORDER_CANCEL_001"],
+    "expected_action": "RAG_ANSWER",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Sipariş durum değişikliklerinin hangi işlemlerle eşleştiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_ORDER_CANCEL_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_IPTAL",
+    "title": "Sipariş İptali",
+    "amac": "Kullanıcının hangi koşullarda gönderilmemiş siparişleri iptal edebileceğini ve iptal sürecini anlamasını sağlar.",
+    "kapsam": "Kargoya verilmemiş siparişlerin iptali, iptal edilebilen durumlar ve iptal sonrası sürecin nasıl işlediğini kapsar.",
+    "tanim": "Sipariş iptali, sipariş teslim edilmeden veya kargoya verilmeden önce mevcut bir siparişi sonlandırma işlemidir.",
+    "kullanici_ifadeleri": [
+      "Siparişimi nasıl iptal edebilirim?",
+      "Sipariş kargoya verilmeden önce iptal edilebilir mi?",
+      "Sipariş iptalimin durumu neden güncellenmiyor?",
+      "Ücret iadesi sipariş iptalinden sonra nasıl olur?",
+      "Kargo verilmiş siparişi iptal edebilir miyim?"
+    ],
+    "kosullar": [
+      "Sipariş henüz kargoya teslim edilmemiş olmalıdır.",
+      "Sipariş hazırlık veya onay aşamasındaysa iptal edilebilir.",
+      "Sipariş iade sürecine girmemiş olmalıdır.",
+      "Kampanya veya satıcı koşulları iptale izin vermelidir.",
+      "Siparişin kargo etiketinin basılmamış olması gerekir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "İptal etmek istediği siparişi seçer.",
+      "İptal seçeneğini kullanır.",
+      "Sistem iptal koşullarını kontrol eder.",
+      "İptal onaylandığında kullanıcı bilgilendirilir."
+    ],
+    "istisnalar": [
+      "Sipariş kargoya verildiyse iptal edilemez.",
+      "Sipariş teslim edildiyse iade sürecine yönlendirilir.",
+      "İade talebi başlatıldıysa sipariş iptale uygun olmayabilir.",
+      "Kampanyalı siparişlerde ek koşullar olabilir.",
+      "Ödeme doğrulama sorunları iptali etkileyebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş kargoya verilmemiş ama iptal edilmiyorsa.",
+      "İptal talebi onaylanmıyorsa.",
+      "Siparişin durumu iptal olmasına rağmen farklı görünüyorsa.",
+      "Ürün teslim edilmese bile iade sürecine yönlendiriliyorsa.",
+      "Kampanya nedeniyle iptal koşulları belirsizse."
+    ],
+    "standart_yanit": "Kargoya verilmemiş siparişler genellikle iptal edilebilir. Kargoya verilmiş veya teslim edilmiş siparişlerde iade süreci başlatılması gerekir.",
+    "sik_yapilan_hatalar": [
+      "Kargoya verilmiş siparişi iptal edilebileceğini varsaymak.",
+      "İade sürecini sipariş iptaliyle karıştırmak.",
+      "Ödemeyi hemen iade alacağını düşünmek.",
+      "Kargo etiketinin basıldığı siparişi iptal etmeye çalışmak.",
+      "Sipariş durumunu kontrol etmeden iptal talebi göndermek."
+    ],
+    "hard_negative_doc_ids": ["IADE_TALEBI_OLUSTURMA_001", "PAYMENT_REFUND_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_ORDER_CREATE_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İptal sonrası iade sürecinin ayrıntıları ve hangi destek kayıtlarının açılması gerektiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_ADRES_DEGISIKLIGI",
+    "title": "Sipariş Adres Değişikliği",
+    "amac": "Kullanıcının teslimat adresini kargoya verilmeden önce nasıl değiştirebileceğini anlamasını sağlar.",
+    "kapsam": "Kargo verilmemiş siparişlerde adres değişikliği, koşulları ve değişiklik sonrası süreci kapsar.",
+    "tanim": "Sipariş adres değişikliği, kullanıcıya ait mevcut siparişin teslimat adresinin kargoya verilmeden önce güncellenmesidir.",
+    "kullanici_ifadeleri": [
+      "Sipariş adresimi değiştirebilir miyim?",
+      "Adres değişikliği seçeneğini nerede bulurum?",
+      "Sipariş kargoya verildikten sonra adres değişir mi?",
+      "Yeni adres teslimat kapsamına girmezse ne olur?",
+      "Sipariş adresimi neden değiştiremiyorum?"
+    ],
+    "kosullar": [
+      "Sipariş henüz kargoya verilmamış olmalıdır.",
+      "Sipariş onaylandı veya hazırlık sürecinde olabilir.",
+      "Yeni adres teslimat kapsamına uygun olmalıdır.",
+      "Sipariş iade veya iptal sürecine girmemiş olmalıdır.",
+      "Yeni adres teslimat yöntemi tarafından desteklenmelidir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "Adresini değiştirmek istediği siparişi seçer.",
+      "Yeni adres bilgilerini girer veya kayıtlı adresi seçer.",
+      "Güncel adres bilgilerini onaylar.",
+      "Sipariş değişikliği onaylandığında teslimat bilgilerini kontrol eder."
+    ],
+    "istisnalar": [
+      "Sipariş kargoya verildiyse platform adres değişikliğine izin vermeyebilir.",
+      "Yeni adres teslimat bölgesi dışında ise değişiklik reddedilebilir.",
+      "Sipariş iade veya iptal sürecine girerse adres değişikliği yapılamaz.",
+      "Kampanya veya satıcı koşulları adres değişikliğini etkileyebilir.",
+      "Kargo bilgileri güncellenene kadar adres eski görünebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş adres değişikliği yapılamıyorsa.",
+      "Yeni adres kabul edilmiyorsa.",
+      "Kargoya verildiği halde adres değişikliği yapılmaya çalışıldıysa.",
+      "Adres değişikliğinin takibi net değilse.",
+      "Siparişin yanlış adrese gönderilme riski varsa."
+    ],
+    "standart_yanit": "Kargoya verilmemiş siparişlerde adres değişikliği genellikle mümkündür. Kargoya verildiyse yeniden teslimat veya destek yolu izlenmelidir.",
+    "sik_yapilan_hatalar": [
+      "Kargoya verilmiş sipariş için adres değişikliği beklemek.",
+      "Yeni adresin teslimat kapsamını kontrol etmemek.",
+      "Sipariş durumunu kontrol etmeden değişiklik talep etmek.",
+      "Kargo firması yerine platformdan adres değişikliği yapacağını düşünmek.",
+      "Adres değişikliğinde iade sürecini karıştırmak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_ADDRESS_REDELIVERY_001", "SHIPPING_CARRIER_CHANGE_001"],
+    "related_documents": ["SIPARIS_ORDER_CANCEL_001", "SIPARIS_ORDER_STATUS_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Adres değişikliğinin kargo firması süreçleriyle nasıl eşleştiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_CONTENT_CHANGE_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_ICEKIKLI_DEGISIKLIK",
+    "title": "Sipariş İçeriği Değişikliği",
+    "amac": "Kullanıcının siparişin ürün, adet veya seçenek gibi içerik değişikliklerini hangi koşullarda yapabileceğini anlamasını sağlar.",
+    "kapsam": "Sipariş hazırlanmadan önce içerik değişiklikleri, uygunluk kontrolleri ve değişiklik sonrası süreçleri kapsar.",
+    "tanim": "Sipariş içeriği değişikliği, sipariş verdikten sonra ürün adedi, seçim veya varyasyon gibi sipariş detaylarının güncellenmesidir.",
+    "kullanici_ifadeleri": [
+      "Siparişimdeki ürünü nasıl değiştirebilirim?",
+      "Sipariş adedini artırabilir miyim?",
+      "Renk veya beden seçimini sipariş sonrası değiştirebilir miyim?",
+      "Sipariş içeriği değişikliği neden kapalı?",
+      "Sipariş değişikliği sonuçları ne olur?"
+    ],
+    "kosullar": [
+      "Sipariş henüz hazırlık veya kargo sürecine alınmamış olmalıdır.",
+      "Değiştirilecek ürün stokta bulunmalıdır.",
+      "Yeni seçenek sipariş koşullarına uygun olmalıdır.",
+      "Sipariş iade veya iptal sürecine girmemiş olmalıdır.",
+      "Satıcı veya depo süreci başlamamış olmalıdır."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "Değişiklik yapmak istediği siparişi seçer.",
+      "Sipariş detayında değiştirilebilir alanları kontrol eder.",
+      "Uygunsa yeni seçeneği belirler.",
+      "Değişiklik talebini onaylar."
+    ],
+    "istisnalar": [
+      "Sipariş hazırlanıyor veya kargoya verildiyse değişiklik yapılamayabilir.",
+      "Sipariş teslim edildiyse değişiklik yerine iade sürecine yönlendirilir.",
+      "Yeni ürün stokta değilse değişiklik mümkün olmayabilir.",
+      "Kampanya koşulları değişikliği etkileyebilir.",
+      "Siparişin bazı parçaları kişiye özel hazırlanmış olabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş içeriği değişikliği yapılamıyorsa.",
+      "Değişiklik sonrası sipariş bilgilerinde tutarsızlık varsa.",
+      "Sipariş değişikliğinin destek tarafından onaylanması gerekiyorsa.",
+      "Ürün stok durumu anlık olarak güncellenmiyorsa.",
+      "Sipariş içeriği değişikliği seçenekleri belirsizse."
+    ],
+    "standart_yanit": "Sipariş içeriği genellikle kargoya verilmeden önce değiştirilebilir. Hazırlık veya gönderim aşamasındaysa iade veya yeni sipariş süreci izlenmelidir.",
+    "sik_yapilan_hatalar": [
+      "Kargoya verilmiş sipariş için içerik değişikliği beklemek.",
+      "İade sürecini sipariş değişikliğiyle karıştırmak.",
+      "Stok kontrolünü yapmadan değişiklik talep etmek.",
+      "Ürün türü veya kampanya koşullarını göz ardı etmek.",
+      "Sipariş değişikliği sonrası teslimat tarihini garanti etmek."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_MULTI_PACKAGE_DELIVERY_001", "IADE_TALEBI_OLUSTURMA_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_ORDER_CANCEL_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Sipariş içeriği değişikliğinin hangi durumlarda otomatik olarak reddedildiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_ORDER_TRACKING_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_TAKIP",
+    "title": "Sipariş Takibi",
+    "amac": "Kullanıcının siparişinin hangi kanallardan ve nasıl takip edileceğini anlamasını sağlar.",
+    "kapsam": "Sipariş durumlarının görüntülenmesi, takip bilgisi kontrolü ve destek gerektiren takip sorunlarını kapsar.",
+    "tanim": "Sipariş takibi, kullanıcının siparişinin güncel aşamasını ve ilgili takip bilgilerini Siparişlerim sayfasından izlemesidir.",
+    "kullanici_ifadeleri": [
+      "Siparişimi nasıl takip edebilirim?",
+      "Sipariş takip numaram nerede?",
+      "Sipariş durumu güncellenmiyor.",
+      "Siparişim ne zaman teslim edilecek?",
+      "Sipariş takibi ile kargo takibini nasıl ayırt ederim?"
+    ],
+    "kosullar": [
+      "Siparişin sistemde kaydedilmiş olması gerekir.",
+      "Sipariş numarasının görünür olması gerekir.",
+      "Sipariş durumu ve kargo bilgileri güncel olmalıdır.",
+      "Kullanıcı hesabına erişim olmalıdır.",
+      "Siparişin kargoya verilmiş olması takip bilgisi sağlar."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına giriş yapar.",
+      "İlgili siparişi seçer.",
+      "Sipariş durumunu kontrol eder.",
+      "Gerekirse kargo takip bilgisine bakar.",
+      "Durum güncellemelerini düzenli olarak kontrol eder."
+    ],
+    "istisnalar": [
+      "Sipariş durumu geç yansıyabilir.",
+      "Kargo firması bilgileri sisteme geç aktarılabilir.",
+      "Sipariş durumu ve kargo durumu arasında gecikme olabilir.",
+      "Siparişin bazı detayları sipariş oluşturulduktan sonra güncellenebilir.",
+      "Sipariş takip bilgisi her zaman hemen görünmeyebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Sipariş durumu hiç güncellenmiyorsa.",
+      "Sipariş numaranız görünmüyorsa.",
+      "Sipariş teslim edildiği halde sistemde farklı görünüyorsa.",
+      "Sipariş takibi ile kargo takip bilgisi çelişiyorsa.",
+      "Sipariş takip ekranında hata varsa."
+    ],
+    "standart_yanit": "Siparişinizi Siparişlerim sayfasından takip edebilirsiniz. Kargo bilgileri varsa bu bilgilerle takip işlemi yapılabilir.",
+    "sik_yapilan_hatalar": [
+      "Sipariş takibini doğrudan kargo firması sitesine yönlendirmek.",
+      "Kargo takip bilgisi olmayınca siparişin kaybolduğunu düşünmek.",
+      "Sipariş durumunu güncellemeden önce beklememek.",
+      "İade sürecini sipariş takibiyle karıştırmak.",
+      "Sipariş numarasını yanlış kullanmak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_TRACKING_001", "SHIPPING_MULTI_PACKAGE_DELIVERY_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_ORDER_CREATE_001"],
+    "expected_action": "RAG_ANSWER",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Sipariş takibi ile kargo takip bilgileri arasındaki ilişki kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_MISSING_ITEM_001",
+    "category": "SIPARIS",
+    "subcategory": "EKSIK_URUN_TESLIMI",
+    "title": "Eksik Ürün Teslimi",
+    "amac": "Kullanıcının siparişindeki eksik ürünleri nasıl bildireceğini ve hangi koşullarda destek gerektiğini anlamasını sağlar.",
+    "kapsam": "Teslim edilmiş görünen siparişlerde ürün eksikliği, eksik ürün bildirimi ve sonrasındaki süreci kapsar.",
+    "tanim": "Eksik ürün teslimi, siparişte yer alan ancak pakette bulunmayan ürünü tanımlar.",
+    "kullanici_ifadeleri": [
+      "Siparişimde eksik ürün var.",
+      "Pakette olması gereken ürünü bulamadım.",
+      "Siparişin tamamı gelmedi.",
+      "Eksik ürün bildirimini nasıl yaparım?",
+      "Ürün daha sonra gelecek mi?"
+    ],
+    "kosullar": [
+      "Sipariş teslim edilmiş veya teslim edilmiş görünüyor olmalıdır.",
+      "Eksik ürünün sipariş detayında yer alması gerekir.",
+      "Siparişin birden fazla paketle gönderilme olasılığı değerlendirilmelidir.",
+      "Kargo kayıtları incelenmelidir.",
+      "Siparişin teslimat adresi doğrulanmalıdır."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "İlgili siparişi seçer.",
+      "Eksik ürün bildirimi oluşturur.",
+      "Eksik ürünü ve paket durumunu açıklar.",
+      "Destek ekibinin kaydı incelemesini bekler."
+    ],
+    "istisnalar": [
+      "Sipariş birden fazla paketle gönderildiyse ürün daha sonra gelebilir.",
+      "Paketleme hatası nedeniyle ürün yanlış parça olarak görünebilir.",
+      "Sipariş durumu güncellenmemiş olabilir.",
+      "Ürün diğer bir kargo paketinde olabilir.",
+      "Kargo firması hareketleri sistemde gecikebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Eksik ürün bildirimi yaptıktan sonra durum netleşmiyorsa.",
+      "Sipariş birden fazla paketle gönderildiyse hangi pakette olduğu bilinmiyorsa.",
+      "Ürün teslim edilmiş gösterilmesine rağmen pakette yoksa.",
+      "Eksik ürün bildirimi sonrasında çözüm sağlanmıyorsa.",
+      "Sipariş detayıyla paketteki ürünler tutmuyorsa."
+    ],
+    "standart_yanit": "Eksik ürün bildirimleri sipariş ve kargo kayıtlarına göre değerlendirilir. Çoklu paket durumu varsa diğer paketlerin durumu da kontrol edilir.",
+    "sik_yapilan_hatalar": [
+      "Eksik ürünü kargo hareketleriyle karıştırmak.",
+      "Birden fazla paketi aynı anda kontrol etmemek.",
+      "Ürünü yanlış pakette aramamak.",
+      "Siparişi teslim almadığı halde eksik ürün bildirmek.",
+      "Destek kaydı oluşturmadan beklemek."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_MULTI_PACKAGE_DELIVERY_001", "SHIPPING_DAMAGED_DELIVERY_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_ORDER_TRACKING_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Çoklu paket ve eksik ürün bildirimi arasındaki net ayrımlar kaynakta tam olarak açık değil."]
+  },
+  {
+    "doc_id": "SIPARIS_WRONG_ITEM_001",
+    "category": "SIPARIS",
+    "subcategory": "YANLIS_URUN_TESLIMI",
+    "title": "Yanlış Ürün Teslimi",
+    "amac": "Kullanıcının siparişle teslim edilen ürünün farklı olması durumunu anlamasını sağlar.",
+    "kapsam": "Sipariş detaylarıyla teslim edilen ürünün uyuşmaması durumunda yapılması gereken bildirim ve süreçleri kapsar.",
+    "tanim": "Yanlış ürün teslimi, sipariş detayında yer alan üründen farklı bir ürünün teslim edilmesidir.",
+    "kullanici_ifadeleri": [
+      "Sipariş ettiğim ürün farklı geldi.",
+      "Teslim edilen ürün siparişimle eşleşmiyor.",
+      "Yanlış renk veya beden geldi.",
+      "Yanlış ürün iadesi nasıl yapılır?",
+      "Hatalı ürün teslimi bildirimini nereden yaparım?"
+    ],
+    "kosullar": [
+      "Teslim edilen ürünün sipariş detayları ile karşılaştırılması gerekir.",
+      "Ürün teslim edilmiş veya teslim ediliyor görünmelidir.",
+      "Siparişin doğru adres ve pakette teslim edilmesi gerekir.",
+      "Yanlış ürünün teslimi kayıt altına alınmalıdır.",
+      "Kargo süreci ve paket bilgileri incelenmelidir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "Yanlış ürün teslimi için bildirim oluşturur.",
+      "Teslim edilen ürün bilgilerini belirtir.",
+      "Gerekirse ürünün fotoğrafını veya açıklamasını ekler.",
+      "Destek ekibinin incelemesini bekler."
+    ],
+    "istisnalar": [
+      "Sipariş detaylarında kullanıcı tarafından seçilmiş alternatif ürün olabilir.",
+      "Teslim edilen ürünün paketleme sırasında karıştırılması olabilir.",
+      "Ürün varyasyon farkı sipariş sırasında farklı seçilmiş olabilir.",
+      "Kargo firması bilgi hatası yapmış olabilir.",
+      "Teslim öncesi yanlış paket gönderilmiş olabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Yanlış ürün teslim edildiğine dair kanıt varsa.",
+      "Teslim edilen ürün sipariş ayrıntılarıyla uyuşmuyorsa.",
+      "Yanlış ürün bildirimine yanıt gelmiyorsa.",
+      "Ürün değişim veya iade seçenekleri net değilse.",
+      "Kargo takip bilgileri yanlış gösteriliyorsa."
+    ],
+    "standart_yanit": "Yanlış ürün teslimi bildirimi, sipariş ve teslimat kayıtları incelenerek değerlendirilir. Ürün değişimi veya iade seçenekleri süreç sonucuna göre sunulur.",
+    "sik_yapilan_hatalar": [
+      "Yanlış ürünü kargo gecikmesiyle karıştırmak.",
+      "Ürün varyasyonunu kontrol etmeden hemen iade talep etmek.",
+      "Teslimat adresini yanlış ürün nedeni saymak.",
+      "Kargo firması yerine platform sürecini göz ardı etmek.",
+      "Ürünü teslim almadan itiraz etmek."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_DAMAGED_DELIVERY_001", "SHIPPING_ADDRESS_REDELIVERY_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_ORDER_TRACKING_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Yanlış ürün teslimi ile hasarlı teslimat arasındaki farklılıklar kaynakta net değil."]
+  },
+  {
+    "doc_id": "SIPARIS_ORDER_SPLIT_001",
+    "category": "SIPARIS",
+    "subcategory": "SIPARIS_BOLUNMESI",
+    "title": "Siparişin Bölünmesi",
+    "amac": "Kullanıcının siparişin birden fazla paket veya kargo ile gönderilmesi durumunu anlamasını sağlar.",
+    "kapsam": "Bir siparişin farklı paketlere ayrılması, teslimat farkları ve ilgili takip süreçlerini kapsar.",
+    "tanim": "Siparişin bölünmesi, tek siparişin farklı paketler, kargo firmaları veya teslimat zamanlarıyla gönderilmesidir.",
+    "kullanici_ifadeleri": [
+      "Siparişim neden birden fazla paketle geliyor?",
+      "Siparişimin bazı ürünleri daha sonra mı gelecek?",
+      "Aynı siparişte farklı kargo numaraları neden var?",
+      "Sipariş parçaları ayrı ayrı takip ediliyor mu?",
+      "Eksik ürün olabilir mi?"
+    ],
+    "kosullar": [
+      "Sipariş birden fazla satıcı veya depodan gönderiliyor olabilir.",
+      "Farklı ürünlerin teslimat koşulları farklı olabilir.",
+      "Ön sipariş veya stok durumu bölünmeye neden olabilir.",
+      "Her paketin ayrı takip numarası olabilir.",
+      "Sipariş numarası aynı kalabilir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasından siparişi seçer.",
+      "Her paketin teslimat bilgilerini kontrol eder.",
+      "Kargo takip numaralarını inceleyerek paketleri ayırt eder.",
+      "Eksik ürün olup olmadığını belirlemek için paketleri karşılaştırır.",
+      "Gerekirse destek kaydı açar."
+    ],
+    "istisnalar": [
+      "Bölünmüş siparişler her zaman eksik gönderildiği anlamına gelmez.",
+      "Bazı ürünler daha sonra teslim edilebilir.",
+      "Kargo firması bilgileri her pakette farklı olabilir.",
+      "Sipariş numarası aynı olsa da paketler ayrı ayrı güncellenir.",
+      "Bölünmüş teslimatın süresi ürün veya satıcıya göre değişebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Pakette eksik ürün olup olmadığını netleştirmek için.",
+      "Bölünmüş teslimatın durumu belirsizse.",
+      "Farklı kargo numaraları arasında çelişki varsa.",
+      "Siparişin bazı parçaları görünmüyorsa.",
+      "Kargo takibi ve sipariş durumu uyumsuzsa."
+    ],
+    "standart_yanit": "Siparişin bölünmesi, ürünlerin farklı paketlerle gönderildiği durumlardır. Her paketin durumu ayrı ayrı izlenmelidir.",
+    "sik_yapilan_hatalar": [
+      "Bölünmüş siparişi eksik sipariş olarak yorumlamak.",
+      "Kargo firması ile sipariş durumunu aynı saymak.",
+      "Her paketi ayrı sipariş sanmak.",
+      "Eksik ürün bildirimi yapmadan önce paketleri karşılaştırmamak.",
+      "Teslimat süresini garanti etmek."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_MULTI_PACKAGE_DELIVERY_001", "SHIPPING_TRACKING_001"],
+    "related_documents": ["SIPARIS_ORDER_STATUS_001", "SIPARIS_MISSING_ITEM_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Çoklu paketli siparişlerin nasıl raporlandığı kaynakta net değil."]
+  }
+]

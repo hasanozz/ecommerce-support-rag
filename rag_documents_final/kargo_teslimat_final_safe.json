@@ -1,0 +1,764 @@
+[
+    {
+        "doc_id":  "SHIPPING_DELIVERY_PROCESS_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "TESLIMAT_SURECI",
+        "title":  "Teslimat Süreci",
+        "amac":  "Siparişin hazırlanması, kargoya verilmesi ve kullanıcıya ulaştırılması aşamalarını açıklamak.",
+        "kapsam":  "Sipariş oluşturulduktan ürün kullanıcıya teslim edilene kadar olan depo, kargo ve dağıtım adımlarını kapsar.",
+        "tanim":  "Teslimat süreci, siparişin sistemde oluşturulmasından sonra başlayan ve ürünün kullanıcıya fiziksel olarak ulaşmasıyla tamamlanan lojistik süreçtir.",
+        "kullanici_ifadeleri":  [
+                                    "Siparişim ne zaman teslim edilecek",
+                                    "Teslimat süreci nasıl işliyor",
+                                    "Siparişim hangi aşamada",
+                                    "Ürünüm ne zaman kargoya verilir",
+                                    "Teslimat işlemleri başladı mı",
+                                    "Siparişim hala hazırlanıyor"
+                                ],
+        "kosullar":  [
+                         "Sipariş sistemde oluşturulmuş olmalıdır.",
+                         "Ürün hazırlık, kargoya teslim, taşıma, dağıtım ve teslimat aşamalarından geçebilir.",
+                         "Teslimat süresi şehir, kargo yoğunluğu, stok durumu ve kampanya dönemlerine göre değişebilir.",
+                         "Kargo takip numarası yalnızca paket kargo firmasına verildikten sonra oluşur."
+                     ],
+        "adimlar":  [
+                        "Sipariş ödeme sonrası sistemde oluşturulur.",
+                        "Ürün depodan toplanır ve paketlenir.",
+                        "Paket kargo firmasına teslim edilir.",
+                        "Kargo takip numarası oluşturulur.",
+                        "Paket transfer ve dağıtım aşamalarından geçer.",
+                        "Ürün kullanıcıya teslim edilir."
+                    ],
+        "istisnalar":  [
+                           "Hava koşulları, resmi tatiller ve operasyonel yoğunluk teslimatı uzatabilir.",
+                           "Adres bulunamaması teslimat sürecini etkileyebilir.",
+                           "Sipariş uzun süre hazırlanıyor aşamasında kalabilir.",
+                           "Teslim edildi görünen gönderi fiziksel olarak kullanıcıya ulaşmamış olabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Sipariş uzun süre hazırlanıyor aşamasında kaldıysa.",
+                                           "Kargo bilgisi güncellenmiyorsa.",
+                                           "Teslimat süresi aşılmışsa.",
+                                           "Sipariş teslim edildi görünüyor ancak ürün ulaşmadıysa."
+                                       ],
+        "standart_yanit":  "Teslimat süreci siparişin hazırlanması, kargoya verilmesi, dağıtım ve teslimat adımlarından oluşur. Süre kargo firması, bölge ve operasyon sürecine göre değişebilir; güncel durumu Siparişlerim ve kargo takip ekranından izleyebilirsiniz. Bilgi uzun süre güncellenmiyorsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Sipariş durumu ile kargo takip durumunu aynı şey sanmak.",
+                                    "Kargo takip numarası oluşmadan kargo hareketi beklemek.",
+                                    "Tahmini teslimat bilgisini kesin teslimat garantisi olarak yorumlamak.",
+                                    "Teslim edildi görünüyor ama ulaşmadı senaryosunu geç teslimatla karıştırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_TRACKING_001",
+                                      "SHIPPING_ESTIMATED_DELIVERY_001",
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_ESTIMATED_DELIVERY_001",
+                                  "SHIPPING_TRACKING_001",
+                                  "SHIPPING_DELAYED_DELIVERY_001",
+                                  "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Teslimat süresi kesin SLA olarak verilmemelidir; kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Hazırlık aşamasında destek eşiği için net süre kaynağı yoktur.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynakta \u0027birkaç iş günü\u0027 ifadesi var ancak kesin teslimat süresi olarak kullanılmamalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Hazırlık aşamasında destek eşiği için net süre kaynağı yoktur."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_ESTIMATED_DELIVERY_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "TAHMINI_TESLIMAT_TARIHI",
+        "title":  "Tahmini Teslimat Tarihi",
+        "amac":  "Tahmini teslimat tarihinin nasıl oluştuğunu ve kesin garanti olmadığını açıklamak.",
+        "kapsam":  "Ürün sayfası, sepet, ödeme, sipariş onayı ve sipariş detayında gösterilen tahmini teslimat aralıklarını kapsar.",
+        "tanim":  "Tahmini teslimat tarihi, siparişin kullanıcıya ulaşmasının beklendiği zaman aralığıdır; kesin teslimat garantisi değildir.",
+        "kullanici_ifadeleri":  [
+                                    "Tahmini teslimat tarihim nedir",
+                                    "Siparişim hangi gün gelir",
+                                    "Ürünüm ne zaman elimde olur",
+                                    "Teslimat tarihi değişti mi",
+                                    "Kargom bugün gelir mi",
+                                    "Teslimat tarihi sürekli değişiyor"
+                                ],
+        "kosullar":  [
+                         "Tahmini tarih sistem tarafından ürün hazırlık durumu, kargo süresi, şehir, sipariş saati, tatiller ve yoğun dönemlere göre hesaplanır.",
+                         "Tarih tek gün yerine aralık olarak gösterilebilir.",
+                         "Sipariş ilerledikçe tahmini tarih güncellenebilir.",
+                         "Aynı siparişte farklı paketler varsa teslimat tarihleri ayrışabilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı sipariş detayındaki tahmini teslimat bilgisini kontrol eder.",
+                        "Sipariş durumu ve kargo takip bilgisi karşılaştırılır.",
+                        "Tarih güncellendiyse yeni aralık takip edilir.",
+                        "Tahmini süre aşılmışsa destek veya kargo firması bilgileri kontrol edilir."
+                    ],
+        "istisnalar":  [
+                           "Kampanya yoğunluğu, hava koşulları, adres problemi veya depo gecikmesi tarihi değiştirebilir.",
+                           "Stok problemi teslimatı erteleyebilir.",
+                           "Tahmini tarih kesin teslimat taahhüdü değildir.",
+                           "Birden fazla paket ayrı günlerde teslim edilebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Tahmini teslimat süresi çoktan geçmiş olmasına rağmen ürün gelmediyse.",
+                                           "Sipariş durumu güncellenmiyorsa.",
+                                           "Teslimat tarihi sürekli ileri atıyorsa.",
+                                           "Sistem ile kargo firması bilgileri uyuşmuyorsa."
+                                       ],
+        "standart_yanit":  "Tahmini teslimat tarihi kesin garanti değil, sipariş koşullarına göre hesaplanan bir öngörüdür. Sipariş ve kargo sürecindeki gelişmelere göre güncellenebilir; tarih geçtiği halde ürün gelmediyse destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Tahmini tarihi kesin teslimat garantisi sanmak.",
+                                    "Tarih değişikliğini siparişin kaybolduğu anlamına yorumlamak.",
+                                    "Birden fazla paketli siparişte tüm ürünleri aynı gün beklemek.",
+                                    "Kargo takip bilgisiyle tahmini tarihi karşılaştırmadan destek talebi açmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELAYED_DELIVERY_001",
+                                      "SHIPPING_TRACKING_001",
+                                      "SHIPPING_DELIVERY_PROCESS_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_DELIVERY_PROCESS_001",
+                                  "SHIPPING_DELAYED_DELIVERY_001",
+                                  "SHIPPING_MULTI_PACKAGE_DELIVERY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_SAFE_GENERIC_NOTE: Tahmini teslimat tarihi kesin garanti değildir; sipariş koşullarına göre hesaplanan bir öngörüdür.",
+                             "OPEN_TECHNICAL_NOTE: Tahmini tarih güncelleme sıklığı sistem davranışıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Teslimat aralığı örnekleri kaynakta örnektir; tüm siparişler için kesin kural değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Tahmini tarih güncelleme sıklığı kaynakta net değildir."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_TRACKING_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "KARGO_TAKIP_ISLEMI",
+        "title":  "Kargo Takip İşlemi",
+        "amac":  "Kargoya verilen siparişin takip numarasıyla nasıl izleneceğini açıklamak.",
+        "kapsam":  "Kargo takip numarası, takip ekranı, kargo hareketleri ve takip bilgisinin görünmemesi durumlarını kapsar. Sipariş onayı, hazırlık durumu gibi sipariş yönetimi bilgileri bu dokümanın kapsamında değildir.",
+        "tanim":  "Kargo takip, sipariş kargo firmasına teslim edildikten sonra oluşturulan takip numarası üzerinden gönderinin hareketlerinin izlenmesidir.",
+        "kullanici_ifadeleri":  [
+                                    "Kargomu nasıl takip edebilirim",
+                                    "Takip numaram nerede",
+                                    "Kargo takip kodumu bulamıyorum",
+                                    "Kargomun nerede olduğunu öğrenmek istiyorum",
+                                    "Kargo takibi çalışmıyor",
+                                    "Takip bilgileri güncellenmiyor"
+                                ],
+        "kosullar":  [
+                         "Sipariş kargo firmasına teslim edilmelidir.",
+                         "Her paket için ayrı takip numarası oluşabilir.",
+                         "Takip numarası sipariş detay sayfasında görüntülenir.",
+                         "Kargo hareketleri anlık olmayabilir."
+                     ],
+        "adimlar":  [
+                        "Siparişlerim bölümüne girilir.",
+                        "İlgili sipariş seçilir.",
+                        "Kargo Takip butonuna tıklanır.",
+                        "Sistem içi takip ekranı veya kargo firması sayfası kontrol edilir.",
+                        "Birden fazla paket varsa her takip numarası ayrı incelenir."
+                    ],
+        "istisnalar":  [
+                           "Kargo yeni oluşturulduysa takip bilgisi hemen görünmeyebilir.",
+                           "Kargo firması veri aktarımı gecikebilir.",
+                           "Takip numarası hatalı veya geçersiz görünebilir.",
+                           "Teslim edildi görünen paket kullanıcıya ulaşmamış olabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Takip numarası oluşturulmadıysa.",
+                                           "Kargo günlerdir aynı durumda görünüyorsa.",
+                                           "Teslim edildi görünmesine rağmen ürün ulaşmadıysa.",
+                                           "Takip numarası hatalı veya çalışmıyorsa."
+                                       ],
+        "standart_yanit":  "Kargo takibini Siparişlerim bölümündeki takip numarasıyla yapabilirsiniz. Takip bilgisi sistem içi takip ekranında veya kargo firması sayfasında görüntülenebilir; kargo hareketleri beklenenden uzun süre güncellenmiyorsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Kargo takip ile sipariş durumunu karıştırmak.",
+                                    "Takip numarası oluşmadan kargo hareketi beklemek.",
+                                    "Tek siparişte birden fazla paket olabileceğini gözden kaçırmak.",
+                                    "Kısa süreli takip güncelleme gecikmesini kayıp kargo sanmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELIVERY_PROCESS_001",
+                                      "SHIPPING_DELAYED_DELIVERY_001",
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+                                      "SIPARIS_ORDER_CREATE_001",
+                                      "SIPARIS_ORDER_STATUS_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_DELIVERY_PROCESS_001",
+                                  "SHIPPING_DELAYED_DELIVERY_001",
+                                  "SHIPPING_MULTI_PACKAGE_DELIVERY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Kargo takipte uzun süre aynı durumda kalma destek eşiği net değildir.",
+                             "OPEN_TECHNICAL_NOTE: Kargo takip ekranı yönlendirme davranışı sistem entegrasyonuna göre doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: \u0027Günlerdir aynı durumda\u0027 için net destek eşiği kaynakta verilmemiştir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kargo firması takip ekranı yönlendirme davranışı sistem entegrasyonuna göre doğrulanmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_CARRIER_CHANGE_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "KARGO_FIRMASI_DEGISIKLIGI",
+        "title":  "Kargo Firması Seçimi / Değişikliği",
+        "amac":  "Siparişin hangi kargo firmasıyla gönderileceğinin belirlenmesi ve değişiklik koşullarını açıklamak.",
+        "kapsam":  "Sipariş oluşturma sırasında kargo firması seçimi, otomatik atama ve kargoya verilmeden önce olası değişiklik süreçlerini kapsar.",
+        "tanim":  "Kargo firması değişikliği, sipariş oluşturulduktan sonra gönderinin farklı bir kargo firmasına yönlendirilmesidir; her sipariş için mümkün değildir.",
+        "kullanici_ifadeleri":  [
+                                    "Kargo firmasını değiştirebilir miyim",
+                                    "Siparişim için farklı kargo seçebilir miyim",
+                                    "Kargo şirketini değiştirmek istiyorum",
+                                    "Yanlış kargo firması seçilmiş",
+                                    "Kargo firmasını sonradan değiştirebilir miyim",
+                                    "Farklı kargo ile teslim almak istiyorum"
+                                ],
+        "kosullar":  [
+                         "Kargo firması kullanıcı seçimiyle veya sistem tarafından otomatik belirlenebilir.",
+                         "Değişiklik genellikle sipariş henüz kargoya verilmediyse değerlendirilebilir.",
+                         "Lojistik süreç başlamışsa değişiklik yapılamayabilir.",
+                         "Aktif takip numarası varsa kargo firması değişikliği genellikle mümkün değildir."
+                     ],
+        "adimlar":  [
+                        "Sipariş oluşturulur.",
+                        "Kargo firması atanır.",
+                        "Varsa değişiklik talebi değerlendirilir.",
+                        "Uygunsa yeni kargo firması belirlenir.",
+                        "Yeni takip süreci başlatılır veya takip bilgisi güncellenir."
+                    ],
+        "istisnalar":  [
+                           "Sipariş kargoya verilmişse değişiklik yapılamaz.",
+                           "Paket transfer veya dağıtım aşamasındaysa değişiklik yapılamaz.",
+                           "Operasyonel zorunluluk nedeniyle kargo firması sistem tarafından değiştirilebilir.",
+                           "Değişiklik sonrası takip numarası değişebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Sipariş için kargo firması görünmüyorsa.",
+                                           "Yanlış kargo firması atandığı düşünülüyorsa.",
+                                           "Değişiklik talebi olmasına rağmen güncelleme yapılmadıysa.",
+                                           "Kargo firması değiştiği halde takip bilgisi güncellenmediyse."
+                                       ],
+        "standart_yanit":  "Kargo firması seçimi veya değişikliği siparişin mevcut aşamasına ve operasyonel uygunluğa bağlıdır. Kargoya verilmiş, transferde veya takip numarası aktif olan gönderilerde değişiklik mümkün olmayabilir; destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Kargoya verilmiş siparişte kargo firmasının her zaman değiştirilebileceğini düşünmek.",
+                                    "Kargo firması değişikliğini adres değişikliğiyle karıştırmak.",
+                                    "Takip numarası aktifken taşıyıcı değişikliği beklemek.",
+                                    "Operasyonel otomatik atamayı kullanıcı hatası sanmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_ADDRESS_REDELIVERY_001",
+                                      "SHIPPING_TRACKING_001",
+                                      "SHIPPING_DELIVERY_FAILED_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_TRACKING_001",
+                                  "SHIPPING_DELIVERY_PROCESS_001",
+                                  "SHIPPING_ADDRESS_REDELIVERY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Hangi siparişlerde kargo firması seçimi sunulduğu ve değişiklik yetkisi netleştirilmelidir.",
+                             "OPEN_CONTENT_NOTE: Kaynakta tekrar eden 4.4 bölümü tek dokümanda konsolide edilmiştir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Hangi siparişlerde kullanıcıya kargo firması seçimi sunulduğu kaynakta kesin değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kargo firması değişikliği için operasyonel yetki ve onay akışı doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynakta 4.4 bölümü tekrar ediyor; içerik tek dokümanda birleştirildi."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_DELIVERY_FAILED_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "KARGONUN_TESLIM_EDILEMEMESI",
+        "title":  "Kargonun Teslim Edilememesi",
+        "amac":  "Kargonun adrese ulaştırılmaya çalışılmasına rağmen teslimatın tamamlanamaması durumlarını açıklamak.",
+        "kapsam":  "Adres, alıcıya ulaşılamama, güvenlik girişi, erişim sorunu, hava koşulu veya operasyonel gecikme nedeniyle başarısız teslimatları kapsar.",
+        "tanim":  "Kargonun teslim edilememesi, kargo firmasının teslimat denemesi yapmasına rağmen paketin kullanıcıya teslim edilememesi ve şubeye dönmesi ya da yeniden dağıtıma planlanmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Kargom teslim edilemedi görünüyor",
+                                    "Teslimat başarısız olmuş",
+                                    "Kargom neden teslim edilemedi",
+                                    "Evde yoktum kargo geri gitmiş",
+                                    "Adresimdeydim ama teslim edilmedi",
+                                    "Kargom neden geri şubeye döndü"
+                                ],
+        "kosullar":  [
+                         "Kargo dağıtıma çıkmış veya teslimat denemesi yapılmış olmalıdır.",
+                         "Adres veya iletişim bilgilerinde sorun olabilir.",
+                         "Alıcı teslimat saatinde adreste olmayabilir.",
+                         "Paket şubeye dönebilir veya yeniden dağıtıma planlanabilir."
+                     ],
+        "adimlar":  [
+                        "Kargo takip sistemindeki durum kontrol edilir.",
+                        "Adres ve telefon bilgilerinin doğruluğu kontrol edilir.",
+                        "Kargo firmasından yeniden dağıtım talep edilebilir.",
+                        "Gerekirse şubeden teslim alma seçeneği değerlendirilir.",
+                        "Başarısız denemeler devam ederse destek ekibiyle iletişime geçilir."
+                    ],
+        "istisnalar":  [
+                           "Kargo hiç deneme yapmadan teslim edilemedi görünebilir.",
+                           "Adres doğru olsa bile erişim veya güvenlik nedeniyle teslimat başarısız olabilir.",
+                           "Birden fazla başarısız denemeden sonra iade süreci başlayabilir.",
+                           "Yeniden teslimat her kargo firmasında sınırsız değildir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kargo hiç teslimat denemesi yapmadan teslim edilemedi görünüyorsa.",
+                                           "Adres doğru olmasına rağmen sürekli teslim edilemiyorsa.",
+                                           "Kargo şubeye dönmesine rağmen tekrar dağıtıma çıkmıyorsa.",
+                                           "Kullanıcıya bildirim yapılmadan teslimat başarısız görünüyorsa."
+                                       ],
+        "standart_yanit":  "Kargonuz teslim edilemedi görünüyorsa takip bilgisini, adresinizi ve telefon numaranızı kontrol edin. Yeniden dağıtım ve iade süreci kargo firması, bölge ve operasyon sürecine göre değişebilir; deneme yapılmadığını düşünüyorsanız destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Teslim edilemedi durumunu teslim edildi bilgisiyle karıştırmak.",
+                                    "Adres ve telefon bilgisini kontrol etmeden yeniden teslimat beklemek.",
+                                    "Şubeye dönen paketin süresiz bekleyeceğini düşünmek.",
+                                    "Adrese yeniden teslimat ile adres değişikliğini aynı işlem sanmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+                                      "SHIPPING_ADDRESS_REDELIVERY_001",
+                                      "SHIPPING_BRANCH_PICKUP_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_ADDRESS_REDELIVERY_001",
+                                  "SHIPPING_BRANCH_PICKUP_001",
+                                  "SHIPPING_TRACKING_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Kaç başarısız teslimat denemesinden sonra iade sürecine dönüleceği kargo firması ve operasyon sürecine göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Yeniden dağıtım kuralları kargo firmasına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaç başarısız denemeden sonra iade sürecine dönüleceği kaynakta kesin değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kargo firmalarının yeniden dağıtım kuralları firmaya göre değişebilir."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "TESLIM_EDILDI_GORUNUYOR_AMA_GELMEDI",
+        "title":  "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı",
+        "amac":  "Kargo takipte teslim edildi görünen ancak kullanıcının ürünü fiziksel olarak teslim almadığı durumları açıklamak.",
+        "kapsam":  "Yanlış teslim, komşu/güvenlik/resepsiyon teslimi, erken sistem güncellemesi veya teslimat kanıtı uyuşmazlığı durumlarını kapsar. Teslimat henüz yapılmamış ancak gecikmeli durumlar bu dokümanın kapsamında değildir.",
+        "tanim":  "Kargo firması sisteminde teslim edildi olarak işaretlenen gönderinin kullanıcıya fiziksel olarak ulaşmaması veya teslimat kaydı ile gerçek durumun uyuşmamasıdır. Bu durum geç teslimatla farklı; kargo sisteminde teslim edildi gösterilmektedir.",
+        "kullanici_ifadeleri":  [
+                                    "Kargom teslim edildi görünüyor ama bana ulaşmadı",
+                                    "Sistemde teslim edildi yazıyor fakat ürün yok",
+                                    "Teslim edildi görünüyor ama teslim almadım",
+                                    "Kargom kayıp olabilir mi",
+                                    "Ürün teslim edilmiş görünüyor ancak elimde değil",
+                                    "Kargom komşuya mı bırakıldı"
+                                ],
+        "kosullar":  [
+                         "Kargo takip sisteminde teslim edildi bilgisi görünür.",
+                         "Kullanıcı paketi fiziksel olarak teslim almamıştır.",
+                         "Paket başka kişiye veya farklı noktaya bırakılmış olabilir.",
+                         "Kargo firması teslimat kanıtı inceleyebilir."
+                     ],
+        "adimlar":  [
+                        "Apartman görevlisi, güvenlik, resepsiyon veya komşular kontrol edilir.",
+                        "Kapı önü, posta kutusu ve teslimat alanı kontrol edilir.",
+                        "Kargo takip detayları ve teslim alan kişi bilgisi incelenir.",
+                        "Kargo firmasıyla iletişime geçilir.",
+                        "Paket bulunamıyorsa destek ekibine başvurulur."
+                    ],
+        "istisnalar":  [
+                           "Teslimat bilgisi sisteme erken işlenmiş olabilir.",
+                           "Paket hâlâ dağıtım sürecinde olabilir.",
+                           "Yanlış kişiye teslim edildiyse kargo firması geri alma süreci başlatabilir.",
+                           "Teslim edildi durumu her zaman doğrudan kullanıcıya fiziksel teslim anlamına gelmez."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Paket teslim edildi görünüyor ancak hiçbir yerde bulunamıyorsa.",
+                                           "Komşu veya güvenlikte paket yoksa.",
+                                           "Kargo firması teslimat kanıtı sunamıyorsa.",
+                                           "Durum uzun süre değişmiyorsa."
+                                       ],
+        "standart_yanit":  "Teslim edildi görünen kargo size ulaşmadıysa önce komşu, güvenlik, resepsiyon ve teslimat alanlarını kontrol edin. Paket bulunamıyorsa kargo firmasının sağlayabildiği teslimat kanıtları incelenmeli; destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Bu senaryoyu geç teslimatla aynı sanmak.",
+                                    "Komşu/güvenlik teslimini kontrol etmeden kayıp kabul etmek.",
+                                    "Kargo firması teslimat kanıtı sürecini atlamak.",
+                                    "Teslim edildi kaydını her zaman kullanıcıya birebir teslim olarak yorumlamak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELAYED_DELIVERY_001",
+                                      "SHIPPING_DELIVERY_FAILED_001",
+                                      "SHIPPING_TRACKING_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_TRACKING_001",
+                                  "SHIPPING_DELIVERY_FAILED_001",
+                                  "SHIPPING_DELAYED_DELIVERY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_TECHNICAL_NOTE: Teslimat kanıtı türleri ve erişim süreci kargo firması entegrasyonuna göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Teslim edildi görünüyor ama alınmadı senaryosu için operasyonel destek eşiği netleştirilmelidir.",
+                             "OPEN_CONTENT_NOTE: Bu senaryo finansal ve teslimat güvenliği riski nedeniyle HIGH öncelikte tutulmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kargo firması teslimat kanıtı türleri ve erişim süreci firma entegrasyonuna göre doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: \u0027Uzun süre\u0027 için operasyonel eşik kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Teslim edildi görünüyor ama ulaşmadı senaryosu finansal ve güvenlik riski nedeniyle HIGH prioritedir."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_DAMAGED_DELIVERY_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "HASARLI_TESLIMAT",
+        "title":  "Hasarlı Teslimat",
+        "amac":  "Kargo sürecinde fiziksel zarar görmüş ürün veya ambalaj teslimatlarında yapılması gerekenleri açıklamak.",
+        "kapsam":  "Ambalaj hasarı, ürün hasarı, eksik parça, sıvı sızıntısı ve teslimat anındaki fiziksel hasar durumlarını kapsar. Tutanak, fotoğraf ve destek incelemesi süreci bu dokümanın kapsamındadır. Ürün iade talebi oluşturma, iade kodu alma, iade şartları bu dokümanın kapsamında değildir.",
+        "tanim":  "Hasarlı teslimat, ürünün teslimat anında kırık, ezik, yırtık, çizik, çalışmaz veya kullanılamaz durumda ulaşmasıdır. Teslimat sonrası hasardan ayırt edilmeli.",
+        "kullanici_ifadeleri":  [
+                                    "Ürünüm hasarlı geldi",
+                                    "Kargodan çıkan ürün kırık",
+                                    "Teslim aldığım ürün zarar görmüş",
+                                    "Paketim ezilmiş şekilde geldi",
+                                    "Kargo kutusu yırtılmış geldi",
+                                    "Hasarlı ürün teslim aldım"
+                                ],
+        "kosullar":  [
+                         "Ürün veya ambalaj teslimat sırasında ya da teslim sonrası hasarlı fark edilir.",
+                         "Mümkünse hasar teslimat anında kayıt altına alınmalıdır.",
+                         "Fotoğraf ve kargo tutanağı süreç için kanıt niteliği taşıyabilir.",
+                         "İade veya değişim ürün kategorisi ve stok durumuna bağlı olabilir."
+                     ],
+        "adimlar":  [
+                        "Paket teslim alınmadan önce kontrol edilir.",
+                        "Hasar varsa kargo görevlisine tutanak tutturulur.",
+                        "Mümkünse paket ve ürün fotoğraflanır.",
+                        "Kargo tutanağı saklanır.",
+                        "Sipariş detayından destek talebi oluşturulur.",
+                        "Ürün kullanılmadan süreç başlatılır."
+                    ],
+        "istisnalar":  [
+                           "Hasar kutu açıldıktan sonra fark edilebilir.",
+                           "Elektronik ürünlerde sorun çalıştırınca ortaya çıkabilir.",
+                           "Tutanak tutulmadıysa destek süreci yine başlatılabilir ancak ek inceleme gerekebilir.",
+                           "Hasarlı teslimat iade talebi oluşturma süreciyle karıştırılmamalıdır."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Hasarlı ürün için tutanak tutulmadıysa.",
+                                           "Kargo firması hasarı kabul etmiyorsa.",
+                                           "Ürün kullanılamayacak durumdaysa.",
+                                           "İade veya değişim süreci başlatılamıyorsa."
+                                       ],
+        "standart_yanit":  "Hasarlı teslimatta ürünü ve ambalajı fotoğraflayın, mümkünse kargo tutanağı alın ve ürünü kullanmadan destek talebi oluşturun. İade veya değişim koşulları ürün kategorisi, stok durumu ve inceleme sonucuna göre değişebilir; destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Hasarlı ürünü kullanmaya devam etmek.",
+                                    "Fotoğraf veya tutanak gibi kanıtları saklamamak.",
+                                    "Hasarlı teslimat ile genel iade talebini aynı süreç sanmak.",
+                                    "Ambalaj hasarını önemsiz kabul edip ürünü kontrol etmemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+                                      "SHIPPING_DELAYED_DELIVERY_001",
+                                      "IADE_TALEBI_OLUSTURMA_001",
+                                      "IADE_IADE_SARTLARI_001",
+                                      "IADE_KODU_ALMA_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_DELIVERY_PROCESS_001",
+                                  "SHIPPING_TRACKING_001",
+                                  "IADE_TALEBI_OLUSTURMA_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_CONTENT_NOTE: Hasarlı teslimat ve iade talebi oluşturma ayrı doküman kapsamındadır.",
+                             "OPEN_POLICY_NOTE: İade/değişim koşulları ürün kategorisi, stok durumu ve inceleme sonucuna göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Hasar tutanağı yoksa istenecek ek belgeler destek/returns süreciyle doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Hasarlı teslimat ve iade talebi oluşturma ayrı dokümanlar olarak ele alınmıştır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: İade/değişim koşulları ürün kategorisine göre değişir; kesin politika kaynakta yoktur.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Hasar tutanağı yoksa hangi ek belgelerin istendiği doğrulanmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_DELAYED_DELIVERY_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "GEC_TESLIMAT",
+        "title":  "Geç Teslimat",
+        "amac":  "Siparişin tahmini teslimat süresi içinde kullanıcıya ulaştırılamaması durumunu açıklamak.",
+        "kapsam":  "Tahmini teslimat tarihinin aşılması, kargo hareketlerinin yavaşlaması, operasyonel yoğunluk veya dış etkenlere bağlı gecikmeleri kapsar. Teslim edildi görünen ancak ulaşmayan paketler bu dokümanın kapsamında değildir.",
+        "tanim":  "Geç teslimat, siparişin sistemde belirtilen tahmini teslimat tarihini aşarak kullanıcıya daha geç ulaşmasıdır. Bu durumda paket henüz teslim edilmemiş veya teslimat süreci devam etmektedir; kargo takipte görünen durum geçerlidir.",
+        "kullanici_ifadeleri":  [
+                                    "Kargom gecikti",
+                                    "Siparişim hala gelmedi",
+                                    "Teslimat süresi aşıldı",
+                                    "Ürünüm belirtilen tarihte gelmedi",
+                                    "Kargo neden gecikti",
+                                    "Kargom günlerdir hareket etmiyor"
+                                ],
+        "kosullar":  [
+                         "Tahmini teslimat tarihi geçmiş veya teslimat beklenenden uzun sürmüştür.",
+                         "Sipariş kargoda, dağıtımda veya aynı statüde kalabilir.",
+                         "Kargo hareketleri devam ediyor ama yavaş ilerliyor olabilir.",
+                         "Gecikme kampanya, hava, tatil, depo veya transfer merkezi kaynaklı olabilir."
+                     ],
+        "adimlar":  [
+                        "Kargo takip sistemi düzenli kontrol edilir.",
+                        "Tahmini teslimat tarihinin güncellenip güncellenmediği incelenir.",
+                        "Adres bilgilerinin doğruluğu kontrol edilir.",
+                        "Gerekirse kargo firmasıyla iletişime geçilir.",
+                        "Kargo hareketleri durmuşsa destek ekibiyle iletişime geçilir."
+                    ],
+        "istisnalar":  [
+                           "Kaynakta kargo firması, bölge ve operasyon sürecine göre değişebilir gecikmeler olağan kabul edilebilir denmiştir ancak bu kesin garanti değildir.",
+                           "Uzun süre hareket olmaması normal kabul edilmez.",
+                           "Teslimat tarihinin sürekli ileri atılması destek gerektirebilir.",
+                           "Teslim edildi görünen ancak ulaşmayan paket geç teslimat değildir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Teslimat süresi çoktan aşılmışsa.",
+                                           "Kargo hareketleri durduysa.",
+                                           "Sipariş uzun süre aynı statüde kaldıysa.",
+                                           "Kargo firması bilgi vermiyorsa."
+                                       ],
+        "standart_yanit":  "Geç teslimat durumunda kargo takip bilgisini, güncellenen tahmini teslimat tarihini ve adres bilgilerinizi kontrol edin. Gecikme kargo firması, bölge ve operasyon sürecine göre değişebilir; kargo hareketleri durduysa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Geç teslimatı teslim edildi görünüyor ama ulaşmadı senaryosuyla karıştırmak.",
+                                    "Tahmini tarihi kesin teslimat garantisi olarak kabul etmek.",
+                                    "Kargo hareketlerini kontrol etmeden kayıp kargo varsaymak.",
+                                    "Adres kaynaklı gecikme ihtimalini gözden kaçırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+                                      "SHIPPING_ESTIMATED_DELIVERY_001",
+                                      "SHIPPING_TRACKING_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_ESTIMATED_DELIVERY_001",
+                                  "SHIPPING_TRACKING_001",
+                                  "SHIPPING_DELIVERY_PROCESS_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Olağan gecikme süresi kesin SLA olarak verilmemelidir; kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Geç teslimat destek eşiği operasyonel olarak netleştirilmelidir.",
+                             "OPEN_CONTENT_NOTE: Geç teslimat ile teslim edildi görünüyor ama ulaşmadı ayrımı korunmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynaktaki 1-2 iş günü olağan gecikme ifadesi kesin politika/SLA olarak kullanılmamalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: \u0027Çoktan aşılmış\u0027 ve \u0027uzun süre aynı statü\u0027 eşikleri operasyonel olarak netleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Geç teslimat ile teslim edildi görünüyor ama ulaşmadı arasındaki ayrım kaynakta net kılınmıştır."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_BRANCH_PICKUP_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "SUBEDEN_TESLIM_ALMA",
+        "title":  "Şubeden Teslim Alma",
+        "amac":  "Kullanıcının paketi adrese teslim beklemek yerine kargo şubesinden teslim alması sürecini açıklamak.",
+        "kapsam":  "Kargonun şubede beklemesi, kimlik ve takip numarasıyla teslim alma, şube bekleme süresi ve şubeden teslim sorunlarını kapsar.",
+        "tanim":  "Şubeden teslim alma, paketin belirli bir kargo şubesinde bekletilmesi ve kullanıcının şubeye giderek paketi teslim almasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Kargomu şubeden teslim alabilir miyim",
+                                    "Ürünümü kargo şubesinden almak istiyorum",
+                                    "Şubeden teslim seçeneği var mı",
+                                    "Kargom şubede bekliyor mu",
+                                    "Şubeden teslim için kimlik gerekli mi",
+                                    "Kargo şubede kaç gün bekler"
+                                ],
+        "kosullar":  [
+                         "Paket kargo şubesine ulaşmış veya şubeye yönlendirilmiş olmalıdır.",
+                         "Kullanıcıya şube bilgisi veya takip bilgisi sunulmalıdır.",
+                         "Kimlik ve takip numarası istenebilir.",
+                         "Şubede bekleme süresi kargo firmasına göre sınırlıdır."
+                     ],
+        "adimlar":  [
+                        "Kargonun şubede olup olmadığı takip ekranından kontrol edilir.",
+                        "Şube adresi ve çalışma saatleri kontrol edilir.",
+                        "Kimlik ve takip numarası hazırlanır.",
+                        "Kullanıcı şubeye giderek paketi teslim alır.",
+                        "Teslim alınmazsa paketin iade sürecine girebileceği dikkate alınır."
+                    ],
+        "istisnalar":  [
+                           "Kargo şubede görünmesine rağmen bulunamayabilir.",
+                           "Paket yanlış şubeye yönlendirilmiş olabilir.",
+                           "Şubede bekleme süresi dolmadan iade süreci başlamış görünebilir.",
+                           "Şubeden teslim alma adrese yeniden teslimatla aynı süreç değildir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kargo şubede görünmesine rağmen teslim alınamıyorsa.",
+                                           "Şube kargoyu bulamıyorsa.",
+                                           "Süre dolmadan kargo iade sürecine girdiyse.",
+                                           "Yanlış şubeye yönlendirme yapıldıysa."
+                                       ],
+        "standart_yanit":  "Kargonuzu şubeden almak istiyorsanız önce takip ekranından paketin şubede olduğunu, şube adresini ve çalışma saatlerini kontrol edin. Şubede bekleme süresi ve gerekli belgeler kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+        "sik_yapilan_hatalar":  [
+                                    "Kargo şubeye ulaşmadan teslim almaya gitmek.",
+                                    "Kimlik veya takip numarası olmadan şubeden teslim beklemek.",
+                                    "Şubede bekleme süresini sınırsız sanmak.",
+                                    "Şubeden teslim alma ile adrese yeniden teslimatı karıştırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_ADDRESS_REDELIVERY_001",
+                                      "SHIPPING_DELIVERY_FAILED_001",
+                                      "SHIPPING_TRACKING_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_DELIVERY_FAILED_001",
+                                  "SHIPPING_ADDRESS_REDELIVERY_001",
+                                  "SHIPPING_TRACKING_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Şubede bekleme süresi kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Şubeden teslim için gerekli belgeler kargo firması uygulamasına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Şubede bekleme süresi kaynakta \u0027birkaç gün\u0027 ve firmaya göre değişir şeklindedir; kesin süre verilmemelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Gerekli belgeler kargo firması uygulamasına göre değişebilir."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_ADDRESS_REDELIVERY_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "ADRESE_YENIDEN_TESLIMAT",
+        "title":  "Adrese Yeniden Teslimat",
+        "amac":  "İlk teslimat denemesi başarısız olan veya şubeye dönen kargonun tekrar adrese yönlendirilmesi sürecini açıklamak.",
+        "kapsam":  "Teslim edilemeyen, şubeye dönen veya kullanıcının yeniden teslimat talep ettiği kargoların yeniden dağıtım sürecini kapsar. Sipariş adresi değişikliği bu dokümanın kapsamında değildir.",
+        "tanim":  "Adrese yeniden teslimat, başarısız teslimat sonrası veya şubeden dönen kargonun aynı adreste tekrar dağıtıma çıkarılması ve ikinci veya sonraki teslimat denemesidir. Adres değişikliği ile karıştırılmamalıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Kargom tekrar adrese gelir mi",
+                                    "Yeniden teslimat talep etmek istiyorum",
+                                    "Kargo şubeye döndü tekrar dağıtıma çıkar mı",
+                                    "Evde yoktum yeniden teslim edilir mi",
+                                    "Adrese yeniden teslimat nasıl yapılır",
+                                    "Yeniden teslimat planı görünmüyor"
+                                ],
+        "kosullar":  [
+                         "İlk teslimat denemesi başarısız olmuş veya paket şubeye dönmüş olabilir.",
+                         "Adres ve telefon bilgileri doğru olmalıdır.",
+                         "Kargo firması yeniden dağıtım planı oluşturabilmelidir.",
+                         "Yeniden teslimat sayısı sınırlı olabilir."
+                     ],
+        "adimlar":  [
+                        "Kargo takip durumu kontrol edilir.",
+                        "Adres ve telefon bilgilerinin doğruluğu kontrol edilir.",
+                        "Kargo firmasından yeniden teslimat planı öğrenilir.",
+                        "Teslimat günü adreste bulunmaya dikkat edilir.",
+                        "Plan görünmüyorsa destek ekibiyle iletişime geçilir."
+                    ],
+        "istisnalar":  [
+                           "Yanlış adres durumunda yeniden teslimat tekrar başarısız olabilir.",
+                           "Her kargo firması sınırsız yeniden teslimat yapmaz.",
+                           "Yoğunluk, uzak adres veya hava koşulları yeniden teslimatı geciktirebilir.",
+                           "Adrese yeniden teslimat adres değişikliği anlamına gelmez."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Birden fazla yeniden teslimat yapılmasına rağmen kargo ulaşmadıysa.",
+                                           "Kargo sürekli şubeye geri dönüyorsa.",
+                                           "Yeniden teslimat planı görünmüyorsa.",
+                                           "Adres doğru olmasına rağmen teslimat başarısız oluyorsa."
+                                       ],
+        "standart_yanit":  "Adrese yeniden teslimat için takip durumunu kontrol edin, adres ve telefon bilgilerinizin doğru olduğundan emin olun ve kargo firmasından yeniden dağıtım planını öğrenin. Yeniden teslimat deneme sayısı kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+        "sik_yapilan_hatalar":  [
+                                    "Adrese yeniden teslimatı adres değişikliği sanmak.",
+                                    "Adres ve telefon bilgilerini kontrol etmeden yeniden teslimat beklemek.",
+                                    "Kargo firmasının sınırsız teslimat denemesi yapacağını varsaymak.",
+                                    "Şubeden teslim alma seçeneğini değerlendirmemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_CARRIER_CHANGE_001",
+                                      "SHIPPING_BRANCH_PICKUP_001",
+                                      "SHIPPING_DELIVERY_FAILED_001",
+                                      "SIPARIS_ADDRESS_CHANGE_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_DELIVERY_FAILED_001",
+                                  "SHIPPING_BRANCH_PICKUP_001",
+                                  "SHIPPING_TRACKING_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_CONTENT_NOTE: Adrese yeniden teslimat ve adres değişikliği ayrı süreçlerdir.",
+                             "OPEN_POLICY_NOTE: Yeniden teslimat deneme sayısı kargo firması, bölge ve operasyon sürecine göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Yeniden teslimat ve adres değişikliği operasyonel olarak ayrı süreçler olarak tanımlanmıştır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynakta 1 ila 2 yeniden teslimat denemesi ifadesi vardır; kargo firması politikası olarak kesinleştirilmemelidir."
+                         ]
+    },
+    {
+        "doc_id":  "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+        "category":  "KARGO_TESLIMAT",
+        "subcategory":  "BIRDEN_FAZLA_KARGO_ILE_TESLIMAT",
+        "title":  "Birden Fazla Kargo ile Teslimat",
+        "amac":  "Tek siparişin birden fazla paket halinde farklı kargo gönderileriyle teslim edilmesi durumunu açıklamak.",
+        "kapsam":  "Farklı depo, ürün hazırlık süresi, ağırlık/hacim limiti veya farklı satıcı/tedarikçi nedeniyle parçalı gönderilen siparişleri kapsar. Eksik ürün/iade gibi konular bu dokümanın kapsamında değildir.",
+        "tanim":  "Birden fazla kargo ile teslimat, aynı siparişteki ürünlerin birden fazla paket olarak hazırlanması ve her paket için ayrı takip numarası oluşmasıdır. Bu durum ürün eksikliği değildir; normal bir teslimat yöntemidir.",
+        "kullanici_ifadeleri":  [
+                                    "Siparişim neden iki kargo halinde geliyor",
+                                    "Ürünlerimin bir kısmı geldi diğerleri gelmedi",
+                                    "Aynı siparişte birden fazla takip numarası var",
+                                    "Eksik teslimat mı parçalı teslimat mı",
+                                    "Paketlerden biri teslim edildi diğeri gelmedi",
+                                    "Siparişim farklı günlerde mi gelecek"
+                                ],
+        "kosullar":  [
+                         "Siparişte birden fazla ürün veya paket olabilir.",
+                         "Ürünler farklı depolardan veya farklı hazırlık süreleriyle gönderilebilir.",
+                         "Her paket için ayrı takip numarası oluşturulabilir.",
+                         "Paketler aynı gün teslim edilmeyebilir."
+                     ],
+        "adimlar":  [
+                        "Sipariş detayında birden fazla kargo bilgisi kontrol edilir.",
+                        "Her paketin takip numarası ayrı ayrı incelenir.",
+                        "Paket içerik bilgisi varsa hangi ürünün hangi pakette olduğu kontrol edilir.",
+                        "Teslim edilen ve bekleyen paketler ayrıştırılır.",
+                        "Bir paket uzun süre gelmezse destek ekibiyle iletişime geçilir."
+                    ],
+        "istisnalar":  [
+                           "Bir paket teslim edilirken diğerleri hazırlanıyor olabilir.",
+                           "Depo farklılığı nedeniyle teslimatlar arasında gün farkı olabilir.",
+                           "Kargo firması paketleri ayrı zamanlarda dağıtabilir.",
+                           "Sistem tüm siparişi teslim edildi gösteriyor ama paket eksikse destek incelemesi gerekir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Paketlerden biri teslim edilip diğerleri uzun süre gelmediyse.",
+                                           "Sistem tüm siparişi teslim edildi gösteriyor ama paket eksikse.",
+                                           "Takip numaraları çalışmıyorsa.",
+                                           "Paketlerden biri kayıp görünüyorsa."
+                                       ],
+        "standart_yanit":  "Bazı siparişler birden fazla paket halinde gönderilebilir ve her paket için ayrı takip numarası oluşabilir. Her takip numarasını ayrı kontrol edin; paketlerden biri görünmüyor veya beklenenden uzun süre gelmiyorsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Parçalı teslimatı eksik teslimat sanmak.",
+                                    "Tek takip numarası beklemek.",
+                                    "Teslim edilen paketle bekleyen paketi ayırmadan kayıp bildirimi yapmak.",
+                                    "Her paketin aynı gün teslim edileceğini varsaymak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+                                      "SHIPPING_TRACKING_001",
+                                      "SHIPPING_DELAYED_DELIVERY_001"
+                                  ],
+        "related_documents":  [
+                                  "SHIPPING_TRACKING_001",
+                                  "SHIPPING_DELIVERY_PROCESS_001",
+                                  "SHIPPING_DELAYED_DELIVERY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_CONTENT_NOTE: Parçalı teslimat normal işlem olarak açıklanmıştır; eksik ürünle karıştırılmamalıdır.",
+                             "OPEN_TECHNICAL_NOTE: Paket içerik bilgisinin sistemde gösterilip gösterilmediği ve eksik paket destek eşiği doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Parçalı teslimat normal işlem olarak açıklanmıştır; eksik ürünle karıştırılmaması sağlanmıştır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Paket içerik bilgisinin sistemde gösterilip gösterilmediği kaynakta opsiyonel olarak geçer."
+                         ]
+    }
+]

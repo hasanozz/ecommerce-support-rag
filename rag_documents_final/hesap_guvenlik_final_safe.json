@@ -1,0 +1,939 @@
+[
+    {
+        "doc_id":  "ACCOUNT_CREATE_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "HESAP_OLUSTURMA",
+        "title":  "Hesap Oluşturma",
+        "amac":  "Kullanıcının platformda yeni hesap oluşturma sürecini, gerekli bilgileri ve hesap oluşturmayı engelleyebilecek durumları açıklamak.",
+        "kapsam":  "Yeni üyelik açmak isteyen kullanıcıların kayıt formu, şifre belirleme, sözleşme onayı ve ilk hesap oluşturma adımlarını kapsar.",
+        "tanim":  "Hesap oluşturma, kullanıcının ad-soyad, e-posta, telefon ve şifre bilgilerini girerek kullanım şartlarını onaylaması ve sistemde yeni kullanıcı hesabı oluşturmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Nasıl hesap oluşturabilirim?",
+                                    "Yeni üyelik nasıl açılır?",
+                                    "Hesap oluştururken hata alıyorum.",
+                                    "Üyelik oluşturamıyorum.",
+                                    "Kayıt olurken sistem hata veriyor.",
+                                    "Telefon numaramla yeni hesap açamıyorum."
+                                ],
+        "kosullar":  [
+                         "Ad-soyad, e-posta adresi, telefon numarası ve şifre eksiksiz girilmelidir.",
+                         "E-posta adresi yalnızca bir hesapta kullanılabilir.",
+                         "Aynı telefon numarası birden fazla hesapta kullanılamaz.",
+                         "Şifre en az 8 karakter, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.",
+                         "Kullanıcı Sözleşmesi ve Gizlilik Politikası onaylanmalıdır."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı Kayıt Ol seçeneğiyle kayıt ekranına gider.",
+                        "Gerekli kişisel ve iletişim bilgilerini girer.",
+                        "Kurallara uygun bir şifre belirler.",
+                        "Kullanıcı Sözleşmesi ve Gizlilik Politikası onaylarını verir.",
+                        "Sistem hesabı oluşturur.",
+                        "Hesap oluşturulduktan sonra e-posta doğrulama işlemi tamamlanır."
+                    ],
+        "istisnalar":  [
+                           "E-posta adresi daha önce kullanılmışsa yeni hesap oluşturulamaz.",
+                           "Telefon numarası başka bir hesapta kayıtlıysa yeni hesap oluşturulamaz.",
+                           "Şifre güvenlik koşullarını sağlamıyorsa sistem kayıt işlemine izin vermez.",
+                           "Sistem bakımında yeni hesap oluşturma geçici olarak kullanılamayabilir.",
+                           "Şüpheli kayıt girişimleri veya aynı cihazdan kısa sürede çok sayıda kayıt denemesi ek doğrulamaya tabi tutulabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kayıt formu doğru doldurulduğu halde hata devam ediyorsa.",
+                                           "E-posta veya telefon numarasının kime ait olduğu konusunda kullanıcı emin değilse.",
+                                           "Şüpheli kayıt engeli kullanıcı tarafından açıklanamıyorsa.",
+                                           "Sistem bakım dışında sürekli kayıt hatası veriyorsa."
+                                       ],
+        "standart_yanit":  "Hesap oluşturmak için Kayıt Ol ekranında gerekli bilgileri eksiksiz girin, güvenli bir şifre belirleyin ve gerekli onayları tamamlayın. E-posta veya telefon numarası başka bir hesapta kayıtlıysa yeni hesap oluşturulamayabilir; şüpheli veya tekrarlı denemelerde güvenlik doğrulaması gerekebilir.",
+        "sik_yapilan_hatalar":  [
+                                    "Hesap oluşturma ile hesap doğrulamayı aynı işlem sanmak.",
+                                    "Daha önce kullanılan e-posta veya telefonla yeni hesap açmaya çalışmak.",
+                                    "Şifre kurallarını karşılamayan şifre girmek.",
+                                    "Kayıt sonrası e-posta doğrulamasını tamamlamamak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_VERIFY_001",
+                                      "ACCOUNT_LOGIN_ISSUE_001",
+                                      "PASSWORD_RESET_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_VERIFY_001",
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "PASSWORD_RESET_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Aynı cihazdan kısa sürede çok sayıda hesap oluşturma eşiği net değildir; sistem güvenlik politikasına göre ek doğrulama veya geçici kısıtlama uygulanabilir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Şüpheli kayıt girişimlerinde hangi ek doğrulamaların uygulanacağı güvenlik politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Aynı cihazdan kısa sürede çok sayıda hesap oluşturma eşiği kaynakta net değildir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_VERIFY_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "HESAP_DOGRULAMA",
+        "title":  "Hesap Doğrulama",
+        "amac":  "Kullanıcının e-posta adresini doğrulama sürecini ve doğrulama tamamlanmadığında oluşabilecek kısıtları açıklamak.",
+        "kapsam":  "Hesap oluşturulduktan sonra e-posta doğrulama bağlantısı, bağlantı süresi, yeni doğrulama e-postası talebi ve doğrulama sorunlarını kapsar.",
+        "tanim":  "Hesap doğrulama, kullanıcının kayıt sırasında verdiği e-posta adresinin kendisine ait ve erişilebilir olduğunu doğrulaması işlemidir.",
+        "kullanici_ifadeleri":  [
+                                    "Hesabımı nasıl doğrularım?",
+                                    "Doğrulama e-postası gelmedi.",
+                                    "E-posta doğrulama bağlantısı açılmıyor.",
+                                    "Hesabım doğrulanmadı görünüyor.",
+                                    "Doğrulama linkinin süresi doldu.",
+                                    "Yanlış e-posta ile kayıt oldum."
+                                ],
+        "kosullar":  [
+                         "Hesap oluşturulmuş olmalıdır.",
+                         "Doğrulama bağlantısı kayıtlı e-posta adresine gönderilir.",
+                         "Doğrulama bağlantısının geçerlilik süresi sistem güvenlik politikasına göre değişebilir.",
+                         "Yeni doğrulama talebi oluşturulduğunda önceki bağlantılar geçersiz hale gelir.",
+                         "Doğrulama bağlantısı üçüncü kişilerle paylaşılmamalıdır."
+                     ],
+        "adimlar":  [
+                        "Hesap oluşturma tamamlanır.",
+                        "Sistem kayıtlı e-posta adresine doğrulama bağlantısı gönderir.",
+                        "Kullanıcı gelen kutusu ve gerekirse spam/gereksiz posta klasörlerini kontrol eder.",
+                        "Kullanıcı doğrulama bağlantısını açar.",
+                        "Sistem hesabı doğrular ve hesap aktif hale gelir.",
+                        "Bağlantı çalışmıyorsa yeni doğrulama e-postası talep edilir."
+                    ],
+        "istisnalar":  [
+                           "Yanlış e-posta girildiyse doğrulama tamamlanamaz.",
+                           "Bağlantı süresi dolduysa sistem doğrulama işlemini kabul etmez.",
+                           "Sistem bakımı doğrulama e-postası gecikmesine neden olabilir.",
+                           "Kısa sürede çok sayıda doğrulama talebi geçici sınırlamaya neden olabilir.",
+                           "Şüpheli hesap faaliyetlerinde ek güvenlik kontrolleri uygulanabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Yeni doğrulama e-postası talep edilmesine rağmen e-posta ulaşmıyorsa.",
+                                           "Doğru e-posta kullanıldığı halde bağlantı sürekli açılmıyorsa.",
+                                           "Yanlış e-posta nedeniyle kullanıcı hesaba erişemiyorsa.",
+                                           "Şüpheli faaliyet nedeniyle doğrulama süreci tamamlanamıyorsa."
+                                       ],
+        "standart_yanit":  "Hesap doğrulama için kayıtlı e-posta adresinize gelen doğrulama bağlantısını açın. E-posta görünmüyorsa spam ve diğer klasörleri kontrol edin; bağlantı geçerliliği sistem güvenlik politikasına göre değişebilir. Sorun devam ederse destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Hesap oluşturma ile hesap doğrulamayı karıştırmak.",
+                                    "Spam veya gereksiz posta klasörünü kontrol etmemek.",
+                                    "Süresi dolmuş bağlantıyla doğrulama yapmaya çalışmak.",
+                                    "Yanlış e-posta adresiyle kayıt olunduğunu fark etmemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_CREATE_001",
+                                      "ACCOUNT_EMAIL_CHANGE_001",
+                                      "PASSWORD_RESET_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_CREATE_001",
+                                  "ACCOUNT_EMAIL_CHANGE_001",
+                                  "ACCOUNT_LOGIN_ISSUE_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Doğrulama bağlantısı süresi final politika olarak onaylanmamıştır; kesin süre verilmemelidir.",
+                             "OPEN_POLICY_NOTE: Çok sayıda doğrulama talebi için sınırlama eşiği net değildir; sistem güvenlik politikasına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynakta doğrulama bağlantısı için 24 saat bilgisi var; final politika olarak korunup korunmayacağı doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Çok sayıda doğrulama talebinde geçici sınırlama eşiği kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Doğrulama bağlantısı süresi kaynakta belirtilen 24 saat ifadesiyle korunmuştur; final politika ile eşleştirilmelidir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_LOGIN_ISSUE_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "GIRIS_YAPAMAMA",
+        "title":  "Giriş Yapamama",
+        "amac":  "Kullanıcının hesabına giriş yapamaması durumunda olası nedenleri ve güvenli kontrol adımlarını açıklamak.",
+        "kapsam":  "Yanlış şifre, yanlış e-posta/telefon, doğrulanmamış hesap, askıya alınmış hesap, başarısız giriş denemeleri, yeni cihaz ve geçici sistem problemlerini kapsar.",
+        "tanim":  "Giriş yapamama, kullanıcının e-posta/telefon ve şifre bilgileriyle oturum açmaya çalışmasına rağmen hesabına erişememesi durumudur.",
+        "kullanici_ifadeleri":  [
+                                    "Hesabıma giriş yapamıyorum.",
+                                    "Şifrem doğru ama giriş yapamıyorum.",
+                                    "Hesap bulunamıyor hatası alıyorum.",
+                                    "Çok fazla hatalı deneme yaptım.",
+                                    "Yeni cihazdan giriş yapamıyorum.",
+                                    "Giriş ekranında hata alıyorum."
+                                ],
+        "kosullar":  [
+                         "Kullanıcı giriş ekranında e-posta veya telefon ile şifre girmelidir.",
+                         "Hesap bilgileri sistemde kayıtlı olmalıdır.",
+                         "E-posta doğrulama tamamlanmamışsa bazı işlemler kısıtlanabilir.",
+                         "Güvenlik nedeniyle çok sayıda hatalı deneme sonrası geçici koruma uygulanabilir.",
+                         "Askıya alınmış veya güvenlik incelemesindeki hesaplarda erişim kısıtlanabilir."
+                     ],
+        "adimlar":  [
+                        "E-posta adresi veya telefon numarasının doğru girildiği kontrol edilir.",
+                        "Şifrenin büyük-küçük harf duyarlı olduğu dikkate alınır.",
+                        "Hesap doğrulama durumu kontrol edilir.",
+                        "Farklı tarayıcı veya cihazla tekrar denenebilir.",
+                        "Şifre unutulduysa şifre sıfırlama işlemi başlatılır.",
+                        "Askıya alma veya güvenlik incelemesi şüphesinde destek ekibiyle iletişime geçilir."
+                    ],
+        "istisnalar":  [
+                           "Planlı bakım sırasında giriş hizmetleri geçici olarak kullanılamayabilir.",
+                           "Güvenlik incelemesi altındaki hesaplarda giriş durdurulabilir.",
+                           "Şüpheli faaliyet tespit edilen hesaplar koruma amacıyla geçici olarak kapatılabilir.",
+                           "Yeni cihaz veya konumdan giriş ek doğrulama gerektirebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Şifre doğru olduğu halde giriş yapılamıyorsa ve temel kontroller sonuç vermiyorsa.",
+                                           "Hesap askıya alınmış görünüyorsa.",
+                                           "Güvenlik incelemesi veya şüpheli faaliyet bildirimi varsa.",
+                                           "Hesap bulunamıyor hatası kullanıcı bilgileri doğruyken devam ediyorsa."
+                                       ],
+        "standart_yanit":  "Giriş yapamıyorsanız e-posta/telefon ve şifrenizi kontrol edin, hesabınızın doğrulanmış olduğundan emin olun ve gerekirse Şifremi Unuttum seçeneğini kullanın. Çok sayıda hatalı deneme, askıya alma veya şüpheli faaliyet durumlarında güvenlik doğrulaması gerekebilir; destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Giriş yapamama ile şifre sıfırlamayı aynı doküman sanmak.",
+                                    "Yanlış kayıt e-postası veya telefonuyla giriş denemek.",
+                                    "Büyük-küçük harf duyarlılığını gözden kaçırmak.",
+                                    "Askıya alma veya ek doğrulama durumunu teknik hata sanmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PASSWORD_RESET_001",
+                                      "ACCOUNT_SUSPENSION_001"
+                                  ],
+        "related_documents":  [
+                                  "PASSWORD_RESET_001",
+                                  "ACCOUNT_VERIFY_001",
+                                  "ACCOUNT_SUSPENSION_001",
+                                  "SUSPICIOUS_LOGIN_ALERT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Hatalı giriş bekleme süresi ve kilit eşiği net değildir; sistem güvenlik politikasına göre değişebilir.",
+                             "OPEN_CONTENT_NOTE: Askıya alma ve güvenlik incelemesi mesajları UX/security politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Başarısız giriş denemesi sonrası bekleme süresi ve kilit eşiği kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Askıya alma ve güvenlik incelemesi durumlarında kullanıcıya gösterilen hata mesajları doğrulanmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "PASSWORD_RESET_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "SIFRE_SIFIRLAMA",
+        "title":  "Şifre Sıfırlama",
+        "amac":  "Şifresini unutan veya hesabını güvene almak isteyen kullanıcının kayıtlı e-posta üzerinden yeni şifre oluşturma sürecini açıklamak.",
+        "kapsam":  "Şifremi Unuttum akışı, e-posta bağlantısı, yeni şifre oluşturma, bağlantı geçerliliği ve şifre sıfırlama sorunlarını kapsar.",
+        "tanim":  "Şifre sıfırlama, kullanıcının kayıtlı e-posta adresine gönderilen tek kullanımlık bağlantı ile mevcut şifresini geçersiz hale getirip yeni şifre belirlemesidir.",
+        "kullanici_ifadeleri":  [
+                                    "Şifremi unuttum.",
+                                    "Şifre sıfırlama e-postası gelmedi.",
+                                    "Şifre yenileme linki çalışmıyor.",
+                                    "Yeni şifrem kabul edilmiyor.",
+                                    "Şifre sıfırlama bağlantısının süresi doldu.",
+                                    "Eski şifremle giriş yapamıyorum."
+                                ],
+        "kosullar":  [
+                         "Kullanıcı kayıtlı e-posta adresini girmelidir.",
+                         "Şifre sıfırlama bağlantısı yalnızca ilgili hesap için oluşturulur.",
+                         "Şifre sıfırlama bağlantısının geçerliliği kaynağa göre değişir; genellikle kısa süreli bir süredir.",
+                         "Yeni şifre en az 8 karakter, büyük harf, küçük harf ve rakam içermelidir.",
+                         "Şifre sıfırlandıktan sonra eski şifre geçersiz olur."
+                     ],
+        "adimlar":  [
+                        "Giriş ekranında Şifremi Unuttum seçilir.",
+                        "Kayıtlı e-posta adresi girilir.",
+                        "Sistem e-posta adresini kontrol eder ve bağlantı gönderir.",
+                        "Kullanıcı gelen kutusu ve spam klasörlerini kontrol eder.",
+                        "Bağlantı açılarak yeni şifre oluşturulur.",
+                        "Yeni şifre kaydedildikten sonra eski şifre geçersiz olur."
+                    ],
+        "istisnalar":  [
+                           "Bağlantının süresi dolduysa sistem işlemi kabul etmez.",
+                           "Yeni şifre güvenlik kurallarını karşılamıyorsa kaydedilmez.",
+                           "Sistem bakımında sıfırlama e-postası gecikebilir.",
+                           "Şüpheli faaliyet tespit edilen hesaplarda ek doğrulama istenebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Şifre sıfırlama e-postası tekrar talebe rağmen gelmiyorsa.",
+                                           "Kullanıcı kayıtlı e-posta adresine erişemiyorsa.",
+                                           "Bağlantı sürekli açılmıyorsa.",
+                                           "Şüpheli faaliyet nedeniyle ek doğrulama tamamlanamıyorsa."
+                                       ],
+        "standart_yanit":  "Şifrenizi unuttuysanız Şifremi Unuttum seçeneğiyle kayıtlı e-posta adresinize şifre sıfırlama bağlantısı gönderilmesini sağlayabilirsiniz. Bağlantı geçerliliği sistem güvenlik politikasına göre değişebilir; e-posta ulaşmıyor veya güvenlik şüphesi varsa destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Şifre sıfırlama ile şifre değiştirmeyi karıştırmak.",
+                                    "Kayıtlı olmayan e-posta adresiyle sıfırlama talep etmek.",
+                                    "Süresi dolmuş bağlantıyı kullanmaya çalışmak.",
+                                    "Yeni şifreyi güvenlik kurallarına uygun belirlememek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_LOGIN_ISSUE_001",
+                                      "ACCOUNT_VERIFY_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "TWO_FACTOR_AUTH_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Şifre sıfırlama bağlantısı süresi final politika olarak onaylanmamıştır; kesin süre verilmemelidir.",
+                             "OPEN_POLICY_NOTE: Çok sayıda şifre sıfırlama talebi sonrası sınırlama eşiği net değildir; sistem güvenlik politikasına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kaynakta şifre sıfırlama bağlantısı için 15 dakika bilgisi var; final güvenlik politikası olarak doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Çok sayıda sıfırlama talebi sonrası sınırlama eşiği kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Şifre sıfırlama bağlantısı süresi genel bir güvenlik ifadesiyle korundu; kesin sürenin kaynakla eşleştirilmesi gereklidir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_EMAIL_CHANGE_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "EPOSTA_DEGISTIRME",
+        "title":  "E-posta Değiştirme",
+        "amac":  "Kullanıcının hesabında kayıtlı e-posta adresini güvenli şekilde güncelleme sürecini açıklamak.",
+        "kapsam":  "Hesap ayarlarından e-posta güncelleme, yeni e-posta doğrulaması, güvenlik doğrulaması ve yetkisiz değişiklik bildirimlerini kapsar.",
+        "tanim":  "E-posta değiştirme, kullanıcının hesabına giriş yaptıktan sonra yeni e-posta adresini girip gerekli güvenlik ve e-posta doğrulamalarını tamamlamasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "E-posta adresimi nasıl değiştiririm?",
+                                    "Yeni e-posta adresim doğrulanmıyor.",
+                                    "E-posta değişikliği tamamlanmıyor.",
+                                    "Eski e-postama erişemiyorum.",
+                                    "E-posta değişikliğini ben yapmadım.",
+                                    "Yeni e-posta başka hesapta kullanılıyor diyor."
+                                ],
+        "kosullar":  [
+                         "Kullanıcının hesabına giriş yapmış olması gerekir.",
+                         "Yeni e-posta geçerli formatta olmalı ve başka hesapta kullanılmamalıdır.",
+                         "Yeni e-posta kullanıcının erişebildiği bir adres olmalıdır.",
+                         "Sistem şifre, SMS veya iki aşamalı doğrulama isteyebilir.",
+                         "Yeni e-posta doğrulanmadan değişiklik tamamlanmaz."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesabına giriş yapar.",
+                        "Hesabım \u003e Hesap Ayarları \u003e E-posta Bilgileri ekranına gider.",
+                        "Yeni e-posta adresini girer.",
+                        "İstenen güvenlik doğrulamasını tamamlar.",
+                        "Yeni e-posta adresine gelen doğrulama bağlantısını açar.",
+                        "Doğrulama başarılı olduğunda yeni e-posta aktif olur."
+                    ],
+        "istisnalar":  [
+                           "Yeni e-posta başka hesapta kayıtlıysa kullanılamaz.",
+                           "Yeni e-posta doğrulanmadan eski e-posta kullanılmaya devam eder.",
+                           "Güvenlik incelemesindeki hesaplarda değişiklik geçici olarak kısıtlanabilir.",
+                           "Şüpheli faaliyet durumunda ek doğrulama istenebilir.",
+                           "Sistem bakımında değişiklik işlemleri gecikebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kullanıcı e-posta değişikliğini kendisi yapmadıysa.",
+                                           "Yeni e-posta doğrulandığı halde değişiklik tamamlanmıyorsa.",
+                                           "Eski e-postaya erişim yoksa ve hesap güvenliği riski varsa.",
+                                           "Güvenlik incelemesi nedeniyle işlem yapılamıyorsa."
+                                       ],
+        "standart_yanit":  "E-posta adresinizi değiştirmek için hesabınıza giriş yapıp Hesap Ayarları bölümünden yeni adresi girin ve gerekli doğrulamaları tamamlayın. Ek güvenlik doğrulaması gerekebilir; değişikliği siz yapmadıysanız hesabınızı güvene alıp destek ekibinin hesap güvenliği kayıtlarını incelemesini sağlayın.",
+        "sik_yapilan_hatalar":  [
+                                    "E-posta değiştirme ile hesap doğrulamayı karıştırmak.",
+                                    "Yeni e-postayı doğrulamadan değişikliğin tamamlandığını sanmak.",
+                                    "Başka hesapta kullanılan e-postayı yeniden kullanmaya çalışmak.",
+                                    "Yetkisiz e-posta değişikliğini normal bildirim sanmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_VERIFY_001",
+                                      "ACCOUNT_PHONE_CHANGE_001",
+                                      "SUSPICIOUS_LOGIN_ALERT_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_VERIFY_001",
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "SUSPICIOUS_LOGIN_ALERT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_SECURITY_NOTE: E-posta değişikliği için hangi durumlarda hangi ek doğrulama yönteminin isteneceği güvenlik politikasıyla doğrulanmalıdır.",
+                             "OPEN_POLICY_NOTE: Eski e-postaya erişimi olmayan kullanıcılar için kurtarma akışı net değildir; destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: E-posta değişikliği için hangi durumlarda hangi ek doğrulama yönteminin istendiği güvenlik politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Eski e-postaya erişimi olmayan kullanıcılar için kurtarma akışı kaynakta detaylı değildir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_PHONE_CHANGE_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "TELEFON_NUMARASI_DEGISTIRME",
+        "title":  "Telefon Numarası Değiştirme",
+        "amac":  "Kullanıcının hesapta kayıtlı telefon numarasını güvenli şekilde güncelleme sürecini açıklamak.",
+        "kapsam":  "Hesap güvenliği, SMS doğrulama, yeni telefon numarası doğrulaması ve telefon değişikliği sırasında yaşanan sorunları kapsar.",
+        "tanim":  "Telefon numarası değiştirme, kullanıcının hesabına giriş yaptıktan sonra mevcut veya yeni numarayı doğrulayarak hesap telefon bilgisini güncellemesidir.",
+        "kullanici_ifadeleri":  [
+                                    "Telefon numaramı nasıl değiştiririm?",
+                                    "SMS doğrulama kodu gelmedi.",
+                                    "Eski telefon numarama erişimim yok.",
+                                    "Telefon numaram başka hesapta kullanılıyor.",
+                                    "Yanlış telefon numarası girdim.",
+                                    "Telefon değişikliği tamamlanmıyor."
+                                ],
+        "kosullar":  [
+                         "Kullanıcının hesabına giriş yapmış olması gerekir.",
+                         "Yeni telefon numarası geçerli formatta olmalı ve kullanıcıya ait olmalıdır.",
+                         "Aynı telefon numarası başka hesapta kullanılamaz.",
+                         "Sistem mevcut telefon, hesap şifresi veya iki aşamalı doğrulama isteyebilir.",
+                         "Doğrulama tamamlanmadan telefon numarası güncellenmez."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesabına giriş yapar.",
+                        "Hesabım \u003e Hesap Ayarları \u003e Telefon Bilgileri ekranına gider.",
+                        "Gerekirse mevcut telefon numarası veya hesap bilgileri doğrulanır.",
+                        "Yeni telefon numarası girilir.",
+                        "Yeni numaraya gönderilen tek kullanımlık SMS kodu girilir.",
+                        "Doğrulama başarılıysa yeni numara aktif olur."
+                    ],
+        "istisnalar":  [
+                           "SMS kodu operatör veya bağlantı sorunu nedeniyle gecikebilir.",
+                           "Kod belirli süre geçerlidir ve aynı kod birden fazla kez kullanılamaz.",
+                           "Eski telefona erişim yoksa ek güvenlik doğrulaması gerekebilir.",
+                           "Güvenlik incelemesindeki hesaplarda değişiklik kısıtlanabilir.",
+                           "Çok sık telefon değiştirme girişimi geçici sınırlamaya neden olabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Eski telefon numarasına erişim yoksa.",
+                                           "SMS kodu tekrar denemeye rağmen gelmiyorsa.",
+                                           "Telefon numarası başka hesapta görünüyorsa ve kullanıcı emin değilse.",
+                                           "Şüpheli faaliyet nedeniyle telefon değişikliği kısıtlanıyorsa."
+                                       ],
+        "standart_yanit":  "Telefon numaranızı değiştirmek için hesabınıza giriş yapıp Hesap Ayarları bölümünden yeni numarayı girin ve SMS veya ek güvenlik doğrulamasını tamamlayın. Kod süreleri ve doğrulama adımları sistem güvenlik politikasına göre değişebilir; eski numaraya erişiminiz yoksa destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Telefon değiştirme ile sipariş teslimat bilgisi/adres değişikliğini karıştırmak.",
+                                    "SMS kodunu süresi dolduktan sonra kullanmaya çalışmak.",
+                                    "Başka hesapta kayıtlı numarayı yeniden kullanmak.",
+                                    "Eski telefona erişim yokken normal akışla değişiklik beklemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_EMAIL_CHANGE_001",
+                                      "TWO_FACTOR_AUTH_001",
+                                      "SIPARIS_ADDRESS_CHANGE_001"
+                                  ],
+        "related_documents":  [
+                                  "TWO_FACTOR_AUTH_001",
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "ACCOUNT_EMAIL_CHANGE_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: SMS doğrulama kodunun geçerlilik süresi net değildir; sistem güvenlik politikasına göre değişebilir.",
+                             "OPEN_SECURITY_NOTE: Eski telefon numarasına erişimi olmayan kullanıcılar için kimlik doğrulama detayları net değildir.",
+                             "OPEN_TECHNICAL_NOTE: ORDER_ADDRESS_CHANGE_001 related/hard negative eşlemesi final doküman setiyle doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: SMS doğrulama kodunun geçerlilik süresi kaynakta \u0027belirli bir süre\u0027 olarak geçiyor; kesin süre verilmemelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Eski telefon numarasına erişimi olmayan kullanıcılar için kimlik doğrulama detayları kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: ORDER_ADDRESS_CHANGE_001 related/hard negative doc_id gerçek final setle doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: SMS doğrulama kodu süresi genel bir ifadeyle korunmuştur; kesin süre verilmemelidir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_DELETE_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "HESAP_SILME",
+        "title":  "Hesap Silme",
+        "amac":  "Kullanıcının hesabını kalıcı olarak kapatma ve hesap erişimini sonlandırma sürecini açıklamak.",
+        "kapsam":  "Hesap silme talebi, güvenlik doğrulaması, hesap silme sonrası erişim, puan/kupon durumu, bekleyen işlemler ve veri saklama istisnalarını kapsar.",
+        "tanim":  "Hesap silme, kullanıcının hesabını kapatması, aktif hesap erişiminin sonlandırılması ve hesap bilgilerinin aktif kullanımdan kaldırılmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Hesabımı nasıl silebilirim?",
+                                    "Üyeliğimi kapatmak istiyorum.",
+                                    "Hesabımı sildikten sonra geri alabilir miyim?",
+                                    "Hesabımı silince puanlarım ne olur?",
+                                    "Bekleyen siparişim varken hesabımı silebilir miyim?",
+                                    "Hesap silme ile çıkış yapmak aynı mı?"
+                                ],
+        "kosullar":  [
+                         "Hesap silme için kullanıcının hesabına giriş yapmış olması gerekir.",
+                         "Sistem hesap sahibini doğrulamak için ek güvenlik kontrolleri uygulayabilir.",
+                         "Devam eden sipariş, iade, destek kaydı veya ödeme uyuşmazlığı varsa önce bunların tamamlanması önerilir.",
+                         "Hesap silme tamamlandıktan sonra hesaba giriş yapılamaz.",
+                         "Bazı kayıtlar yasal yükümlülükler nedeniyle saklanabilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesabına giriş yapar.",
+                        "Hesabım \u003e Hesap Ayarları \u003e Hesap Yönetimi \u003e Hesabımı Sil ekranına gider.",
+                        "Sistem gerekli güvenlik doğrulamasını ister.",
+                        "Kullanıcı hesap silme sonuçlarını değerlendirir.",
+                        "Kullanıcı talebi onaylar.",
+                        "Hesap erişime kapatılır."
+                    ],
+        "istisnalar":  [
+                           "Hesap silme işlemi çıkış yapmak veya üyelikten geçici ayrılmak değildir.",
+                           "Silinen hesap için yeniden erişim garanti edilmez.",
+                           "Kullanılmamış puanlar ve kuponlar silinebilir.",
+                           "Devam eden güvenlik veya yasal süreçlerde silme talebi ertelenebilir.",
+                           "Yasal, muhasebe, dolandırıcılık önleme ve denetim kayıtları belirli süre saklanabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kullanıcı hesabına erişemediği için silme talebi başlatamıyorsa.",
+                                           "Devam eden sipariş/iade/ödeme uyuşmazlığı varsa.",
+                                           "Hesap silme sonrası veri veya erişim konusunda itiraz varsa.",
+                                           "Güvenlik ya da yasal inceleme nedeniyle silme işlemi erteleniyorsa."
+                                       ],
+        "standart_yanit":  "Hesap silme için hesabınıza giriş yapıp Hesap Yönetimi bölümünden talebi başlatmanız ve güvenlik doğrulamasını tamamlamanız gerekir. Hesap silme sonrası erişim, puan/kupon ve veri saklama sonuçları politika ve yasal gerekliliklere göre değişebilir; devam eden işlem veya güvenlik incelemesi varsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Hesap silme ile çıkış yapmayı karıştırmak.",
+                                    "Silinen hesabın kesin geri yükleneceğini düşünmek.",
+                                    "Bekleyen sipariş veya iade varken sonuçları değerlendirmeden silme talebi başlatmak.",
+                                    "Hesap silme sonrası tüm kayıtların anında yok olacağını varsaymak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SESSION_MANAGEMENT_001",
+                                      "ACCOUNT_LOGIN_ISSUE_001",
+                                      "ACCOUNT_CREATE_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "PERSONAL_DATA_SECURITY_001",
+                                  "SESSION_MANAGEMENT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_LEGAL_NOTE: Hesap silme sonrası veri saklama süreleri legal/compliance politika ile doğrulanmalıdır.",
+                             "OPEN_POLICY_NOTE: Hesap silme sonrası puan/kupon ve yeniden üyelik koşulları kampanya ve hesap politikasıyla doğrulanmalıdır.",
+                             "OPEN_CONTENT_NOTE: Hesap silme ile üyelik iptali terminolojisi ürün diliyle netleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Hesap silme sonrası veri saklama süreleri kaynakta net değildir; yasal/compliance politika ile doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Puan/kupon silinmesi ve yeniden üyelik koşulları kampanya ve hesap politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Hesap silme ile üyelik iptali terminolojisi ürün dilinde netleştirilmelidir."
+                         ]
+    },
+    {
+        "doc_id":  "SUSPICIOUS_LOGIN_ALERT_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "SUPHELI_GIRIS_BILDIRIMI",
+        "title":  "Şüpheli Giriş Bildirimi",
+        "amac":  "Kullanıcıya gelen şüpheli giriş bildiriminin ne anlama geldiğini ve güvenli aksiyonları açıklamak.",
+        "kapsam":  "Yeni cihaz, farklı konum, çok sayıda başarısız giriş, olağan dışı hesap hareketleri ve kullanıcıya ait olmayan giriş şüphelerini kapsar.",
+        "tanim":  "Şüpheli giriş bildirimi, sistemin olağan dışı giriş faaliyeti tespit ettiğinde kullanıcıyı bilgilendirmesi ve gerekirse ek doğrulama istemesidir.",
+        "kullanici_ifadeleri":  [
+                                    "Şüpheli giriş bildirimi aldım.",
+                                    "Hesabıma başka biri girmeye çalışıyor olabilir.",
+                                    "Giriş bildirimi bana ait değil.",
+                                    "Farklı şehirden giriş bildirimi geldi.",
+                                    "Sürekli şüpheli giriş uyarısı alıyorum.",
+                                    "Kod bana ait olmayan giriş için geldi."
+                                ],
+        "kosullar":  [
+                         "Sistem olağan dışı giriş hareketi tespit etmiş olabilir.",
+                         "Yeni cihaz, farklı şehir/ülke veya çok sayıda başarısız deneme bildirim nedeni olabilir.",
+                         "VPN veya mobil operatör değişiklikleri konum bilgisini etkileyebilir.",
+                         "Bildirim alınması hesabın kesin ele geçirildiği anlamına gelmez.",
+                         "Şüpheli faaliyet yoğunlaşırsa hesap geçici olarak koruma altına alınabilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı bildirimi inceler.",
+                        "Giriş kendisine aitse hesap hareketlerini yine de kontrol eder.",
+                        "Giriş kendisine ait değilse şifresini derhal değiştirir.",
+                        "İki aşamalı doğrulamayı etkinleştirir.",
+                        "Bağlı cihazları ve aktif oturumları kontrol eder.",
+                        "Tanımadığı cihazlardan çıkış yapar ve gerekirse destek ekibiyle iletişime geçer."
+                    ],
+        "istisnalar":  [
+                           "Yeni cihazdan veya seyahatte giriş normal olabilir.",
+                           "VPN konumu farklı gösterebilir.",
+                           "Mobil operatör değişiklikleri farklı konum bilgisi oluşturabilir.",
+                           "Sistem güvenlik amacıyla ek doğrulama uygulayabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Giriş işlemi kullanıcıya ait değilse.",
+                                           "Hesapta tanınmayan hareketler varsa.",
+                                           "Kullanıcı hesabına erişemiyorsa.",
+                                           "Şüpheli giriş bildirimleri tekrarlanıyorsa.",
+                                           "Hesap geçici olarak koruma altına alındıysa."
+                                       ],
+        "standart_yanit":  "Şüpheli giriş bildirimi aldıysanız önce bildirimin size ait olup olmadığını kontrol edin. Size ait değilse şifrenizi değiştirin, iki aşamalı doğrulamayı etkinleştirin, bağlı cihazları kontrol edip tanımadığınız oturumları sonlandırın. Hesabınızda tanımadığınız hareket varsa destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Şüpheli giriş bildirimini kesin hesap ele geçirilmesi olarak yorumlamak.",
+                                    "Giriş kendisine ait değilken şifreyi değiştirmemek.",
+                                    "Aktif oturumları kontrol etmemek.",
+                                    "VPN veya seyahat kaynaklı konum farkını dikkate almamak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_LOGIN_ISSUE_001",
+                                      "TWO_FACTOR_AUTH_001",
+                                      "UNAUTHORIZED_ORDER_PAYMENT_001"
+                                  ],
+        "related_documents":  [
+                                  "SESSION_MANAGEMENT_001",
+                                  "TWO_FACTOR_AUTH_001",
+                                  "UNAUTHORIZED_ORDER_PAYMENT_001",
+                                  "ACCOUNT_SUSPENSION_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_SECURITY_NOTE: Şüpheli giriş tespit kriterleri ve kullanıcıya gösterilecek bilgiler güvenlik politikası gereği detaylandırılmamalı ve doğrulanmalıdır.",
+                             "OPEN_SECURITY_NOTE: SECURITY_ALERT routing downstream sistem kararı açıktır; expected_action RAG_ANSWER_OR_TICKET tutulmuştur.",
+                             "SECURITY_ROUTING_NOTE: Bu doküman güvenlik riski içerir; destek/ticket akışında SECURITY_ALERT olarak önceliklendirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Şüpheli giriş tespit kriterleri ve eşikleri güvenlik politikası gereği detaylandırılmamalı; hangi bilgilerin kullanıcıya gösterildiği doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: SECURITY_ALERT expected_action downstream sistemde destekleniyorsa korunmalıdır; değilse RAG_ANSWER_OR_TICKET olarak eşlenmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: SECURITY_ALERT expected_action güvenlik riskine uygun olduğu için korunmuştur.",
+                             "SOURCE_REVIEW_NOTE: SECURITY_ROUTING_NOTE: Bu doküman güvenlik riski içerir; destek/ticket akışında SECURITY_ALERT olarak önceliklendirilmelidir."
+                         ]
+    },
+    {
+        "doc_id":  "TWO_FACTOR_AUTH_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "IKI_ASAMALI_DOGRULAMA",
+        "title":  "İki Aşamalı Doğrulama",
+        "amac":  "Kullanıcının hesabına ek güvenlik katmanı ekleyen iki aşamalı doğrulama özelliğini açıklamak.",
+        "kapsam":  "İki aşamalı doğrulamayı etkinleştirme/devre dışı bırakma, SMS kodu kullanımı, kod gelmemesi ve güvenlik uyarılarını kapsar.",
+        "tanim":  "İki aşamalı doğrulama, standart giriş bilgilerinin yanında SMS veya ek doğrulama kodu ile ikinci güvenlik katmanı oluşturan isteğe bağlı güvenlik özelliğidir.",
+        "kullanici_ifadeleri":  [
+                                    "İki aşamalı doğrulamayı nasıl açarım?",
+                                    "SMS kodu gelmiyor.",
+                                    "Sürekli doğrulama kodu isteniyor.",
+                                    "Telefon numaram değişti ne yapmalıyım?",
+                                    "Bana ait olmayan giriş için kod geldi.",
+                                    "İki aşamalı doğrulamayı kapatabilir miyim?"
+                                ],
+        "kosullar":  [
+                         "Kullanıcının hesabına giriş yapmış olması gerekir.",
+                         "Kayıtlı telefon numarası güncel ve erişilebilir olmalıdır.",
+                         "SMS doğrulama kodları tek kullanımlıktır.",
+                         "Doğrulama kodları belirli süre geçerlidir; bu süre güvenlik politikalarına göre değişebilir.",
+                         "Güvenlik politikaları bazı girişlerde ek doğrulama isteyebilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesabına giriş yapar.",
+                        "Hesabım \u003e Güvenlik Ayarları \u003e İki Aşamalı Doğrulama ekranına gider.",
+                        "Kayıtlı telefon numarasını kontrol eder.",
+                        "Sistem SMS doğrulama kodu gönderir.",
+                        "Kullanıcı kodu girerek özelliği aktif eder.",
+                        "Devre dışı bırakma için sistem şifre, SMS veya ek doğrulama isteyebilir."
+                    ],
+        "istisnalar":  [
+                           "Operatör sorunları SMS teslimatını geciktirebilir.",
+                           "Telefon numarası değiştiyse yeni numaranın hesaba kaydedilmesi gerekir.",
+                           "Kod kullanıcıya ait olmayan bir giriş için geldiyse hesap güvenliği kontrol edilmelidir.",
+                           "Şüpheli faaliyet tespit edilirse hesap geçici olarak koruma altına alınabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "SMS kodu tekrar denemeye rağmen gelmiyorsa.",
+                                           "Kullanıcı telefon numarasına erişemiyorsa.",
+                                           "Kullanıcıya ait olmayan giriş için kod geldiyse.",
+                                           "İki aşamalı doğrulama nedeniyle hesaba erişilemiyorsa."
+                                       ],
+        "standart_yanit":  "İki aşamalı doğrulama için Güvenlik Ayarları bölümünden kayıtlı telefon numaranızı doğrulayarak özelliği etkinleştirebilirsiniz. Kod süreleri, tekrar doğrulama gerekliliği ve ek güvenlik adımları sistem güvenlik politikasına göre değişebilir; size ait olmayan bir giriş için kod geldiyse destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "İki aşamalı doğrulamayı hesap doğrulama ile karıştırmak.",
+                                    "Telefon numarası güncel değilken SMS kodu beklemek.",
+                                    "Doğrulama kodunu üçüncü kişilerle paylaşmak.",
+                                    "Kendisine ait olmayan giriş kodunu önemsememek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_VERIFY_001",
+                                      "ACCOUNT_PHONE_CHANGE_001",
+                                      "SUSPICIOUS_LOGIN_ALERT_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_PHONE_CHANGE_001",
+                                  "SUSPICIOUS_LOGIN_ALERT_001",
+                                  "SESSION_MANAGEMENT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: 2FA/SMS kod geçerlilik süresi net değildir; sistem güvenlik politikasına göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Hangi hesaplarda veya durumlarda 2FA her girişte isteneceği güvenlik politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: SMS doğrulama kodu geçerlilik süresi kaynakta net verilmemiştir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: İki aşamalı doğrulamanın hangi kullanıcılar için her girişte zorunlu olduğu güvenlik politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: İki aşamalı doğrulama kodu geçerlilik süresi genel bir güvenlik ifadesiyle bırakıldı."
+                         ]
+    },
+    {
+        "doc_id":  "SESSION_MANAGEMENT_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "BAGLI_CIHAZLAR_OTURUM_YONETIMI",
+        "title":  "Bağlı Cihazlar ve Oturum Yönetimi",
+        "amac":  "Kullanıcının hesabına bağlı cihazları ve aktif oturumları görüntüleyip yönetmesini açıklamak.",
+        "kapsam":  "Bağlı cihazları görüntüleme, tek cihazdan çıkış, tüm cihazlardan çıkış, tanınmayan cihazlar ve oturum güvenliği kontrollerini kapsar.",
+        "tanim":  "Bağlı cihazlar, kullanıcının hesabına giriş yaptığı ve sistem tarafından tanınan cihazlardır; oturum yönetimi bu cihazlardaki erişimleri sonlandırmaya yarar.",
+        "kullanici_ifadeleri":  [
+                                    "Bağlı cihazlarımı nasıl görebilirim?",
+                                    "Tanımadığım bir cihaz görünüyor.",
+                                    "Tüm cihazlardan çıkış yapmak istiyorum.",
+                                    "Başka cihazdaki oturumu kapatabilir miyim?",
+                                    "Oturum bilgilerinde yanlış konum görünüyor.",
+                                    "Tüm cihazlardan çıktım ama hâlâ giriş yapılabiliyor."
+                                ],
+        "kosullar":  [
+                         "Kullanıcının hesabına giriş yapmış olması gerekir.",
+                         "Cihaz listesi Güvenlik Ayarları altında görüntülenebilir.",
+                         "Sistem cihaz türü, tarayıcı, yaklaşık konum, son erişim zamanı ve aktif oturum bilgisi gösterebilir.",
+                         "Oturum sonlandırılan cihazlar tekrar giriş yapabilir.",
+                         "Aktif oturum bilgileri belirli aralıklarla güncellenebilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesabına giriş yapar.",
+                        "Hesabım \u003e Güvenlik Ayarları \u003e Bağlı Cihazlar ve Oturumlar ekranına gider.",
+                        "Cihaz ve oturum listesini inceler.",
+                        "Tanımadığı veya kullanmadığı cihazı seçerek oturumu sonlandırır.",
+                        "Gerekirse Tüm Cihazlardan Çıkış Yap seçeneğini kullanır.",
+                        "Şüpheli cihaz varsa şifresini değiştirir ve iki aşamalı doğrulamayı etkinleştirir."
+                    ],
+        "istisnalar":  [
+                           "Aynı cihaz farklı tarayıcılar nedeniyle birden fazla görünebilir.",
+                           "Oturumların tamamen sonlandırılması kısa süre alabilir.",
+                           "Yaklaşık konum hatalı görünebilir.",
+                           "Sistem bakımında cihaz listesi güncel görünmeyebilir.",
+                           "Güvenlik incelemesi sırasında bazı oturumlar otomatik sonlandırılabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Tanımadığınız cihaz veya oturum varsa.",
+                                           "Tüm cihazlardan çıkış sonrası şüpheli erişim devam ediyorsa.",
+                                           "Oturum sonlandırma çalışmıyorsa.",
+                                           "Hesabın başka biri tarafından kullanıldığından şüpheleniliyorsa."
+                                       ],
+        "standart_yanit":  "Bağlı cihazları Güvenlik Ayarları bölümünden kontrol edebilir, tanımadığınız cihazların oturumunu sonlandırabilir veya tüm cihazlardan çıkış yapabilirsiniz. Oturum bilgilerinin güncellenmesi ve sonlandırılması sistem davranışına göre kısa süre alabilir; şüphe devam ederse destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Cihazdan çıkışı hesap silme ile karıştırmak.",
+                                    "Aynı cihazın farklı tarayıcılarla birden fazla görünmesini şüpheli erişim sanmak.",
+                                    "Tanınmayan cihazı gördüğü halde şifre değiştirmemek.",
+                                    "Oturum sonlandırılan cihazın tekrar giriş yapabileceğini gözden kaçırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_DELETE_001",
+                                      "SUSPICIOUS_LOGIN_ALERT_001",
+                                      "PASSWORD_RESET_001"
+                                  ],
+        "related_documents":  [
+                                  "SUSPICIOUS_LOGIN_ALERT_001",
+                                  "TWO_FACTOR_AUTH_001",
+                                  "PASSWORD_RESET_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_TECHNICAL_NOTE: Aktif oturum bilgilerinin güncellenme sıklığı sistem davranışıyla doğrulanmalıdır.",
+                             "OPEN_TECHNICAL_NOTE: Tüm cihazlardan çıkış sonrası oturum sonlandırmanın ne kadar sürebileceği net değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Aktif oturum bilgilerinin güncellenme sıklığı kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Tüm cihazlardan çıkış sonrası oturum sonlandırmanın ne kadar sürebileceği kaynakta net değildir."
+                         ]
+    },
+    {
+        "doc_id":  "ACCOUNT_SUSPENSION_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "HESAP_ASKIYA_ALMA",
+        "title":  "Hesap Askıya Alma",
+        "amac":  "Güvenlik, platform kuralları veya yasal nedenlerle hesap erişiminin geçici ya da kalıcı olarak kısıtlanabileceği durumları açıklamak.",
+        "kapsam":  "Şüpheli giriş, çok sayıda başarısız deneme, yetkisiz erişim, dolandırıcılık şüphesi, kullanım kuralı ihlali ve yasal gereklilikleri kapsar.",
+        "tanim":  "Hesap askıya alma, sistem veya ilgili ekip tarafından güvenlik ya da kullanım politikaları kapsamında hesabın bazı özelliklere erişiminin kısıtlanmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Hesabım neden askıya alındı?",
+                                    "Hesabıma giriş yapamıyorum askıya alınmış olabilir mi?",
+                                    "Hesabım ne zaman açılır?",
+                                    "Askıya alma hatası olduğunu düşünüyorum.",
+                                    "Hesabımı tekrar açtırmak istiyorum.",
+                                    "Güvenlik nedeniyle hesabım kapatıldı."
+                                ],
+        "kosullar":  [
+                         "Hesap güvenlik riski, şüpheli giriş, yetkisiz erişim, çok sayıda hatalı deneme, kural ihlali veya yasal gereklilik nedeniyle kısıtlanabilir.",
+                         "Kullanıcı hesaba giriş yapamayabilir veya bazı özellikleri kullanamayabilir.",
+                         "İnceleme sonucunda hesap yeniden aktif olabilir, ek doğrulama istenebilir, kısıtlama uzayabilir veya kalıcı işlem uygulanabilir.",
+                         "Her hesap ayrı değerlendirilir."
+                     ],
+        "adimlar":  [
+                        "Sistem olağan dışı faaliyet veya kural ihlali tespit eder.",
+                        "Hesap üzerinde güvenlik değerlendirmesi yapılabilir.",
+                        "Gerekirse geçici kısıtlama uygulanır.",
+                        "Uygun durumlarda kullanıcı bilgilendirilir.",
+                        "Kullanıcı bilgilendirme mesajlarını kontrol eder.",
+                        "Gerekirse şifre günceller, doğrulama yapar ve destek ekibiyle iletişime geçer."
+                    ],
+        "istisnalar":  [
+                           "Her askıya alma kalıcı değildir.",
+                           "Devam eden incelemede hesap erişimi sınırlandırılabilir.",
+                           "Yasal süreçlere konu hesaplarda farklı prosedürler uygulanabilir.",
+                           "Bazı durumlarda ek doğrulama belgeleri talep edilebilir.",
+                           "Güvenlik olaylarında sistem otomatik kısıtlama uygulayabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kullanıcı askıya alma sebebini anlamıyorsa.",
+                                           "Askıya alma hatası olduğunu düşünüyorsa.",
+                                           "Ek doğrulama talebi tamamlanamıyorsa.",
+                                           "Hesap güvenliği veya yetkisiz erişim şüphesi varsa.",
+                                           "Hesabın tekrar aktif hale getirilmesi için inceleme gerekiyorsa."
+                                       ],
+        "standart_yanit":  "Hesabınız askıya alındıysa kayıtlı iletişim kanallarındaki bilgilendirmeleri kontrol edin, şifrenizi güncelleyin ve hesap güvenlik ayarlarınızı gözden geçirin. Askıya alma süresi ve istenebilecek ek doğrulamalar sistem güvenlik politikasına göre değişebilir; destek ekibi hesap güvenliği kayıtlarını incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Askıya almayı sadece yanlış şifre problemi sanmak.",
+                                    "Askıya alma süresi için kesin tarih beklemek.",
+                                    "Güvenlik bilgilendirmelerini kontrol etmemek.",
+                                    "Ek doğrulama talebini tamamlamadan hesabın açılmasını beklemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_LOGIN_ISSUE_001",
+                                      "SUSPICIOUS_LOGIN_ALERT_001",
+                                      "ACCOUNT_DELETE_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_LOGIN_ISSUE_001",
+                                  "SUSPICIOUS_LOGIN_ALERT_001",
+                                  "TWO_FACTOR_AUTH_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Askıya alma inceleme süresi kesin değildir; sistem güvenlik ve operasyon politikasına göre değişebilir.",
+                             "OPEN_LEGAL_NOTE: Ek kimlik doğrulama belgeleri ve yasal süreç prosedürleri legal/security politikasıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Askıya alma inceleme süresi kaynakta \u0027duruma göre değişir\u0027 olarak geçiyor; kesin süre verilmemelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Ek kimlik doğrulama belgeleri ve yasal süreç prosedürleri güvenlik/compliance politikasıyla doğrulanmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "PERSONAL_DATA_SECURITY_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "KISISEL_VERI_GUVENLIGI",
+        "title":  "Kişisel Veri Güvenliği",
+        "amac":  "Kullanıcı kişisel verilerinin hangi amaçlarla işlendiğini, nasıl korunduğunu ve hesap silme sonrası veri saklama istisnalarını açıklamak.",
+        "kapsam":  "Ad-soyad, e-posta, telefon, adres, fatura, sipariş geçmişi, hesap hareketleri, güvenlik önlemleri ve yasal saklama durumlarını kapsar.",
+        "tanim":  "Kişisel veri, kullanıcıyı doğrudan veya dolaylı olarak tanımlayabilen bilgileridir; platform bu verileri hizmet sunumu, güvenlik ve yasal yükümlülükler kapsamında işleyebilir.",
+        "kullanici_ifadeleri":  [
+                                    "Verilerim güvende mi?",
+                                    "Kart bilgilerim saklanıyor mu?",
+                                    "Bilgilerim başka firmalarla paylaşılıyor mu?",
+                                    "Hesabımı silince tüm verilerim siliniyor mu?",
+                                    "Şifrem sistemde görünüyor mu?",
+                                    "Kişisel bilgilerim nasıl korunuyor?"
+                                ],
+        "kosullar":  [
+                         "Platform hizmetlerin sunulması için belirli kullanıcı bilgilerini işleyebilir.",
+                         "Veriler sipariş, teslimat, destek, hesap güvenliği, kampanya/puan ve yasal yükümlülükler için kullanılabilir.",
+                         "Teknik ve idari güvenlik önlemleri uygulanır.",
+                         "Kullanıcı verileri gerekli durumlarda kargo ve ödeme sağlayıcıları veya yetkili kurumlarla paylaşılabilir.",
+                         "Veriler ticari amaçlarla üçüncü kişilere satılmaz."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı güçlü şifre kullanır.",
+                        "İki aşamalı doğrulamayı etkinleştirir.",
+                        "Hesap bilgilerini paylaşmaz.",
+                        "Ortak cihazlarda oturum kapatır.",
+                        "Şüpheli faaliyetleri bildirir.",
+                        "Hesap silme sonrası bazı kayıtların yasal amaçlarla saklanabileceğini dikkate alır."
+                    ],
+        "istisnalar":  [
+                           "Yasal makam talepleri doğrultusunda veri paylaşımı yapılabilir.",
+                           "Güvenlik olaylarının incelenmesi için belirli kayıtlar saklanabilir.",
+                           "Dolandırıcılık ve kötüye kullanımın önlenmesi için ek veri incelemeleri yapılabilir.",
+                           "Mevzuat değişiklikleri veri saklama süreçlerini güncelleyebilir.",
+                           "Kart bilgilerinin saklanması veya işlenmesi ödeme hizmet sağlayıcı politikalarına tabi olabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kullanıcı kişisel verilerinin güvenliği konusunda şüphe duyuyorsa.",
+                                           "Hesapta tanınmayan veri veya işlem görüyorsa.",
+                                           "Hesap silme sonrası veri saklama hakkında itirazı varsa.",
+                                           "Yetkisiz erişim veya veri paylaşımı şüphesi varsa."
+                                       ],
+        "standart_yanit":  "Kişisel veriler hizmetlerin sunulması, hesap güvenliği ve yasal yükümlülükler kapsamında işlenebilir ve güvenlik önlemleriyle korunur. Veri saklama, paylaşım ve kart bilgisi süreçleri yasal/compliance ve ödeme sağlayıcı politikalarına göre değişebilir; özel bir şüphe varsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Hesap silme sonrası tüm kayıtların anında tamamen silineceğini varsaymak.",
+                                    "Kart bilgisi süreçlerini hesap güvenliği dokümanıyla aynı görmek.",
+                                    "Şifrelerin düz metin saklandığını düşünmek.",
+                                    "Kargo/ödeme sağlayıcı veri paylaşımını ticari satışla karıştırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "ACCOUNT_DELETE_001",
+                                      "UNAUTHORIZED_ORDER_PAYMENT_001",
+                                      "ACCOUNT_EMAIL_CHANGE_001"
+                                  ],
+        "related_documents":  [
+                                  "ACCOUNT_DELETE_001",
+                                  "UNAUTHORIZED_ORDER_PAYMENT_001",
+                                  "TWO_FACTOR_AUTH_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_LEGAL_NOTE: Kişisel veri saklama süreleri ve yasal dayanaklar legal/compliance politika ile doğrulanmalıdır.",
+                             "OPEN_POLICY_NOTE: Kart bilgisi saklama ve işleme süreçleri ödeme sağlayıcı politikalarıyla doğrulanmalıdır.",
+                             "OPEN_LEGAL_NOTE: Veri paylaşımı kapsamı hukuki metinlerle eşleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kişisel veri saklama süreleri ve yasal dayanaklar compliance/legal politika ile doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Kart bilgilerinin saklanması ödeme sağlayıcı politikalarıyla ayrıca doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Veri paylaşımı kapsamı hukuki metinlerle eşleştirilmelidir."
+                         ]
+    },
+    {
+        "doc_id":  "UNAUTHORIZED_ORDER_PAYMENT_001",
+        "category":  "HESAP_GUVENLIK",
+        "subcategory":  "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+        "title":  "Yetkisiz Sipariş / Ödeme Bildirimi",
+        "amac":  "Kullanıcının bilgisi dışında sipariş, ödeme veya hesap hareketi gördüğünde izlemesi gereken güvenli adımları açıklamak.",
+        "kapsam":  "Kullanıcının vermediği siparişler, tanınmayan ödeme, bilgisi dışında adres değişikliği, tanınmayan hesap hareketleri ve hesap ele geçirilme şüphesini kapsar.",
+        "tanim":  "Yetkisiz sipariş veya ödeme, kullanıcının bilgisi ve onayı dışında gerçekleştiğini düşündüğü sipariş, ödeme veya hesap hareketidir.",
+        "kullanici_ifadeleri":  [
+                                    "Ben bu siparişi vermedim.",
+                                    "Kartımdan bilgim dışında ödeme alınmış.",
+                                    "Hesabım ele geçirilmiş olabilir.",
+                                    "Tanımadığım teslimat adresi görüyorum.",
+                                    "Hesabımda bana ait olmayan hareket var.",
+                                    "Bilgim dışında sipariş oluşturulmuş."
+                                ],
+        "kosullar":  [
+                         "Kullanıcı hesabında tanımadığı sipariş, ödeme, adres veya hareket görmüş olabilir.",
+                         "Kullanıcı hesabına erişemediği halde sipariş oluşturulmuş olabilir.",
+                         "Öncelik hesap güvenliğinin sağlanmasıdır.",
+                         "Her bildirim ayrı olarak incelenir.",
+                         "Yasal veya finansal inceleme gerektiren durumlarda değerlendirme süresi uzayabilir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı hesap şifresini değiştirir.",
+                        "İki aşamalı doğrulamayı etkinleştirir.",
+                        "Bağlı cihazları kontrol eder.",
+                        "Tanınmayan oturumları sonlandırır.",
+                        "Sipariş tarihi, içerik, teslimat adresi, ödeme yöntemi ve hesap hareketlerini kontrol eder.",
+                        "Destek sistemi üzerinden yetkisiz işlem bildirimi oluşturur."
+                    ],
+        "istisnalar":  [
+                           "Güvenlik incelemesi sırasında bazı hesap özellikleri geçici olarak sınırlandırılabilir.",
+                           "Şüpheli faaliyet yoğun olduğunda ek doğrulama uygulanabilir.",
+                           "Yasal veya finansal inceleme gerekiyorsa süreç uzayabilir.",
+                           "Güvenlik amacıyla bazı işlemler kullanıcı talebi olmadan geçici olarak durdurulabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Kullanıcı siparişi veya ödemeyi kendisi yapmadığını düşünüyorsa.",
+                                           "Hesap ele geçirilmiş olabilir şüphesi varsa.",
+                                           "Tanınmayan teslimat adresi veya hesap hareketi varsa.",
+                                           "Kullanıcı hesabına erişemiyorsa.",
+                                           "Ödeme veya sipariş kayıtlarının güvenlik incelemesi gerekiyorsa."
+                                       ],
+        "standart_yanit":  "Yetkisiz sipariş veya ödeme şüpheniz varsa önce şifrenizi değiştirin, iki aşamalı doğrulamayı etkinleştirin, bağlı cihazları kontrol edip tanımadığınız oturumları sonlandırın. Ardından sipariş, ödeme ve adres bilgilerini destek ekibine bildirerek hesap güvenliği kayıtlarının incelenmesini sağlayın; finansal süreçler ilgili ekiplerce değerlendirilir.",
+        "sik_yapilan_hatalar":  [
+                                    "Yetkisiz ödeme şüphesinde önce hesap güvenliğini sağlamamak.",
+                                    "Tanınmayan oturumları açık bırakmak.",
+                                    "Sipariş numarası, işlem tarihi ve şüpheli hareket açıklamasını paylaşmamak.",
+                                    "Bu konuyu sadece ödeme iadesi talebi olarak görmek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "SUSPICIOUS_LOGIN_ALERT_001",
+                                      "PAYMENT_DOUBLE_CHARGE_001",
+                                      "PAYMENT_REFUND_001"
+                                  ],
+        "related_documents":  [
+                                  "SUSPICIOUS_LOGIN_ALERT_001",
+                                  "SESSION_MANAGEMENT_001",
+                                  "TWO_FACTOR_AUTH_001",
+                                  "PERSONAL_DATA_SECURITY_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN güvenlik/politika/legal kararlar kesin karar gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Yetkisiz ödeme/sipariş inceleme SLA değeri net değildir; kesin süre verilmemelidir.",
+                             "OPEN_POLICY_NOTE: Finansal inceleme, chargeback veya iade süreci payment/finance dokümanlarıyla eşleştirilmelidir; doğrudan iade vaadi verilmemelidir.",
+                             "OPEN_SECURITY_NOTE: SECURITY_ALERT routing downstream sistem kararı açıktır; expected_action RAG_ANSWER_OR_TICKET tutulmuştur.",
+                             "SECURITY_ROUTING_NOTE: Bu doküman güvenlik riski içerir; destek/ticket akışında SECURITY_ALERT olarak önceliklendirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Yetkisiz ödeme/sipariş inceleme SLA\u0027sı kaynakta net değildir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: Finansal inceleme, chargeback veya iade süreci ödeme/finance dokümanlarıyla eşleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: REVIEW_NEEDED: SECURITY_ALERT expected_action downstream sistemde destekleniyorsa korunmalıdır; değilse RAG_ANSWER_OR_TICKET olarak eşlenmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: SECURITY_ALERT expected_action güvenlik riskine uygun olduğu için korunmuştur.",
+                             "SOURCE_REVIEW_NOTE: SECURITY_ROUTING_NOTE: Bu doküman güvenlik riski içerir; destek/ticket akışında SECURITY_ALERT olarak önceliklendirilmelidir."
+                         ]
+    }
+]

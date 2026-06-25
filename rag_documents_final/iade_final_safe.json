@@ -1,0 +1,514 @@
+[
+  {
+    "doc_id": "IADE_IADE_SARTLARI_001",
+    "category": "IADE",
+    "subcategory": "IADE_SARTLARI",
+    "title": "İade Şartları",
+    "amac": "Kullanıcının hangi koşullarda ürün iadesi yapabileceğini anlamasını sağlar.",
+    "kapsam": "İade uygunluğu, teslimat durumu, ürün koşulları ve iade talep sürecinin ana kurallarını kapsar.",
+    "tanim": "İade şartları, bir ürünün geri gönderilmesi için gerekli olan temel koşulları tanımlar.",
+    "kullanici_ifadeleri": [
+      "Ürünü iade etmek için ne yapmalıyım?",
+      "Hangi şartlarda ürün iade edilebilir?",
+      "İade talebi oluşturabilir miyim?",
+      "Ürün hasarlıysa iade olur mu?",
+      "İade şartları nelerdir?"
+    ],
+    "kosullar": [
+      "Ürün teslim edilmiş veya teslim alındığı kabul edilmiş olmalıdır.",
+      "Ürün iade politikalarına uygun olmalıdır.",
+      "İade talebi zamanlaması iade koşullarına göre değişebilir.",
+      "Ürün hasarlı, eksik veya yanlış teslim edilmiş olabilir.",
+      "Siparişin iade sürecine uygun olması gerekir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasına gider.",
+      "İade etmek istediği siparişi seçer.",
+      "İade talebi veya kodu oluşturur.",
+      "Ürün bilgilerini ve iade nedenini belirtir.",
+      "Destek talebi sürecini takip eder."
+    ],
+    "istisnalar": [
+      "Teslim edilmemiş veya kargoya verilmemiş ürün için iade uygun olmayabilir.",
+      "Siparişin kısmi iadesi farklı değerlendirilir.",
+      "İade edilecek ürün, kullanılan veya açılmış olabilir.",
+      "Kampanyalı ürünlerin iade koşulları farklı olabilir.",
+      "İade onayı ürün inceleme sonucuna göre değişebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade talebi oluşturamıyorsam.",
+      "İade talebim kabul edilmiyorsa.",
+      "Ürün iade kodu gelmiyorsa.",
+      "İade şartları belirsizse.",
+      "İade durumunu takip edemiyorsam."
+    ],
+    "standart_yanit": "İade uygunluğu iade koşullarına ve ürün inceleme sonucuna göre değişebilir. İade talebi, talep süreci ve destek kaydıyla takip edilmelidir.",
+    "sik_yapilan_hatalar": [
+      "İade ile sipariş iptalini aynı saymak.",
+      "Teslim edilmemiş ürünü iade etmek istemek.",
+      "Ürünü kullanılmış halde iade edilebileceğini varsaymak.",
+      "İade kodu olmadan ürünü göndermek.",
+      "İade sürecinin ödeme süreciyle aynı olduğunu düşünmek."
+    ],
+    "hard_negative_doc_ids": ["PAYMENT_REFUND_001", "SHIPPING_MULTI_PACKAGE_DELIVERY_001"],
+    "related_documents": ["IADE_TALEBI_OLUSTURMA_001", "IADE_KODU_ALMA_001"],
+    "expected_action": "RAG_ANSWER",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade şartlarının detaylı onay kriterleri kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_TALEBI_OLUSTURMA_001",
+    "category": "IADE",
+    "subcategory": "IADE_TALEBI_OLUSTURMA",
+    "title": "İade Talebi Oluşturma",
+    "amac": "Kullanıcının iade talebini nasıl başlatacağını ve hangi bilgilerle ileteceğini anlamasını sağlar.",
+    "kapsam": "İade talebi oluşturma adımları, hangi durumlarda talep açılabileceği ve destek sürecini kapsar.",
+    "tanim": "İade talebi oluşturma, kullanıcıya ürünü geri göndermek için resmi bir talep açma sürecidir.",
+    "kullanici_ifadeleri": [
+      "İade talebimi nasıl açarım?",
+      "İade talebi oluşturamıyorum.",
+      "İade talebim ne zaman onaylanır?",
+      "Ürün için iade talebi başlatmak istiyorum.",
+      "İade neden reddedildi?"
+    ],
+    "kosullar": [
+      "Siparişin teslim edilmiş olması gerekir.",
+      "İade talebi uygun iade nedenine dayanmalıdır.",
+      "Ürün detayları eksiksiz olmalıdır.",
+      "Talep oluşturma kanalı açık olmalıdır.",
+      "Talep süreci ürün inceleme sonucuna göre değişebilir."
+    ],
+    "adimlar": [
+      "Siparişlerim sayfasını açar.",
+      "İade etmek istediği siparişi seçer.",
+      "İade talebi seçeneğini kullanır.",
+      "İade nedenini belirtir.",
+      "Talep durumunu takip eder."
+    ],
+    "istisnalar": [
+      "İade talebi, kargoya verilmemiş siparişlerde uygun olmayabilir.",
+      "İade talebi zamanlaması iade koşullarına göre değişebilir.",
+      "Ürün hasarlıysa inceleme sonrası karar verilir.",
+      "Talep oluşturma ekranı teknik nedenlerle geç açılabilir.",
+      "Talep oluşturulduktan sonra ek bilgi gerekebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade talebi açamıyorsam.",
+      "Talep onaylanmıyorsa.",
+      "Talep sonucu belirsizse.",
+      "İade kodu gelmiyorsa.",
+      "Talep süreci hakkında bilgi alamıyorsam."
+    ],
+    "standart_yanit": "İade talebi, teslimat sonrası uygun ürünlerde başlatılabilir. Talep süreci iade koşullarına ve inceleme sonucuna göre değişir.",
+    "sik_yapilan_hatalar": [
+      "Ürünü göndermeden önce iade talebi başlatmamak.",
+      "İade talebini sipariş iptaliyle karıştırmak.",
+      "Destek sürecinde gerekli bilgileri vermemek.",
+      "İade talebini yanlış ürün için açmak.",
+      "Talep sonucu gelmeden ürünü tekrar göndermek."
+    ],
+    "hard_negative_doc_ids": ["PAYMENT_REFUND_001", "SHIPPING_ADDRESS_REDELIVERY_001"],
+    "related_documents": ["IADE_KODU_ALMA_001", "IADE_KARGO_SURECI_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade talebi ile iade onay sürecinin eşleştirilmesi kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_KODU_ALMA_001",
+    "category": "IADE",
+    "subcategory": "IADE_KODU_ALMA",
+    "title": "İade Kodu Alma",
+    "amac": "Kullanıcının iade kargo kodunu nasıl alacağını anlamasını sağlar.",
+    "kapsam": "İade kodu oluşturma, görüntüleme ve kargo için hazır hale getirme sürecini kapsar.",
+    "tanim": "İade kodu alma, iade gönderimi için gerekli referans veya barkodun kullanıcıya sağlanmasıdır.",
+    "kullanici_ifadeleri": [
+      "İade kodumu nasıl alırım?",
+      "İade kodum görünmüyor.",
+      "İade kodu nerede?",
+      "İade kodu alamıyorum.",
+      "İade kodu geçersiz diyor." 
+    ],
+    "kosullar": [
+      "İade talebi oluşturulmuş olmalıdır.",
+      "Siparişin iade sürecine uygun olması gerekir.",
+      "Ürün bilgileri doğru olmalıdır.",
+      "Talep kanalında iade kodu oluşturma seçeneği açık olmalıdır.",
+      "Kargo firması iade kodunu desteklemelidir."
+    ],
+    "adimlar": [
+      "İade talep formunu açar.",
+      "Iade edilecek ürünü seçer.",
+      "İade kodu oluşturma seçeneğini kullanır.",
+      "Kodun doğru şekilde görüntülendiğini kontrol eder.",
+      "Kodu kargo gönderiminde kullanır."
+    ],
+    "istisnalar": [
+      "Bazen iade kodu oluşturma süreci gecikebilir.",
+      "Talep bilgileri eksikse kod oluşturulmayabilir.",
+      "Kargo firması bazı kod türlerini desteklemeyebilir.",
+      "İade kodu alındıktan sonra kodun süresi ve geçerliliği değişebilir.",
+      "İade kodu stok veya satıcı koşullarına bağlı olabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade kodu oluşturulamıyorsa.",
+      "Kod ekranda görünmüyorsa.",
+      "Kod çalışmıyorsa.",
+      "Kod gelmesine rağmen iade paketi teslim edilemiyorsa.",
+      "Kodla ilgili belirsizlik varsa."
+    ],
+    "standart_yanit": "İade kodu, iade talebi sonrası sistem tarafından verilir. Kod görünmüyorsa talebi ve ürün bilgilerini kontrol edin.",
+    "sik_yapilan_hatalar": [
+      "Kod gelmeden ürünü göndermek.",
+      "İade kodunu yanlış yazmak.",
+      "Kodu başka bir sipariş için kullanmak.",
+      "İade kodu yerine kargo takip numarasını kullanmak.",
+      "Kodun geçerliliğini kontrol etmemek."
+    ],
+    "hard_negative_doc_ids": ["PAYMENT_REFUND_001", "SHIPPING_DELAYED_DELIVERY_001"],
+    "related_documents": ["IADE_TALEBI_OLUSTURMA_001", "IADE_KARGO_SURECI_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade kodunun hangi durumlarda verilip hangi durumda reddedildiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_KARGO_SURECI_001",
+    "category": "IADE",
+    "subcategory": "IADE_KARGO_SURECI",
+    "title": "İade Kargo Süreci",
+    "amac": "Kullanıcının iade gönderim sürecini ve kargo ile ilişkili adımları anlamasını sağlar.",
+    "kapsam": "İade kodu sonrası kargo teslimi, takip ve satıcıya ulaşma sürecini kapsar.",
+    "tanim": "İade kargo süreci, iade için paket hazırlama, kargoya teslim etme ve satıcıya gönderme adımlarıdır.",
+    "kullanici_ifadeleri": [
+      "İade kargomu nasıl göndereceğim?",
+      "İade paketimi nereye teslim etmeliyim?",
+      "İade kargom nerede?",
+      "İade kargom teslim edilmedi." ,
+      "İade kargom hareket etmiyor."
+    ],
+    "kosullar": [
+      "İade kodu veya etiket temin edilmiş olmalıdır.",
+      "Ürün iade için uygun şekilde paketlenmiş olmalıdır.",
+      "Kargo firması iade gönderimini desteklemelidir.",
+      "Talep edilen gönderim adresi doğru olmalıdır.",
+      "Kargo takip bilgileri sağlanmalıdır."
+    ],
+    "adimlar": [
+      "İade paketi hazırlayıp kapatır.",
+      "İade kodunu veya etiketi pakete ekler.",
+      "Belirtilen kargo firması ya da noktaya teslim eder.",
+      "Kargo takip numarasını alır.",
+      "Takip bilgileri üzerinden iade sürecini kontrol eder."
+    ],
+    "istisnalar": [
+      "Kargo firması iade gönderimini belirli koşullara bağlı tutabilir.",
+      "Kargo takibi anlık güncellenmeyebilir.",
+      "Kargo firması teslimat adresini reddedebilir.",
+      "İade paketi kaybolabilir veya gecikebilir.",
+      "İade süreci destek incelemesine bağlı olarak değişebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade kargom teslim alınmadıysa.",
+      "Kargo takip bilgileri güncellenmiyorsa.",
+      "İade kargom satıcıya ulaşmadıysa.",
+      "Kargo firması kodu kabul etmiyorsa.",
+      "İade kargosu ile ilgili çelişkili bilgi varsa."
+    ],
+    "standart_yanit": "İade kargo süreci kargo firmasının ve iade koşullarının uygulamasına göre değişebilir. Takip bilgilerini düzenli olarak kontrol edin.",
+    "sik_yapilan_hatalar": [
+      "İade kargoyu yanlış adrese göndermek.",
+      "Kargo kodunu pakete koymayı unutmak.",
+      "Takip numarasını kaydetmemek.",
+      "Kargo firması hareketlerini anında beklemek.",
+      "İade sürecini ödeme iadesiyle karıştırmak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_DELIVERY_PROCESS_001", "SHIPPING_TRACKING_001"],
+    "related_documents": ["IADE_KODU_ALMA_001", "IADE_URUN_INCELEME_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade kargo sürecinin hangi aşamada destek gerektirdiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_URUN_INCELEME_001",
+    "category": "IADE",
+    "subcategory": "IADE_URUN_INCELEME",
+    "title": "İade Ürün İnceleme",
+    "amac": "Kullanıcının iade edilen ürünün inceleme sürecini ve sonucun iade talebine etkisini anlamasını sağlar.",
+    "kapsam": "İade ürününün satıcı veya platform tarafından incelenmesi, inceleme kriterleri ve karar süreçlerini kapsar.",
+    "tanim": "İade ürün inceleme, iade sürecinde geri gönderilen ürünün teslim alındıktan sonra değerlendirilmesi işlemidir.",
+    "kullanici_ifadeleri": [
+      "İade ürünüm ne zaman incelenir?",
+      "Ürün inceleme sonucu ne olur?",
+      "İade ürünüm incelenmedi mi?",
+      "İade incelemesi ne kadar sürer?",
+      "İade sonucum neden gecikti?"
+    ],
+    "kosullar": [
+      "İade paketi satıcıya veya merkeze ulaşmış olmalıdır.",
+      "Ürün inceleme kriterleri iade politikasına uygun olmalıdır.",
+      "Ürün durumu, paketleme ve etiket bilgileri değerlendirilmelidir.",
+      "İnceleme sonucu iade talebini etkiler.",
+      "İnceleme süresi ürün türüne ve iade koşullarına göre değişebilir."
+    ],
+    "adimlar": [
+      "İade paketi ilgili adrese teslim edilir.",
+      "Satıcı veya sistem ürünü inceler.",
+      "Ürün durumu ve iade koşulları değerlendirilir.",
+      "Değerlendirme sonucu kullanıcıya bildirilir.",
+      "Gerekirse ek bilgi talep edilir."
+    ],
+    "istisnalar": [
+      "İade inceleme süresi ürün türüne göre değişebilir.",
+      "Ürün hasarlı, eksik veya yanlış gelmiş olabilir.",
+      "Kullanım izleri veya ambalaj durumu incelemeyi etkileyebilir.",
+      "İnceleme sonucu iade kararını değiştirebilir.",
+      "İade süreci destek incelemesine bağlıdır."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade inceleme sonucu beklenenden farklıysa.",
+      "Ürün inceleme sonucu hakkında bilgi alamıyorsam.",
+      "İnceleme süreci çok uzamışsa.",
+      "İnceleme kararının net olmadığı durumlarda.",
+      "Ürün durumu raporlarıyla çelişki varsa."
+    ],
+    "standart_yanit": "İade edilen ürün, satıcı veya platform tarafından incelenir. Sonuç, iade koşullarına ve ürün durumuna göre değişir.",
+    "sik_yapilan_hatalar": [
+      "İade incelemesini para iadesiyle eşdeğer tutmak.",
+      "Ürün hasarını doğrudan iade reddi saymak.",
+      "İnceleme sürecinin anında tamamlanacağını varsaymak.",
+      "Kargo durumu ile inceleme sonucunu karıştırmak.",
+      "İade inceleme sürecinde destek kaydı açmayı unutmamak."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_DAMAGED_DELIVERY_001", "SHIPPING_DELIVERY_FAILED_001"],
+    "related_documents": ["IADE_KARGO_SURECI_001", "IADE_REDDI_NEDENLERI_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade ürün inceleme kriterlerinin detayları kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_REDDI_NEDENLERI_001",
+    "category": "IADE",
+    "subcategory": "IADE_REDDI_NEDENLERI",
+    "title": "İade Reddi",
+    "amac": "Kullanıcının iade talebinin neden reddedilebileceğini anlamasını sağlar.",
+    "kapsam": "İade reddi sebepleri, reddedilen taleplerin nasıl yönetileceği ve sonraki adımları kapsar.",
+    "tanim": "İade reddi, iade talebinin belirlenen koşullara uygun olmadığı için kabul edilmemesidir.",
+    "kullanici_ifadeleri": [
+      "İadem neden reddedildi?",
+      "İade talebim kabul edilmedi.",
+      "Reddedilen iadem ne anlama geliyor?",
+      "İade reddi gerekçesi nedir?",
+      "İadem tekrar değerlendirilir mi?"
+    ],
+    "kosullar": [
+      "İade talebi iade koşullarına uygun olmalıdır.",
+      "Ürün durumu ve paketleme şartları incelenmelidir.",
+      "Talep bilgileri doğru olmalıdır.",
+      "İade reddi kararları destek incelemesine bağlıdır.",
+      "Reddin nedeni kullanıcıya açıklanmalıdır."
+    ],
+    "adimlar": [
+      "İade talebi incelenir.",
+      "Ürün durumu değerlendirilir.",
+      "İade koşullarıyla karşılaştırılır.",
+      "Reddin nedeni belirlenir.",
+      "Kullanıcıya bilgilendirme yapılır."
+    ],
+    "istisnalar": [
+      "İade reddi kararı destek sürecine göre değişebilir.",
+      "Bazı durumlarda ek bilgi talep edilebilir.",
+      "Ürün hasarı veya kullanım izleri reddi etkileyebilir.",
+      "Reddin ardından alternatif çözüm önerileri sunulabilir.",
+      "Talep yanlış kategoriye açılmış olabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade reddi gerekçesi açık değilse.",
+      "Reddin nasıl düzeltileceği belirsizse.",
+      "İade talebi yeniden değerlendirilmek istenirse.",
+      "Ürün durumu değerlendirmesiyle çelişki varsa.",
+      "İade reddi sonrası ne yapacağımı bilmiyorsam."
+    ],
+    "standart_yanit": "İade reddi, iade koşulları veya ürün inceleme sonucu nedeniyle olabilir. Detaylar için destek ekibi ilgili kayıtları incelemelidir.",
+    "sik_yapilan_hatalar": [
+      "Reddedilen iade için otomatik olarak paranın geri yüklenmesini beklemek.",
+      "Ürün hasarını doğrudan iade reddi saymak.",
+      "Talebi yanlış kategoriye açmak.",
+      "İade reddini sipariş iptaliyle karıştırmak.",
+      "Reddin nedeni netleşmeden tekrar talep etmek."
+    ],
+    "hard_negative_doc_ids": ["PAYMENT_REFUND_001", "IADE_UCRETININ_HESABA_GECMESI_001"],
+    "related_documents": ["IADE_URUN_INCELEME_001", "IADE_TALEBI_OLUSTURMA_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade reddi karar süreçleri ve hangi durumların kesinlikle reddedildiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_KULLANILMIS_URUN_001",
+    "category": "IADE",
+    "subcategory": "KULLANILMIS_URUN_IADESI",
+    "title": "Kullanılmış Ürün İadesi",
+    "amac": "Kullanıcının kullanılmış veya açılmış ürünlerin iade edilmesi durumunu anlamasını sağlar.",
+    "kapsam": "Açılmış, kullanılmış veya test edilmiş ürünlerin iade süreci ve uygunluk koşullarını kapsar.",
+    "tanim": "Kullanılmış ürün iadesi, daha önce açılmış veya kullanılmış ürünlerin iade talebinin değerlendirilmesidir.",
+    "kullanici_ifadeleri": [
+      "Kullanılmış ürünü iade edebilir miyim?",
+      "Ürünü test ettim iade etmek istiyorum.",
+      "Açılmış ürünü geri gönderebilir miyim?",
+      "Kullandığım ürünü iade almak istiyorum.",
+      "Ürün ambalajı açılmış halde iade olur mu?"
+    ],
+    "kosullar": [
+      "Ürünün durumu incelemeye tabi olmalıdır.",
+      "Açılmış veya kullanılmış ürünlerin iade koşulları farklı olabilir.",
+      "İade talebi ürün inceleme sonucuna bağlı olmalıdır.",
+      "Kullanım izleri, ambalaj durumu ve ürün çalışır durumu değerlendirilmelidir.",
+      "İade uygunluğu iade politikasına göre değişebilir."
+    ],
+    "adimlar": [
+      "İade talebi oluşturur.",
+      "Ürün durumunu açıklar.",
+      "Gerekirse fotoğraf veya açıklama ekler.",
+      "İnceleme sürecini bekler.",
+      "Sonuca göre talebi takip eder."
+    ],
+    "istisnalar": [
+      "Bazı ürünler kullanılmış olsa bile iade edilebilir.",
+      "Kullanılmış ürünlerin iadesi ürün türüne göre değişebilir.",
+      "Açılmış ambalaj iade değerlendirmesini etkileyebilir.",
+      "Ürün çalışır durumda değilse ek inceleme gerekebilir.",
+      "İade sonucu destek incelemesine bağlı olarak değişir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Kullanılmış ürün iadesi kabul edilmiyorsa.",
+      "İade koşulları açık değilse.",
+      "Ürün durumu raporu belirsizse.",
+      "Talep sonucu uzun süredir gelmiyorsa.",
+      "Kullanılmış ürünün iadesi için ek bilgi gerekiyorsa."
+    ],
+    "standart_yanit": "Kullanılmış ürünlerin iade uygunluğu, ürün durumu ve iade politikalarına göre değerlendirilir. Destek ekibi ilgili kayıtları incelemelidir.",
+    "sik_yapilan_hatalar": [
+      "Kullanılmış ürünü yeni ürün gibi iade etmeyi beklemek.",
+      "Ambalaj açık olduğu için iade olmayacağını varsaymak.",
+      "Kullanılmış ürün iadesini otomatik kabul etmek.",
+      "İade incelemesini ödeme iadesiyle karıştırmak.",
+      "Talep formuna yeterli bilgi girmemek."
+    ],
+    "hard_negative_doc_ids": ["IADE_KARGO_SURECI_001", "IADE_UCRETININ_HESABA_GECMESI_001"],
+    "related_documents": ["IADE_URUN_INCELEME_001", "IADE_REDDI_NEDENLERI_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "MEDIUM",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Kullanılmış ürün iadesi koşullarının hangi noktada reddedildiği kaynakta net değil."]
+  },
+  {
+    "doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+    "category": "IADE",
+    "subcategory": "KUSURLU_VEYA_HASARLI_URUN_IADESI",
+    "title": "Hasarlı / Kusurlu Ürün İadesi",
+    "amac": "Kullanıcının teslim aldığı hasarlı veya kusurlu ürünü iade etme sürecini anlamasını sağlar.",
+    "kapsam": "Hasarlı, kırık veya kusurlu ürünlerin iade bildirim süreci ve işleyişini kapsar.",
+    "tanim": "Hasarlı veya kusurlu ürün iadesi, teslim aldığınız ürünün fiziksel olarak hasarlı veya beklentilere uymayan durumda olması durumunda başlatılan iade sürecidir.",
+    "kullanici_ifadeleri": [
+      "Hasarlı ürün teslim aldım.",
+      "Ürün kırık geldi.",
+      "Kusurlu ürün iade edebilir miyim?",
+      "Ürün hasarını nasıl bildiririm?",
+      "Hasarlı ürün iade talebi oluşturmak istiyorum."
+    ],
+    "kosullar": [
+      "Ürün teslim alınmış olmalıdır.",
+      "Hasar veya kusurun belgelendirilmesi gerekir.",
+      "İade talebi hasar durumuna göre değerlendirilir.",
+      "Kargo sırasında oluştuğu düşünülebilir.",
+      "İnceleme sonucu hasarlı ürün iade sürecini etkiler."
+    ],
+    "adimlar": [
+      "Hasarlı ürünü teslim aldıktan sonra iade talebi oluşturur.",
+      "Ürün hasarını açıklar.",
+      "Gerekirse fotoğraf veya belge ekler.",
+      "Destek ekibinin incelemesini bekler.",
+      "İade veya değişim seçeneklerini takip eder."
+    ],
+    "istisnalar": [
+      "Ürün teslim sırasında hasar gördüyse kargo süreci araştırılabilir.",
+      "Kargo hasarı ile ürün kusuru ayrıştırılmalıdır.",
+      "Kullanım kaynaklı hasar iade koşullarını etkileyebilir.",
+      "Hasarlı ürünün durumu iade incelemesinde değerlendirilir.",
+      "Ürün paketleri düzgün değilse inceleme süresi uzayabilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "Hasarlı ürün iade talebinin durumu belirsizse.",
+      "Hasar bildirimine yanıt gelmiyorsa.",
+      "İade süreci destek kaydı gerektiriyorsa.",
+      "Hasarın kargo kaynaklı mı satıcı kaynaklı mı olduğu net değilse.",
+      "Hasarlı ürün için iade veya değişim seçeneği karıştıysa."
+    ],
+    "standart_yanit": "Hasarlı veya kusurlu ürün iade talepleri, ürün durumu ve inceleme sonucuna göre değerlendirilir. Destek ekibi ilgili kayıtları incelemelidir.",
+    "sik_yapilan_hatalar": [
+      "Hasarlı ürünü sadece kargo kaynaklı saymak.",
+      "Hasar bildirimini sipariş iptaliyle karıştırmak.",
+      "Kargo hasarını teslimatla aynı değerlendirmek.",
+      "Hasarlı ürünü fotoğrafsız bildirmek.",
+      "İade sürecini otomatik kabul etmek."
+    ],
+    "hard_negative_doc_ids": ["SHIPPING_DAMAGED_DELIVERY_001", "PAYMENT_REFUND_001"],
+    "related_documents": ["IADE_URUN_INCELEME_001", "IADE_REDDI_NEDENLERI_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Hasarlı ürün iadesi ile teslimat hasarının ayrımı kaynakta tam olarak açık değil."]
+  },
+  {
+    "doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+    "category": "IADE",
+    "subcategory": "IADE_UCRETININ_HESABA_GECMESI",
+    "title": "İade Sonrası Ücret Süreci",
+    "amac": "Kullanıcının iade süreci tamamlandıktan sonra ücret iadesi konusunun ödeme süreciyle ilişkili olduğunu anlamasını sağlar.",
+    "kapsam": "İade sonrası ücret sürecinin iade kaydıyla ilişkisini ve ödeme sürecine yönlendirme gerektiren durumları kapsar.",
+    "tanim": "İade sonrası ücret süreci, iade tamamlandıktan sonra ücret iadesinin ödeme süreciyle ilişkili hale gelmesini ifade eder.",
+    "kullanici_ifadeleri": [
+      "İade sonrası ücret ne zaman yansır?",
+      "Para iadem neden görünmüyor?",
+      "İade ücretim nerede?",
+      "İade sonrası hesaplama nasıl yapılır?",
+      "Ücret iadesi süreci nasıl işliyor?"
+    ],
+    "kosullar": [
+      "İade süreci tamamlanmış olmalıdır.",
+      "Ücret iadesi iade politikalarına göre değerlendirilmelidir.",
+      "Sipariş ve iade detayları doğru olmalıdır.",
+      "Ücret iadesi ödeme süreciyle ilişkilidir.",
+      "İade inceleme sonucu ücret iadesini etkileyebilir."
+    ],
+    "adimlar": [
+      "İade talebi onaylanır.",
+      "İade edilen ürün incelenir.",
+      "Ücret iadesi konusu ödeme süreci kapsamında değerlendirilir.",
+      "Kullanıcı iade kaydı ve ilgili ödeme iadesi durumunu takip eder."
+    ],
+    "istisnalar": [
+      "Ücret iadesinin ödeme tarafındaki ilerleyişi ayrı ödeme süreci kapsamında değerlendirilir.",
+      "İade kaydı tamamlanmadan ödeme iadesi süreci netleşmeyebilir.",
+      "İade sonrası ücretin tam olarak hesaplanması iade koşullarına göre değişir.",
+      "Ücret iadesi destek incelemesine bağlı olarak gecikebilir.",
+      "Kampanya veya kupon durumu iade hesaplamasını etkileyebilir."
+    ],
+    "destek_gerektiren_durumlar": [
+      "İade ücretim görünmüyorsa.",
+      "Ücret iadesi tutarı belirsizse.",
+      "İade sonrası ücretin hangi hesaba gittiği net değilse.",
+      "İade ücret süreci uzun sürüyorsa.",
+      "Ücret iadesiyle ilgili çelişkili bilgi varsa."
+    ],
+    "standart_yanit": "İade süreci tamamlandıktan sonra ücret iadesi ödeme süreciyle ilişkilidir. Kesin süre veya ödeme vaadi verilmeden, destek ekibi gerekirse iade ve ödeme kayıtlarını birlikte incelemelidir.",
+    "sik_yapilan_hatalar": [
+      "İade süreci tamamlanmadan ücret iadesinin kesinleştiğini düşünmek.",
+      "Ücret iadesini iade talebiyle aynı şey sanmak.",
+      "Talep sonucu gelmeden destek sürecini bitirmek.",
+      "Ücret iadesinin ödeme sürecinden bağımsız ilerlediğini düşünmek.",
+      "Ödeme iadesi bilgisini ilgili ödeme kaydıyla ilişkilendirmemek."
+    ],
+    "hard_negative_doc_ids": ["PAYMENT_CARD_PAYMENT_001"],
+    "related_documents": ["IADE_REDDI_NEDENLERI_001", "IADE_URUN_INCELEME_001", "PAYMENT_REFUND_001"],
+    "expected_action": "RAG_ANSWER_OR_TICKET",
+    "priority": "HIGH",
+    "review_notes": ["SAFE_FINAL_WITH_OPEN_POLICY_NOTES: İade sonrası ücret sürecinin hangi aşamada destek gerektirdiği ve kesin süre bilgisi kaynakta net değil."]
+  }
+]

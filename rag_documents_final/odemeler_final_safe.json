@@ -1,0 +1,546 @@
+[
+    {
+        "doc_id":  "PAYMENT_CARD_PAYMENT_001",
+        "category":  "ODEME",
+        "subcategory":  "KARTLA_ODEME",
+        "title":  "Kartla Ödeme",
+        "amac":  "Kartla ödeme, kullanıcıların kredi kartı veya banka kartı kullanarak sipariş tutarını güvenli şekilde ödeyebilmesini sağlayan ödeme yöntemidir.",
+        "kapsam":  "Kredi kartı, banka kartı veya sanal kart ile ödeme yapmak isteyen kullanıcıların ödeme adımındaki kartlı ödeme sürecini kapsar.",
+        "tanim":  "Kartla ödeme, kullanıcının kart numarası, son kullanma tarihi ve güvenlik kodu bilgileriyle ödeme işlemini başlatması; gerekli durumlarda 3D Secure doğrulamasını tamamlaması ve ödeme başarılı olursa siparişin oluşturulmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Kartla ödeme yapamıyorum",
+                                    "Kredi kartım neden kabul edilmiyor",
+                                    "Kart bilgilerimi doğru girdim ama ödeme olmuyor",
+                                    "Banka kartı ile ödeme yapabilir miyim",
+                                    "Sanal kart kullanabiliyor muyum"
+                                ],
+        "kosullar":  [
+                         "Kartın sistem tarafından desteklenen kart türlerinden biri olması gerekir.",
+                         "Kartın internet alışverişine açık olması gerekir.",
+                         "Kart bilgileri doğru girilmelidir.",
+                         "Banka 3D Secure doğrulaması isterse doğrulama tamamlanmalıdır.",
+                         "Ödeme işleminin başarılı sonuçlanması siparişin tamamlanması için gereklidir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı ödeme adımında kart bilgilerini girer.",
+                        "Sistem ödeme işlemini başlatır.",
+                        "Banka gerekli görürse 3D Secure doğrulaması istenir.",
+                        "Kullanıcı bankanın doğrulama adımını tamamlar.",
+                        "Ödeme başarılı olursa sipariş oluşturulur.",
+                        "Sipariş numarası üretilir ve sipariş bilgileri kullanıcının hesabına eklenir."
+                    ],
+        "istisnalar":  [
+                           "Kart limiti yetersizse ödeme başarısız olabilir.",
+                           "Kart internet alışverişine kapalıysa ödeme tamamlanmayabilir.",
+                           "3D Secure doğrulaması tamamlanmazsa ödeme başarılı sayılmaz.",
+                           "Banka veya ödeme altyapısı kaynaklı geçici sorunlar ödeme sonucunu etkileyebilir.",
+                           "Güvenlik kontrolleri nedeniyle işlem reddedilebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Ödeme işlemi sürekli başarısız oluyorsa destek gerekebilir.",
+                                           "Karttan ödeme alınmasına rağmen sipariş oluşmadıysa ayrı ödeme-sipariş incelemesi gerekir.",
+                                           "Hesaptaki ödeme bilgileriyle banka hareketleri uyuşmuyorsa destek gerekebilir.",
+                                           "Yetkisiz veya şüpheli ödeme işlemi fark edilirse destek gerekebilir."
+                                       ],
+        "standart_yanit":  "Kartla ödeme yaparken kart bilgilerinizin doğru olduğundan, kartınızın internet alışverişine açık olduğundan ve gerekiyorsa 3D Secure doğrulamasını tamamladığınızdan emin olun. Kartla ödeme desteği kart türüne, bankaya ve ödeme sağlayıcı kurallarına göre değişebilir; işlem devamlı başarısız olursa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Kart numarası, son kullanma tarihi veya güvenlik kodunu hatalı girmek.",
+                                    "Kart internet alışverişine kapalıyken ödeme denemek.",
+                                    "3D Secure doğrulamasını tamamlamadan ödeme ekranından çıkmak.",
+                                    "Kartla ödeme hatasını karttan para çekildi ama sipariş oluşmadı senaryosuyla karıştırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_FAILED_001",
+                                      "PAYMENT_CHARGED_ORDER_NOT_CREATED_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_FAILED_001",
+                                  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                  "PAYMENT_INSTALLMENT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Desteklenen kart türleri kart, banka ve ödeme sağlayıcı kurallarına göre değişebilir; marka/banka garantisi verilmemelidir.",
+                             "OPEN_TECHNICAL_NOTE: Kart güvenliği detayları güvenlik ve compliance dokümanlarıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Desteklenen kart türleri genel düzeyde verilmiş; detaylar ödeme sağlayıcı dokümantasyonuyla eşleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Kart güvenliği ve PCI-DSS standartları kaynakta genel olarak ifade edilmiştir."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_FAILED_001",
+        "category":  "ODEME",
+        "subcategory":  "ODEME_BASARISIZ_HATASI",
+        "title":  "Ödeme Başarısız Hatası",
+        "amac":  "Ödeme başarısız hatası, kullanıcının ödeme işlemini başlatmasına rağmen işlemin tamamlanamaması ve siparişin oluşturulamaması durumunu açıklamak için hazırlanmıştır.",
+        "kapsam":  "Kart, banka, güvenlik doğrulaması, ödeme altyapısı veya geçici sistem sorunları nedeniyle tamamlanamayan ödeme denemelerini kapsar.",
+        "tanim":  "Ödeme başarısız hatası, ödeme kuruluşu ve banka doğrulama adımlarından biri tamamlanamadığında ödemenin alınmış kabul edilmemesi ve yeni sipariş kaydının oluşmamasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Ödeme başarısız oldu",
+                                    "Ödeme işlemi tamamlanamadı",
+                                    "Sipariş verirken ödeme başarısız hatası alıyorum",
+                                    "Ödeme ekranında işlem başarısız uyarısı çıkıyor",
+                                    "Ödeme yapmaya çalışıyorum ama sürekli hata veriyor"
+                                ],
+        "kosullar":  [
+                         "Kullanıcı ödeme işlemini başlatmış ancak işlem başarıyla tamamlanmamıştır.",
+                         "Sipariş oluşturulmaz ve kullanıcıya sipariş numarası verilmez.",
+                         "Ürünler için ödeme alınmış kabul edilmez.",
+                         "Sipariş hazırlık veya kargo süreci başlamaz."
+                     ],
+        "adimlar":  [
+                        "Kart numarası, son kullanma tarihi ve güvenlik kodu kontrol edilir.",
+                        "Kart limitinin yeterli olup olmadığı kontrol edilir.",
+                        "Kartın internet alışverişine açık olduğu doğrulanır.",
+                        "3D Secure doğrulama ekranı eksiksiz tamamlanır.",
+                        "İşlem birkaç dakika sonra yeniden denenir.",
+                        "Gerekirse farklı bir kart veya ödeme yöntemi kullanılır."
+                    ],
+        "istisnalar":  [
+                           "Banka uygulamasında bekleyen işlem görünmesi ödemenin kesin tahsil edildiği anlamına gelmeyebilir.",
+                           "Banka tarafından onaylanmayan veya tamamlanmayan işlemler, banka süreçlerine göre otomatik olarak iptal edilip kullanılabilir bakiyeye geri yansıyabilir.",
+                           "Sorun banka, kart ayarları, güvenlik doğrulamaları veya geçici teknik kesintilerden kaynaklanabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Aynı hata sürekli tekrar ediyorsa destek gerekir.",
+                                           "Farklı kartlarla da ödeme yapılamıyorsa destek gerekir.",
+                                           "Banka tarafından ödeme alındığı görülmesine rağmen sipariş oluşmadıysa bu doküman yerine PAYMENT_CHARGED_ORDER_NOT_CREATED_001 incelenmelidir.",
+                                           "Ödeme işlemiyle ilgili tutarsız veya çelişkili bilgiler görüntüleniyorsa destek gerekir."
+                                       ],
+        "standart_yanit":  "Ödeme başarısız olduğunda sipariş oluşturulmaz ve ödeme alınmış kabul edilmeyebilir. Kart bilgilerinizi, limitinizi, internet alışverişi ayarınızı ve 3D Secure doğrulamasını kontrol edin; banka ekranında bekleyen işlem görünüyorsa bu durum bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir. Hata devam ederse destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Ödeme başarısız ekranını kesin tahsilat yapılmış gibi yorumlamak.",
+                                    "Banka uygulamasındaki bekleyen işlemi kesin çekim sanmak.",
+                                    "3D Secure adımı tamamlanmadan işlemin onaylandığını düşünmek.",
+                                    "Ödeme başarısızlığı ile karttan para çekildi ama sipariş oluşmadı senaryosunu birleştirmek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                      "PAYMENT_DOUBLE_CHARGE_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_CARD_PAYMENT_001",
+                                  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                  "PAYMENT_AUTHORIZATION_PENDING_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Provizyon/bekleyen işlem kaldırılma süresi bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir.",
+                             "OPEN_TECHNICAL_NOTE: Ödeme sağlayıcı hata kodları sağlayıcı spesifikasyonuyla eşleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Banka tarafında bekleyen işlemlerin otomatik kaldırılma süresi banka ve ödeme sağlayıcı politikalarına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Hata kodu bazlı yönlendirme ödeme sağlayıcı spesifikasyonuyla yapılmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+        "category":  "ODEME",
+        "subcategory":  "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+        "title":  "Karttan Para Çekildi Ama Sipariş Oluşmadı",
+        "amac":  "Kullanıcının ödeme işlemini tamamlamasına rağmen sistemde sipariş kaydının oluşmaması veya siparişin kullanıcı hesabında görünmemesi durumunu açıklamak için hazırlanmıştır.",
+        "kapsam":  "Kart hareketlerinde ödeme görünen ancak Siparişlerim alanında sipariş kaydı veya sipariş numarası bulunmayan durumları kapsar.",
+        "tanim":  "Ödeme onayı ile sipariş kaydı oluşturma adımlarının ayrı ilerlediği süreçte ödeme başarılı görünürken sipariş kaydının teknik nedenlerle oluşmaması veya hesaba yansımaması durumudur.",
+        "kullanici_ifadeleri":  [
+                                    "Kartımdan para çekildi ama siparişim oluşmadı",
+                                    "Ödeme yaptım fakat sipariş görünmüyor",
+                                    "Kartımdan ücret kesildi ama sipariş numarası oluşmadı",
+                                    "Ödeme başarılı görünüyor ama sipariş oluşturulmadı",
+                                    "Kart hareketlerinde ödeme var ama sipariş yok"
+                                ],
+        "kosullar":  [
+                         "Kullanıcı banka hesabında veya kart hareketlerinde ödeme işlemini görür.",
+                         "Kullanıcının Siparişlerim bölümünde ilgili sipariş görünmez.",
+                         "Sipariş numarası veya sipariş onayı oluşmamış olabilir.",
+                         "Ödeme ve sipariş bilgilerinin birlikte değerlendirilmesi gerekir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı Siparişlerim bölümünü kontrol eder.",
+                        "E-posta veya SMS ile sipariş onayı gelip gelmediğini kontrol eder.",
+                        "Banka uygulamasındaki işlem durumunu inceler.",
+                        "Aynı sipariş için tekrar ödeme yapmadan önce mevcut işlemin sonucunun netleşmesini bekler.",
+                        "Ödeme kesinleşmiş görünüyorsa ve sipariş oluşmamışsa destek ekibiyle iletişime geçer."
+                    ],
+        "istisnalar":  [
+                           "Sipariş başarıyla oluşturulmuş ancak kullanıcı hesabına henüz yansımamış olabilir.",
+                           "Ödeme başarısız olmuş ve provizyon işlemi bekliyor olabilir.",
+                           "Sipariş oluşturulamamışsa ödeme tutarı, banka ve ödeme sağlayıcı süreçlerine göre kullanıcıya geri yansıtılabilir.",
+                           "Birden fazla ödeme denemesi mükerrer ödeme veya çift çekim benzeri durumlara neden olabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Sipariş oluşmamışsa ve ödeme kesinleşmiş görünüyorsa destek gerekir.",
+                                           "E-posta veya SMS ile sipariş onayı alınmadıysa destek gerekir.",
+                                           "Aynı işlem için birden fazla ödeme kaydı oluşmuşsa destek gerekir.",
+                                           "Banka tarafından ödemenin başarılı olduğu teyit edilmişse destek gerekir."
+                                       ],
+        "standart_yanit":  "Kart hareketinde ödeme görünüyor ancak sipariş oluşmadıysa aynı sipariş için yeniden ödeme yapmadan önce Siparişlerim alanını, sipariş onayı mesajlarını ve banka işlem durumunu kontrol edin. Geri yansıma süresi bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir; ödeme kesinleşmiş görünüyorsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Mevcut işlemin sonucu netleşmeden aynı sipariş için yeniden ödeme yapmak.",
+                                    "Provizyon kaydını kesin tahsilat sanmak.",
+                                    "Bu senaryoyu genel ödeme başarısız hatasıyla aynı kabul etmek.",
+                                    "Sipariş onayı e-postası veya SMS kontrol edilmeden işlem sonucunu kesinleştirmek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_FAILED_001",
+                                      "PAYMENT_DOUBLE_CHARGE_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_FAILED_001",
+                                  "PAYMENT_DOUBLE_CHARGE_001",
+                                  "PAYMENT_AUTHORIZATION_PENDING_001",
+                                  "PAYMENT_REFUND_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Sipariş oluşmadığında tutarın geri yansıma süresi bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir.",
+                             "OPEN_TECHNICAL_NOTE: Destek ekibinin kontrol edeceği ödeme/sipariş kayıtları sistem alanlarıyla eşleştirilmelidir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Ödeme tutarının geri yansıtılma süresi banka ve ödeme sağlayıcı süreçlerine göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Destek ekibinin hangi ödeme/sipariş kayıtlarını kontrol edeceği sistem alanlarıyla eşleştirilmelidir."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_DOUBLE_CHARGE_001",
+        "category":  "ODEME",
+        "subcategory":  "CIFT_CEKIM_PROBLEMI",
+        "title":  "Çift Çekim Problemi",
+        "amac":  "Kullanıcının tek bir sipariş veya ödeme işlemi için kartından birden fazla ücret tahsil edildiğini düşünmesi durumunu açıklamak için hazırlanmıştır.",
+        "kapsam":  "Aynı siparişe ait ödeme tutarının kart hareketlerinde birden fazla kez görünmesi, gerçek mükerrer tahsilat şüphesi veya provizyonla karışan çift kayıt durumlarını kapsar.",
+        "tanim":  "Çift çekim problemi, aynı siparişe ait ödeme tutarının kart hareketlerinde birden fazla kayıt olarak görünmesi veya kullanıcının aynı işlem için iki ayrı tahsilat yapıldığını fark etmesi durumudur.",
+        "kullanici_ifadeleri":  [
+                                    "Kartımdan iki kere para çekildi",
+                                    "Aynı sipariş için iki kez ödeme alınmış",
+                                    "Kartımdan mükerrer tahsilat yapılmış olabilir",
+                                    "Tek sipariş verdim ama iki çekim görünüyor",
+                                    "Ödeme birden fazla kez alınmış görünüyor"
+                                ],
+        "kosullar":  [
+                         "Kart hareketlerinde aynı sipariş veya aynı tutar için birden fazla kayıt görünür.",
+                         "İkinci kayıt gerçek tahsilat veya geçici provizyon olabilir.",
+                         "İşlemlerin provizyon mu kesinleşmiş tahsilat mı olduğu kontrol edilmelidir.",
+                         "Sipariş ve ödeme kayıtları birlikte değerlendirilmelidir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı Siparişlerim bölümünde kaç adet sipariş oluştuğunu kontrol eder.",
+                        "Banka hareketlerindeki kayıtların provizyon veya kesinleşmiş işlem olup olmadığını inceler.",
+                        "Aynı tutarın birden fazla kez tahsil edilip edilmediğini doğrular.",
+                        "İşlemin banka ve ödeme sağlayıcı sistemlerinde güncellenip güncellenmediğini takip eder.",
+                        "Gerçek mükerrer tahsilat şüphesi devam ederse destek ekibi sipariş ve ödeme kayıtlarını inceler."
+                    ],
+        "istisnalar":  [
+                           "Kart hareketlerinde görülen ikinci kayıt her zaman gerçek tahsilat anlamına gelmez.",
+                           "İkinci kayıt provizyon ise banka tarafından otomatik olarak kaldırılabilir.",
+                           "Birden fazla sipariş oluşturulmuşsa ilgili siparişler ayrıca değerlendirilir.",
+                           "Ödeme butonuna birden fazla basılması veya sayfanın yenilenmesi mükerrer işlem riskini artırabilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Aynı sipariş için iki veya daha fazla tahsilat görünüyorsa destek gerekir.",
+                                           "Birden fazla sipariş oluşmuşsa destek gerekir.",
+                                           "Provizyon kaydı uzun süre kaldırılmamışsa destek gerekir.",
+                                           "Banka tarafından mükerrer tahsilat yapıldığı doğrulanmışsa destek gerekir."
+                                       ],
+        "standart_yanit":  "Kart hareketlerinizde aynı işlem için birden fazla kayıt görünüyorsa önce kayıtların provizyon mu kesinleşmiş tahsilat mı olduğunu kontrol edin. Provizyon ve iade süreçleri bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir; gerçek mükerrer tahsilat şüphesi varsa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Her ikinci kart hareketini gerçek çift çekim olarak yorumlamak.",
+                                    "Provizyon kaydını kesinleşmiş tahsilatla karıştırmak.",
+                                    "Aynı sipariş için yeniden ödeme yaparak mükerrer işlem riskini artırmak.",
+                                    "Birden fazla sipariş oluşup oluşmadığını kontrol etmemek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_AUTHORIZATION_PENDING_001",
+                                      "PAYMENT_CHARGED_ORDER_NOT_CREATED_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_AUTHORIZATION_PENDING_001",
+                                  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                  "PAYMENT_REFUND_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Provizyon kaydının kaldırılma süresi banka politikalarına göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Gerçek mükerrer tahsilatta iade başlatma yetkisi Finance Ops/Payment Ops tarafından doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Provizyon kaydının kaldırılması süresi banka politikalarına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Gerçek mükerrer tahsilat tespitinde iade başlatma yetkisi ve süreç doğrulanmalıdır."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_INSTALLMENT_001",
+        "category":  "ODEME",
+        "subcategory":  "TAKSITLI_ODEME",
+        "title":  "Taksitli Ödeme",
+        "amac":  "Taksitli ödeme, kullanıcıların alışveriş tutarını tek seferde ödemek yerine bankanın sunduğu taksit seçeneklerine göre aylara bölerek ödemesini açıklamak için hazırlanmıştır.",
+        "kapsam":  "Ödeme ekranında taksit seçeneği kullanımı, taksit uygulanabilen kartlar, taksit seçiminin sipariş ve iade süreçleriyle ilişkisini kapsar.",
+        "tanim":  "Taksitli ödeme, toplam sipariş tutarının banka tarafından belirlenen vade sayısına bölünerek kullanıcının ekstresine taksitli şekilde yansıtılmasıdır.",
+        "kullanici_ifadeleri":  [
+                                    "Taksitli ödeme yapabilir miyim",
+                                    "Kaç taksit yapabiliyorum",
+                                    "Taksit seçenekleri görünmüyor",
+                                    "Ödemeyi taksitlendirmek istiyorum",
+                                    "Taksit seçtim ama uygulanmadı"
+                                ],
+        "kosullar":  [
+                         "Taksit seçenekleri ödeme adımında kart bilgileri girildikten sonra görüntülenir.",
+                         "Taksit seçenekleri banka politikalarına, kart türüne, ürün kategorisine, kampanya veya satıcı anlaşmalarına göre değişebilir.",
+                         "Genellikle taksitli ödeme kredi kartlarında kullanılabilir.",
+                         "Banka kartları ve sanal kartlar çoğu durumda taksitlendirme desteklemeyebilir.",
+                         "Taksit seçimi ödeme anında yapılmalıdır."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı ödeme ekranına gelir.",
+                        "Kart bilgilerini girer.",
+                        "Uygun taksit seçeneklerini görüntüler.",
+                        "Taksit sayısını seçer.",
+                        "Banka üzerinden ödeme onayı alınır.",
+                        "Sipariş oluşturulur ve taksit planı bankaya göre başlatılır."
+                    ],
+        "istisnalar":  [
+                           "Taksit seçimi sonradan değiştirilemez.",
+                           "Bazı ürünlerde yasal veya ticari sebeplerle taksit uygulanmayabilir.",
+                           "Taksit sayısı banka tarafından sınırlandırılabilir.",
+                           "Kampanya ve indirimler taksit seçeneklerini etkileyebilir.",
+                           "İptal veya iade durumunda bankanın taksit planı ve geri yansıtma süreci banka politikalarına göre ilerler."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Taksit seçeneği görünmüyorsa destek gerekebilir.",
+                                           "Seçilen taksit uygulanmıyorsa destek gerekebilir.",
+                                           "Banka ekstresinde yanlış taksitlendirme varsa destek gerekebilir.",
+                                           "İade sonrası taksitler geri yansımamışsa destek gerekebilir."
+                                       ],
+        "standart_yanit":  "Taksit seçenekleri kart, banka, ürün kategorisi ve kampanya koşullarına göre değişebilir; ödeme ekranında görüntülenen seçenekler esas alınmalıdır. Taksit seçimi ödeme anında yapılır ve iade yansıması bankaya ve ödeme sağlayıcı süreçlerine göre değişebilir.",
+        "sik_yapilan_hatalar":  [
+                                    "Banka kartı veya sanal kartta her zaman taksit beklemek.",
+                                    "Taksit seçiminin ödeme tamamlandıktan sonra değiştirilebileceğini düşünmek.",
+                                    "Ürün kategorisi veya kampanya koşullarının taksit seçeneklerini etkileyebileceğini gözden kaçırmak.",
+                                    "Banka ekstresi yansımasını platform sipariş kaydıyla karıştırmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_CARD_PAYMENT_001",
+                                      "PAYMENT_FAILED_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_CARD_PAYMENT_001",
+                                  "PAYMENT_FAILED_001",
+                                  "PAYMENT_REFUND_001"
+                              ],
+        "expected_action":  "RAG_ANSWER",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Taksit kapsamı kart, banka, ürün kategorisi ve kampanya koşullarına göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Taksitli iadenin karta/ekstreye yansıması banka politikalarına bağlıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Hangi bankalarda, kartlarda veya ürün kategorilerinde taksit bulunduğu ödeme sağlayıcı ve banka politikalarıyla doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: İade sonrası taksitlerin geri yansıma süresi banka politikalarına bağlıdır."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_REFUND_001",
+        "category":  "ODEME",
+        "subcategory":  "PARA_IADESI_SURECI",
+        "title":  "Ücret İadesi Süreci",
+        "amac":  "Onaylanan iptal, iade veya ödeme düzeltmesi sonrası tahsil edilen tutarın kullanıcıya geri aktarılması sürecini açıklamak için hazırlanmıştır.",
+        "kapsam":  "Onaylanan sipariş iptali, onaylanan ürün iadesi, ödeme hatası veya çift çekim tespiti sonrası para iadesi sürecini kapsar. Iade talebi oluşturma, iade kodu alma veya ürün gönderim süreci bu dokümentda kapsamında değildir.",
+        "tanim":  "Para iadesi, daha önce kullanıcıdan tahsil edilen tutarın onaylanan iptal veya iade sonrası genellikle ödeme yapılan yöntem üzerinden kullanıcıya geri gönderilmesidir.",
+        "kullanici_ifadeleri":  [
+                                    "Para iadem ne zaman yatacak",
+                                    "İade ücretim hesabıma gelmedi",
+                                    "Para iadesi kaç gün sürer",
+                                    "İadem onaylandı ama para gelmedi",
+                                    "İade tutarı kartıma yansımadı"
+                                ],
+        "kosullar":  [
+                         "İade süreci sipariş iptali, ürün iadesi veya ödeme hatası tespiti sonrası başlayabilir.",
+                         "İade işlemi genellikle aynı ödeme yöntemi üzerinden yapılır.",
+                         "Kart ödemelerinde iade karta, Havale/EFT ödemelerinde banka hesabına geri gönderilir.",
+                         "İade tutarı tam veya kısmi olabilir.",
+                         "Kampanya veya kupon kullanılan siparişlerde iade tutarı değişebilir."
+                     ],
+        "adimlar":  [
+                        "İade talebi onaylandığında veya ödeme düzeltmesi başlatıldığında sistem iade işlemini başlatır.",
+                        "Sipariş ve ödeme bilgileri kontrol edilir.",
+                        "İade işlemi ödeme kuruluşuna iletilir.",
+                        "Banka veya ödeme sağlayıcısı işlemi tamamlar.",
+                        "Tutar kullanıcının hesabına yansır."
+                    ],
+        "istisnalar":  [
+                           "İade hemen görünmeyebilir.",
+                           "Banka işlem süreleri banka ve ödeme sağlayıcı politikalarına göre farklı olabilir.",
+                           "Provizyon ve bekleyen işlemler iade süresini etkileyebilir.",
+                           "Aynı sipariş için birden fazla iade işlemi başlatılmamalıdır.",
+                           "Yanlış tutar iade edildiyse ödeme ve sipariş bilgileri ayrıca incelenmelidir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "İade onaylanmasına rağmen tutar karta yansımadıysa destek gerekir.",
+                                           "Yanlış tutar iade edildiyse destek gerekir.",
+                                           "İade süresi banka sürelerini önemli ölçüde aşmışsa destek gerekir.",
+                                           "İade işlemi hiç başlatılmadıysa destek gerekir."
+                                       ],
+        "standart_yanit":  "Para iadesi genellikle ödeme yapılan yöntem üzerinden ilerler; hesaba veya karta yansıma süresi ödeme yöntemi, banka ve ödeme sağlayıcı süreçlerine göre değişebilir. İade onaylandığı halde tutar görünmüyorsa, yanlış tutar iade edildiyse veya süreç beklenenden uzun sürdüyse destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "İade talebi oluşturma süreciyle para iadesinin hesaba yansıma sürecini aynı sanmak.",
+                                    "İadenin her zaman anında görüneceğini düşünmek.",
+                                    "Kupon veya kampanya kullanılan siparişlerde iade tutarının değişebileceğini gözden kaçırmak.",
+                                    "Aynı sipariş için birden fazla iade talebi başlatmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_DOUBLE_CHARGE_001",
+                                      "IADE_TALEBI_OLUSTURMA_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_DOUBLE_CHARGE_001",
+                                  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                  "PAYMENT_INSTALLMENT_001",
+                                  "PAYMENT_COUPON_POINT_PAYMENT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "HIGH",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_POLICY_NOTE: Para iadesinin hesaba yansıma süresi ödeme yöntemi, banka ve ödeme sağlayıcı süreçlerine göre değişebilir.",
+                             "OPEN_CONTENT_NOTE: İade talebi oluşturma ve iade onaylama ayrı doküman kapsamındadır.",
+                             "OPEN_POLICY_NOTE: Kapıda ödeme ve Havale/EFT iade operasyon detayları ödeme sağlayıcı sistemlerine göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: İade süresi ödeme yöntemine ve banka/ödeme sağlayıcı politikalarına göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: İade talebi oluşturma ve onaylama ayrı doküman kapsamındadır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Kapıda ödeme ve Havale/EFT iade operasyon detayları ödeme sağlayıcı sistemlerine göre değişebilir."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_AUTHORIZATION_PENDING_001",
+        "category":  "ODEME",
+        "subcategory":  "PROVIZYON_BEKLEYEN_ISLEM",
+        "title":  "Provizyon / Bekleyen İşlem",
+        "amac":  "Banka uygulamasında bekleyen işlem veya provizyon olarak görünen ödeme kayıtlarının kesin tahsilatla karıştırılmaması için hazırlanmıştır.",
+        "kapsam":  "Ödeme başarısızlığı, sipariş oluşmaması, çift çekim şüphesi veya iade sürecinde görülebilen provizyon ve bekleyen işlem kayıtlarını kapsar.",
+        "tanim":  "Provizyon veya bekleyen işlem, tutarın geçici olarak kart limitinden düşülmesi veya bankada kontrol aşamasında görünmesidir; bu durum ödemenin kesin olarak tahsil edildiği anlamına gelmeyebilir.",
+        "kullanici_ifadeleri":  [
+                                    "Banka uygulamasında bekleyen işlem görünüyor",
+                                    "Provizyon mu gerçek çekim mi anlayamadım",
+                                    "Ödeme başarısız oldu ama kartımda bekleyen işlem var",
+                                    "İkinci çekim provizyon mu gerçek tahsilat mı",
+                                    "Provizyon kaydı ne zaman kalkar"
+                                ],
+        "kosullar":  [
+                         "Banka uygulamasında işlem bekleyen işlem veya provizyon olarak görünebilir.",
+                         "Provizyon, ödemenin kesin tahsil edildiği anlamına gelmeyebilir.",
+                         "Sipariş oluşturulamadığında veya ödeme tamamlanmadığında provizyon banka tarafından otomatik olarak kaldırılabilir.",
+                         "Çift çekim gibi görünen ikinci kayıt geçici provizyon olabilir.",
+                         "İşlemin niteliği banka kayıtlarından kontrol edilmelidir."
+                     ],
+        "adimlar":  [
+                        "Kullanıcı banka uygulamasındaki işlem statüsünü kontrol eder.",
+                        "İşlemin provizyon/bekleyen işlem mi yoksa kesinleşmiş tahsilat mı olduğunu ayırır.",
+                        "Siparişlerim alanında sipariş oluşup oluşmadığını kontrol eder.",
+                        "Aynı sipariş için tekrar ödeme yapmadan önce mevcut işlemin sonucunu netleştirir.",
+                        "Provizyon kaydı uzun süre kaldırılmazsa veya kesin tahsilat görünürse destek ekibiyle iletişime geçer."
+                    ],
+        "istisnalar":  [
+                           "Bekleyen işlem görünmesi tek başına siparişin oluştuğu anlamına gelmez.",
+                           "Provizyon kaydı çift çekimle karıştırılabilir.",
+                           "Provizyon ve bekleyen işlemler iade süresini etkileyebilir.",
+                           "Provizyonun otomatik kaldırılma süresi banka politikalarına göre değişebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "Provizyon kaydı uzun süre kaldırılmamışsa destek gerekir.",
+                                           "Banka tarafından işlem kesin tahsilat olarak doğrulanmış ancak sipariş oluşmamışsa destek gerekir.",
+                                           "Aynı işlem için birden fazla ödeme kaydı oluşmuşsa destek gerekir.",
+                                           "Ödeme işlemiyle ilgili tutarsız veya çelişkili bilgiler görüntüleniyorsa destek gerekir."
+                                       ],
+        "standart_yanit":  "Banka uygulamasında görünen provizyon veya bekleyen işlem, ödemenin kesin tahsil edildiği anlamına gelmeyebilir. Statü adları bankaya göre değişebilir; işlem kesin tahsilat olarak görünüyorsa veya sipariş oluşmadıysa destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "Bekleyen işlemi kesin tahsilat olarak kabul etmek.",
+                                    "Provizyon kaydını çift çekim olarak yorumlamak.",
+                                    "Sipariş oluşmadan aynı sipariş için tekrar ödeme yapmak.",
+                                    "Banka işlem statüsü kontrol edilmeden iade beklentisi oluşturmak."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "PAYMENT_DOUBLE_CHARGE_001",
+                                      "PAYMENT_FAILED_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_FAILED_001",
+                                  "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+                                  "PAYMENT_DOUBLE_CHARGE_001",
+                                  "PAYMENT_REFUND_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_CONTENT_NOTE: Provizyon/bekleyen işlem konusu kaynakta dağınık geçtiği için operasyonel ayrıştırma amacıyla ayrı doküman olarak korunmuştur.",
+                             "OPEN_SAFE_GENERIC_NOTE: Banka uygulamasındaki işlem statüsü adları bankaya göre değişebilir.",
+                             "SOURCE_REVIEW_NOTE: APPROVED_WITH_NOTE: Bu doküman kaynakta ayrı ana başlık olarak değil, ödeme başarısızlığı, sipariş oluşmaması, çift çekim ve iade bölümlerinde dağınık olarak geçmektedir. Operasyonel ayrıştırma amacıyla konsolidasyona tabi tutulmuştur.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Banka uygulamasındaki işlem statüsü adları bankaya göre değişebilir."
+                         ]
+    },
+    {
+        "doc_id":  "PAYMENT_COUPON_POINT_PAYMENT_001",
+        "category":  "ODEME",
+        "subcategory":  "KUPON_PUAN_KULLANILAN_ODEMELER",
+        "title":  "Kupon / Puan Kullanılan Ödemeler",
+        "amac":  "Kupon veya puan kullanılan ödeme sonrası ödeme tutarı, ödeme tahsili ve iade etkilerini açıklamak için hazırlanmıştır.",
+        "kapsam":  "Onaylanan kupon kodu veya puan uygulandığında ödeme tutarının ne şekilde hesaplandığı, tahsilat ve iade sürecinde tutarın nasıl yansıtıldığını kapsar. Kupon geçersizliği, kupon ve puan kuralları, kupon uygulanmama nedenleri, minimum sepet şartı ve puan kullanım limitleri bu doküman kapsamı dışıdır.",
+        "tanim":  "Kupon veya puan kullanılan ödemeler, kullanıcının onaylanan indirim kuponu veya biriktirdiği puanlarını kullanarak ödeme tutarının düşürüldüğü senaryolardır.",
+        "kullanici_ifadeleri":  [
+                                    "Kuponlı ödeme yaptığımda tutardan ne düşülür",
+                                    "Puanlarla ödeme yaptığımda kaç para düşer",
+                                    "İndirimli ödeme sonrası iadem ne kadar olur",
+                                    "Kupon uygulandı, tutarı nasıl geri alırım",
+                                    "Puanla ödediğim kısmı iade ederken neler oluyor"
+                                ],
+        "kosullar":  [
+                         "Kupon veya puan kullanan ödeme işlemlerinde tutarlar indirim miktarıyla düşürülmüş durumda tahsil edilir.",
+                         "İade durumunda ödenen tutar indirim miktarı düşüldükten sonra hesaplanır.",
+                         "Kullanılan puanlar iade işlemi sonrası kullanıcı hesabına geri yüklenebilir.",
+                         "Kullanılan kupon genellikle iade sonrası tekrar kullanılamayabilir; bu kupon türüne bağlıdır."
+                     ],
+        "adimlar":  [
+                        "Ödeme işlemi kupon veya puan uygulanmış durumda tamamlanır.",
+                        "Ödeme tutarı indirimler uygulanmış biçimde tahsil edilir.",
+                        "İade talep edilirse, ödenen tutar (indirim düşüldükten sonra) hesaplandığı durumda geri aktarılır.",
+                        "Kullanılan puanlar sistem tarafından hesaba yüklenir."
+                    ],
+        "istisnalar":  [
+                           "İade tutarı indirimler uygulanmamış orijinal tutar değil, indirimler uygulanmış tutar üzerinden hesaplanır.",
+                           "Kullanılan puanlar iade işleminde geri yüklenme şartları ödeme/sipariş durumuna göre farklı olabilir.",
+                           "Kupon türüne göre iade sonrası tekrar kullanılabilme koşulları değişebilir.",
+                           "Kampanya politikaları iade ve geri yükleme koşullarını etkileyebilir."
+                       ],
+        "destek_gerektiren_durumlar":  [
+                                           "İade sonrası tutar yanlış hesaplandıysa destek gerekir.",
+                                           "İade sonrası puanlar geri yüklenmediyse destek gerekir.",
+                                           "Yanlış kupon tutarı uygulandıysa destek gerekir.",
+                                           "İade ve kupon/puan ile ilgili tutarsızlıklar görünüyorsa destek gerekir."
+                                       ],
+        "standart_yanit":  "Kupon veya puan kullanırken kodun doğru girildiğini, kampanya koşullarını, minimum sepet tutarını ve puan limitlerini kontrol edin. İade sonrası puanların geri yüklenmesi ve kuponun tekrar kullanılabilirliği kampanya kurallarına göre değişebilir; sorun devam ederse destek ekibi ilgili kayıtları incelemelidir.",
+        "sik_yapilan_hatalar":  [
+                                    "İade tutarını indirim uygulanmamış orijinal tutar üzerinden beklemek.",
+                                    "Puanların iade sonrası otomatik geri yüklenmeyi beklemek.",
+                                    "Kupon ve puan kuralları bu dokümanın kapsamı dışında olduğu için beklenti oluşturmak.",
+                                    "Kupon uygulanmama nedenleriyle ödeme tutarı sorunu birleştirmek."
+                                ],
+        "hard_negative_doc_ids":  [
+                                      "KUPON_GECERSIZ_HATASI_001",
+                                      "MINIMUM_SEPET_TUTARI_001",
+                                      "PUAN_KULLANMA_001"
+                                  ],
+        "related_documents":  [
+                                  "PAYMENT_REFUND_001",
+                                  "PAYMENT_INSTALLMENT_001",
+                                  "PAYMENT_CARD_PAYMENT_001"
+                              ],
+        "expected_action":  "RAG_ANSWER_OR_TICKET",
+        "priority":  "MEDIUM",
+        "review_notes":  [
+                             "SAFE_FINAL_WITH_OPEN_POLICY_NOTES: Decision log içindeki OPEN kararlar kesin politika gibi yazılmadı; güvenli genel ifade kullanıldı.",
+                             "OPEN_CONTENT_NOTE: Kupon ve puan kuralları kampanya/puan dokümanlarıyla birlikte değerlendirilmelidir.",
+                             "OPEN_POLICY_NOTE: İade sonrası puanların geri yüklenmesi kampanya ve puan kurallarına göre değişebilir.",
+                             "OPEN_POLICY_NOTE: Kuponun tekrar kullanılabilirliği kupon türüne ve kampanya koşullarına bağlıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Kupon ve puan kuralları (geçersizlik, minimum sepet, puan limit) KAMPANYA_PUAN dokümanlarında ele alınmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Puanların geri yüklenme koşulları kampanya sistemiyle doğrulanmalıdır.",
+                             "SOURCE_REVIEW_NOTE: APPROVED: Kupon tekrar kullanılabilirliği kupon türü ve politikalarına bağlıdır."
+                         ]
+    }
+]
