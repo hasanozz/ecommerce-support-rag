@@ -12,9 +12,11 @@ SECTION_LABELS = {
     "kapsam": "Kapsam",
     "tanim": "Tanım",
     "genel_bilgiler": "Genel Bilgiler",
+    "kullanici_ifadeleri": "Kullanıcı İfadeleri",
     "kosullar": "Koşullar",
     "adimlar": "Adımlar",
     "istisnalar": "İstisnalar",
+    "destek_gerektiren_durumlar": "Destek Gerektiren Durumlar",
     "surec": "Süreç",
     "standart_yanit": "Standart Yanıt",
     "sik_yapilan_hatalar": "Sık Yapılan Hatalar",
@@ -27,7 +29,63 @@ CATEGORY_LABELS = {
     "HESAP_GUVENLIK": "Hesap ve Kullanıcı Güvenliği",
     "KAMPANYA_PUAN": "Kampanya ve Puan",
 }
+FIELD_LABELS = {
+    "title": "Başlık",
+    "category": "Kategori",
+    "subcategory": "Alt Kategori",
+}
 SECTION_ORDER = list(SECTION_LABELS)
+SEARCH_FIELDS = [
+    "title",
+    "category",
+    "subcategory",
+    "amac",
+    "kapsam",
+    "tanim",
+    "kullanici_ifadeleri",
+    "kosullar",
+    "adimlar",
+    "istisnalar",
+    "destek_gerektiren_durumlar",
+    "standart_yanit",
+    "sik_yapilan_hatalar",
+]
+ANSWER_FIELDS = [
+    "tanim",
+    "kosullar",
+    "adimlar",
+    "istisnalar",
+    "destek_gerektiren_durumlar",
+    "standart_yanit",
+]
+SYSTEM_LAYER_FIELDS = {
+    "hard_negative_doc_ids",
+    "related_documents",
+    "expected_action",
+    "priority",
+    "review_notes",
+}
+REQUIRED_FINAL_FIELDS = {
+    "doc_id",
+    "category",
+    "subcategory",
+    "title",
+    "amac",
+    "kapsam",
+    "tanim",
+    "kullanici_ifadeleri",
+    "kosullar",
+    "adimlar",
+    "istisnalar",
+    "destek_gerektiren_durumlar",
+    "standart_yanit",
+    "sik_yapilan_hatalar",
+    "hard_negative_doc_ids",
+    "related_documents",
+    "expected_action",
+    "priority",
+    "review_notes",
+}
 SHORT_TEXT_LIMIT = 90
 MAX_CHUNK_CHARS = 1600
 
@@ -82,6 +140,35 @@ def build_context(document: dict, section_label: str, content: str) -> str:
     )
 
 
+def _field_text(value: Any) -> str:
+    if isinstance(value, list):
+        return "\n".join(
+            f"- {normalize_text(str(item))}" for item in value if str(item).strip()
+        )
+    if isinstance(value, str):
+        return normalize_text(value)
+    return normalize_text(str(value)) if value is not None else ""
+
+
+def build_search_text(document: dict) -> str:
+    parts = []
+    category = CATEGORY_LABELS.get(document["category"], document["category"])
+    for field in SEARCH_FIELDS:
+        value = category if field == "category" else document.get(field)
+        text = _field_text(value)
+        if text:
+            label = FIELD_LABELS.get(
+                field, SECTION_LABELS.get(field, field.replace("_", " ").title())
+            )
+            parts.append(f"{label}: {text}")
+    return "\n\n".join(parts)
+
+
+def build_answer_section(document: dict, section: str, content: str) -> str:
+    label = SECTION_LABELS.get(section, section.replace("_", " ").title())
+    return f"{label}:\n{content}"
+
+
 def build_clean_chunk_context(chunk: dict) -> str:
     category = CATEGORY_LABELS.get(chunk["category"], chunk["category"])
     section_label = SECTION_LABELS.get(
@@ -96,7 +183,37 @@ def build_clean_chunk_context(chunk: dict) -> str:
     )
 
 
+def normalize_final_document(document: dict, source_name: str = "") -> dict:
+    missing = REQUIRED_FINAL_FIELDS.difference(document)
+    if missing:
+        prefix = f"{source_name}: " if source_name else ""
+        raise ValueError(
+            prefix + "eksik RAG doküman alanları: " + ", ".join(sorted(missing))
+        )
+    normalized = dict(document)
+    normalized["id"] = str(normalized["doc_id"]).strip()
+    if not normalized["id"]:
+        raise ValueError(f"{source_name}: doc_id boş olamaz.")
+    for field in (
+        "kullanici_ifadeleri",
+        "kosullar",
+        "adimlar",
+        "istisnalar",
+        "destek_gerektiren_durumlar",
+        "sik_yapilan_hatalar",
+        "hard_negative_doc_ids",
+        "related_documents",
+        "review_notes",
+    ):
+        if not isinstance(normalized.get(field), list):
+            raise ValueError(f"{source_name}: {field} liste olmalıdır.")
+    return normalized
+
+
 def document_to_chunks(document: dict) -> list[dict]:
+    if "id" not in document and "doc_id" in document:
+        document = dict(document)
+        document["id"] = document["doc_id"]
     raw_sections = []
     for section in SECTION_ORDER:
         content = section_content(document.get(section))
@@ -149,6 +266,31 @@ def document_to_chunks(document: dict) -> list[dict]:
     return chunks
 
 
+def final_document_to_chunks(document: dict) -> list[dict]:
+    search_text = build_search_text(document)
+    chunks = []
+    for section in ANSWER_FIELDS:
+        content = section_content(document.get(section))
+        if not content:
+            continue
+        parts = split_long_content(content)
+        for part_index, part in enumerate(parts, start=1):
+            suffix = f"_{part_index:02d}" if len(parts) > 1 else ""
+            chunks.append(
+                {
+                    "chunk_id": f"{document['id']}__{section.upper()}{suffix}",
+                    "doc_id": document["id"],
+                    "category": document["category"],
+                    "subcategory": document["subcategory"],
+                    "title": document["title"],
+                    "section": section,
+                    "content": build_answer_section(document, section, part),
+                    "contextual_content": search_text,
+                }
+            )
+    return chunks
+
+
 def load_documents(path: Path) -> list[dict]:
     return [
         json.loads(line)
@@ -170,18 +312,27 @@ def load_final_documents(directory: Path) -> list[dict]:
         for item in data:
             if not isinstance(item, dict):
                 raise ValueError(f"RAG dokümanı obje olmalı: {path}")
-            documents.append(item)
+            documents.append(normalize_final_document(item, str(path)))
     ids = [item.get("id") for item in documents]
     duplicate_ids = sorted({item for item in ids if ids.count(item) > 1})
     if duplicate_ids:
         raise ValueError("Tekrarlı RAG doküman id değerleri: " + ", ".join(duplicate_ids))
+    document_ids = set(ids)
+    for document in documents:
+        for field in ("related_documents", "hard_negative_doc_ids"):
+            unknown = sorted(set(document[field]).difference(document_ids))
+            if unknown:
+                raise ValueError(
+                    f"{document['id']} bilinmeyen {field} referansları: "
+                    + ", ".join(unknown)
+                )
     return documents
 
 
 def load_clean_chunks(path: Path, documents: list[dict]) -> list[dict]:
     if not path.exists():
         raise FileNotFoundError(f"RAG chunk dosyası bulunamadı: {path}")
-    document_ids = {item["id"] for item in documents}
+    document_ids = {item.get("id") or item["doc_id"] for item in documents}
     required_fields = {
         "chunk_id",
         "doc_id",
@@ -230,8 +381,19 @@ def load_clean_chunks(path: Path, documents: list[dict]) -> list[dict]:
 
 
 def load_final_rag_sources(documents_directory: Path, chunks_path: Path) -> tuple[list[dict], list[dict]]:
+    del chunks_path  # Legacy clean chunk files are no longer authoritative.
     documents = load_final_documents(documents_directory)
-    chunks = load_clean_chunks(chunks_path, documents)
+    chunks = [
+        chunk
+        for document in documents
+        for chunk in final_document_to_chunks(document)
+    ]
+    chunk_ids = [item["chunk_id"] for item in chunks]
+    duplicate_chunk_ids = sorted({item for item in chunk_ids if chunk_ids.count(item) > 1})
+    if duplicate_chunk_ids:
+        raise ValueError(
+            "Tekrarlı RAG chunk_id değerleri: " + ", ".join(duplicate_chunk_ids)
+        )
     standard_answers = {
         chunk["doc_id"]: chunk["content"]
         for chunk in chunks

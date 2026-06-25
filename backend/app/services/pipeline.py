@@ -16,6 +16,7 @@ from .ai_contracts import ContextBuilder, PassthroughReranker
 from .classifier import ClassificationResult, ClassifierService
 from .confidence import composite_confidence, confidence_label
 from .demo_commerce import CustomerContextService
+from .product_context import ProductContextService
 from .privacy import mask_pii
 from .retrieval import GroupedDocument, RetrievalService
 from .similar import SimilarSolutionService
@@ -68,8 +69,37 @@ class SupportPipeline:
         self.similar = SimilarSolutionService(settings=self.settings)
         self.classifier = ClassifierService(self.settings)
         self.customer_context = CustomerContextService()
+        self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
         self.context_builder = ContextBuilder()
+
+    def _normalize_citations(
+        self, raw_citations: list[str], allowed_sources: list[dict]
+    ) -> tuple[list[str], list[str], bool]:
+        allowed_ids = {source["doc_id"] for source in allowed_sources}
+        title_to_ids: dict[str, list[str]] = {}
+        for source in allowed_sources:
+            title = str(source.get("title", "")).strip().casefold()
+            if title:
+                title_to_ids.setdefault(title, []).append(source["doc_id"])
+
+        normalized: list[str] = []
+        invalid: list[str] = []
+        citation_normalized = False
+        for raw in raw_citations:
+            value = str(raw).strip()
+            if not value:
+                continue
+            if value in allowed_ids:
+                normalized.append(value)
+                continue
+            matching_ids = title_to_ids.get(value.casefold(), [])
+            if len(matching_ids) == 1:
+                normalized.append(matching_ids[0])
+                citation_normalized = True
+                continue
+            invalid.append(value)
+        return list(dict.fromkeys(normalized)), invalid, citation_normalized
 
     def _extract_order_no(self, text: str) -> str | None:
         match = ORDER_NO_PATTERN.search(text)
@@ -105,7 +135,7 @@ class SupportPipeline:
             return False
         if self._extract_order_no(normalized) or self._extract_ordinal_reference(normalized):
             return True
-        if any(hint in normalized for hint in FOLLOWUP_HINTS):
+        if any(re.search(rf"(?<!\w){re.escape(hint)}(?!\w)", normalized) for hint in FOLLOWUP_HINTS):
             return True
         return False
 
@@ -149,37 +179,42 @@ class SupportPipeline:
         session: AsyncSession,
         grouped: list[GroupedDocument],
         customer_context: dict | None = None,
+        product_context: dict | None = None,
     ) -> str:
-        customer_text = (customer_context or {}).get("text", "").strip()
-        customer_items = (customer_context or {}).get("items", [])
-        customer_category = (customer_context or {}).get("category", "")
-        if customer_text:
-            if customer_category == "KARGO_TESLIMAT":
-                formatted_items = [
-                    self._format_customer_context_item(item) for item in customer_items
-                ]
-                if len(customer_items) == 1:
-                    return (
-                        "Kargonuzun son durumu şu şekilde görünüyor:\n"
-                        f"- {formatted_items[0]}"
-                    )
-                return (
-                    "Hesabınızda kargo bilgisi olan birden fazla demo sipariş görünüyor. "
-                    "Son durumları aşağıda listeliyorum; hangi sipariş için işlem yapmak "
-                    "istediğinizi sipariş numarasıyla yazabilirsiniz:\n"
-                    + "\n".join(f"- {item}" for item in formatted_items)
-                )
-            return (
-                "Hesabınızdaki demo işlem bilgileri şu şekilde görünüyor:\n"
-                + "\n".join(
-                    f"- {self._format_customer_context_item(item)}"
-                    for item in customer_items
-                )
-            )
+        customer_context = customer_context or {}
+        product_context = product_context or {}
+        decision_hints = [
+            str(item).strip()
+            for item in customer_context.get("decision_hints", [])
+            if str(item).strip()
+        ]
+        decision_hints.extend(
+            str(item).strip()
+            for item in product_context.get("decision_hints", [])
+            if str(item).strip()
+        )
+        customer_items = customer_context.get("items", [])
+        formatted_items = [
+            self._format_customer_context_item(item) for item in customer_items[:2]
+        ]
+        product_items = product_context.get("items", [])
+        formatted_products = [
+            self._format_product_context_item(item)
+            for item in product_items[:2]
+            if str(item).strip()
+        ]
+        if formatted_products:
+            return formatted_products[0]
+        if decision_hints:
+            lead = formatted_items[0] if formatted_items else "İlgili demo kayıt kontrol edildi."
+            return f"{lead} {decision_hints[0]} İsterseniz bir sonraki adımı birlikte netleştirebiliriz."
         if not grouped:
+            if customer_context.get("context_type") == "clarification_needed":
+                return (
+                    "Sorunuzla eşleşen net bir demo işlem seçemedim. Hangi sipariş, ödeme, iade veya kupon işlemi için destek istediğinizi biraz daha netleştirir misiniz?"
+                )
             return (
-                "Bu soruya mevcut bilgi tabanında yeterince güvenilir bir yanıt "
-                "bulamadım. Lütfen sorununuzla ilgili biraz daha ayrıntı verin."
+                "Bu soru için yeterli doğrulanmış bilgi bulamadım. Sorunu biraz daha ayrıntılı yazabilir veya destek kaydı açabilirsiniz."
             )
         standard_chunk = await session.scalar(
             select(Chunk.content)
@@ -190,43 +225,108 @@ class SupportPipeline:
             .order_by(Chunk.chunk_id)
         )
         if standard_chunk:
-            return standard_chunk
+            return f"{standard_chunk} Sorun hesabınızdaki özel bir işlemle ilgiliyse destek kaydı açabilirsiniz."
         document = await session.get(Document, grouped[0].doc_id)
         if document:
             standard = document.raw_json.get("standart_yanit", "")
             if standard and "?" not in standard:
-                return standard
-        return grouped[0].combined_context[:1500]
+                return f"{standard} Sorun devam ederse destek kaydı açabilirsiniz."
+        return "İlgili destek dokümanı bulundu ancak otomatik cevap üretimi tamamlanamadı. Bu işlem için destek ekibinin kontrolü gerekebilir."
 
     def _format_customer_context_item(self, item: str) -> str:
         match = re.match(r"Sipariş\s+(DMO-[^:]+):\s*(.+)\.?$", item.strip())
-        if not match:
-            return item
-        order_no, detail_text = match.groups()
+        if match:
+            order_no, detail_text = match.groups()
+            details = self._parse_context_details(detail_text)
+            pieces = [f"{order_no} numaralı sipariş"]
+            if details.get("ürünler"):
+                pieces.append(f"{details['ürünler']} ürünü için")
+            sentence = " ".join(pieces)
+            status_parts = []
+            if details.get("kargo"):
+                status_parts.append(f"kargo durumu {details['kargo']}")
+            if details.get("sipariş durumu"):
+                status_parts.append(f"sipariş durumu {details['sipariş durumu']}")
+            if details.get("ödeme"):
+                status_parts.append(f"ödeme durumu {details['ödeme']}")
+            if status_parts:
+                sentence += ". " + ", ".join(status_parts)
+            if details.get("takip no"):
+                sentence += f". Takip numarası: {details['takip no']}"
+            if details.get("not"):
+                sentence += f". Not: {details['not']}"
+            return sentence + "."
+        match = re.match(r"Ödeme kaydı\s+([^:]+):\s*(.+)\.?$", item.strip())
+        if match:
+            reference, detail_text = match.groups()
+            details = self._parse_context_details(detail_text)
+            linked = details.get("bağlantı", "")
+            if "bağlı değil" in linked:
+                sentence = f"{reference} referanslı ödeme siparişe bağlı görünmüyor"
+            else:
+                sentence = f"{reference} referanslı ödeme kaydı kontrol edildi"
+            if details.get("durum"):
+                sentence += f". Durumu: {details['durum']}"
+            if details.get("tutar"):
+                sentence += f". Tutar: {details['tutar']} TL"
+            if details.get("açıklama") and details["açıklama"] != "None":
+                sentence += f". Açıklama: {details['açıklama']}"
+            return sentence + "."
+        match = re.match(r"Aktif sepet:\s*(.+)\.?$", item.strip())
+        if match:
+            details = self._parse_context_details(match.group(1))
+            product_text = details.get("ürünler") or "ürün görünmüyor"
+            sentence = f"Aktif sepette {product_text} var"
+            if details.get("kupon") and details["kupon"] != "yok":
+                sentence += f". Girilen kupon: {details['kupon']}"
+            if details.get("kupon durumu"):
+                sentence += f". Kupon durumu: {details['kupon durumu']}"
+            if details.get("toplam"):
+                sentence += f". Sepet toplamı: {details['toplam']} TL"
+            return sentence + "."
+        return item
+
+    def _parse_context_details(self, detail_text: str) -> dict[str, str]:
         details: dict[str, str] = {}
         for part in detail_text.split(";"):
             if "=" not in part:
                 continue
             key, value = part.split("=", 1)
             details[key.strip()] = value.strip().rstrip(".")
-        pieces = [f"{order_no} numaralı sipariş"]
-        if details.get("ürünler"):
-            pieces.append(f"{details['ürünler']} ürünü için")
-        sentence = " ".join(pieces)
-        status_parts = []
-        if details.get("kargo"):
-            status_parts.append(f"kargo durumu {details['kargo']}")
-        if details.get("sipariş durumu"):
-            status_parts.append(f"sipariş durumu {details['sipariş durumu']}")
-        if details.get("ödeme"):
-            status_parts.append(f"ödeme durumu {details['ödeme']}")
-        if status_parts:
-            sentence += ". " + ", ".join(status_parts)
-        if details.get("takip no"):
-            sentence += f". Takip numarası: {details['takip no']}"
-        if details.get("not"):
-            sentence += f". Not: {details['not']}"
-        return sentence + "."
+        return details
+
+    def _format_product_context_item(self, item: str) -> str:
+        match = re.match(r"(.+?)\s+\(([^)]+)\);\s*(.+)$", item.strip())
+        if not match:
+            return item
+        name, _, detail_text = match.groups()
+        details = self._parse_context_details(detail_text)
+        parts = [f"{name} için katalogdaki bilgileri kontrol ettim"]
+        info: list[str] = []
+        if details.get("açıklama"):
+            info.append(details["açıklama"])
+        if details.get("detay"):
+            info.append(details["detay"])
+        if details.get("fiyat"):
+            info.append(f"fiyatı {details['fiyat'].replace('TRY', 'TL').strip()}")
+        if details.get("stok"):
+            info.append(f"stok durumu {details['stok']}")
+        if details.get("puan"):
+            info.append(f"ortalama puanı {details['puan']}")
+        if details.get("iade edilebilir"):
+            info.append(
+                "iade edilebilir" if details["iade edilebilir"] == "evet" else "iade edilemez"
+            )
+        if details.get("garanti"):
+            info.append(f"{details['garanti']} garanti süresi")
+        if details.get("özellikler"):
+            info.append(f"temel özellikleri {details['özellikler']}")
+        if details.get("yorum özeti"):
+            info.append(f"kullanıcı yorumlarında öne çıkanlar: {details['yorum özeti']}")
+        if info:
+            parts.append(", ".join(info))
+        parts.append("Daha ayrıntılı teknik bilgi istersen devam edebilirim.")
+        return ". ".join(parts)
 
     async def run(
         self,
@@ -319,10 +419,20 @@ class SupportPipeline:
         session.add(user_message)
         await session.flush()
 
-        in_scope = bool(rewrite.get("is_in_scope", True)) and (
+        support_in_scope = bool(rewrite.get("is_in_scope", True)) and (
             classification.expected_action != "REJECT"
         )
-        customer_context = (
+        product_context = await self.product_context.build(
+            session,
+            user,
+            category,
+            canonical,
+            conversation=conversation,
+            selected_order_no=followup_reference.get("order_no"),
+        )
+        route_mode = product_context.get("route_mode", "support_only")
+        product_in_scope = route_mode != "fallback_unclear"
+        support_context = (
             await self.customer_context.build(
                 session,
                 user,
@@ -330,11 +440,59 @@ class SupportPipeline:
                 canonical,
                 selected_order_no=followup_reference.get("order_no"),
             )
-            if in_scope
+            if support_in_scope and route_mode != "product_only"
             else {"category": category, "items": [], "text": ""}
         )
+        in_scope = support_in_scope or product_in_scope
+        debug_metadata = {
+            "route_mode": route_mode,
+            "classification": {
+                "category": classification.category,
+                "subcategory": classification.subcategory,
+                "expected_action": classification.expected_action,
+                "confidence": classification.confidence,
+            },
+            "canonical_query": canonical,
+            "followup_reference": followup_reference,
+            "customer_context": {
+                "category": support_context.get("category"),
+                "intent": support_context.get("intent"),
+                "context_type": support_context.get("context_type"),
+                "selected_counts": support_context.get("selected_counts", {}),
+                "item_count": len(support_context.get("items", [])),
+                "decision_hint_count": len(support_context.get("decision_hints", [])),
+            },
+            "product_context": {
+                "route_mode": route_mode,
+                "context_type": product_context.get("context_type"),
+                "product_match_reason": product_context.get("product_match_reason", ""),
+                "selected_counts": product_context.get("selected_counts", {}),
+                "item_count": len(product_context.get("items", [])),
+                "decision_hint_count": len(product_context.get("decision_hints", [])),
+                "selected_product_ids": product_context.get("selected_product_ids", []),
+                "selected_order_ids": product_context.get("selected_order_ids", []),
+                "selected_return_ids": product_context.get("selected_return_ids", []),
+            },
+            "gemini_enabled": self.gemini.enabled,
+            "gemini_model": self.gemini.model_name(use_dev_model=True),
+            "gemini_called": False,
+            "gemini_error": "",
+            "gemini_answer_length": 0,
+            "retrieved_doc_ids": [],
+            "raw_cited_doc_ids": [],
+            "normalized_cited_doc_ids": [],
+            "invalid_cited_doc_ids": [],
+            "citation_normalized": False,
+            "cited_doc_ids": [],
+            "guard_reason": "",
+            "fallback_reason": "",
+            "formatter_mode": "",
+            "support_rag_used": False,
+            "product_context_used": False,
+            "customer_context_used": False,
+        }
         grouped = []
-        if in_scope:
+        if support_in_scope and route_mode != "product_only":
             try:
                 grouped = await self.retrieval.grouped_search(
                     session,
@@ -345,7 +503,7 @@ class SupportPipeline:
                 )
             except HTTPException:
                 pipeline_errors.append("RETRIEVAL_UNAVAILABLE")
-        if in_scope and not grouped and customer_context.get("text"):
+        if support_in_scope and route_mode != "product_only" and not grouped and support_context.get("text"):
             try:
                 grouped = await self.retrieval.grouped_by_category(
                     session,
@@ -359,10 +517,16 @@ class SupportPipeline:
         if grouped and category == "GENEL_DESTEK":
             category = grouped[0].category
             user_message.category = category
+        debug_metadata["retrieved_doc_ids"] = [
+            {"doc_id": item.doc_id, "score": item.best_score} for item in grouped
+        ]
+        debug_metadata["support_rag_used"] = bool(grouped)
+        debug_metadata["product_context_used"] = bool(product_context.get("text"))
+        debug_metadata["customer_context_used"] = bool(support_context.get("text"))
 
         similar = (
             await self.similar.search(session, canonical, category, limit=3)
-            if in_scope
+            if support_in_scope
             else []
         )
         few_shots = [
@@ -375,38 +539,85 @@ class SupportPipeline:
             if views >= self.settings.similar_solution_min_views
         ]
         llm_context = self.context_builder.build(grouped)
+        available_sources = [
+            {"doc_id": item.doc_id, "title": item.title} for item in grouped
+        ]
         generated = {"answer": "", "cited_doc_ids": []}
         answer_usage: dict = {}
-        if in_scope and (grouped or customer_context.get("text")):
+        if in_scope and (grouped or support_context.get("text") or product_context.get("text")):
             try:
+                debug_metadata["gemini_called"] = self.gemini.enabled
                 generated = await self.gemini.answer(
                     canonical,
                     history,
-                    customer_context.get("text", ""),
+                    support_context.get("text", ""),
+                    product_context.get("text", ""),
                     llm_context,
                     few_shots,
+                    available_sources,
                     use_dev_model=True,
                 )
                 answer_usage = dict(self.gemini.last_usage)
             except GeminiServiceError:
                 pipeline_errors.append("GEMINI_ANSWER_UNAVAILABLE")
-        cited_ids = set(generated.get("cited_doc_ids", []))
+                debug_metadata["gemini_error"] = "GeminiServiceError"
+        elif not in_scope:
+            debug_metadata["fallback_reason"] = "out_of_scope"
+        else:
+            debug_metadata["fallback_reason"] = "no_context"
+        raw_citations = [
+            str(item).strip()
+            for item in generated.get("cited_doc_ids", [])
+            if str(item).strip()
+        ]
+        normalized_citations, invalid_citations, citation_normalized = (
+            self._normalize_citations(raw_citations, available_sources)
+        )
+        cited_ids = set(normalized_citations)
+        debug_metadata["raw_cited_doc_ids"] = raw_citations
+        debug_metadata["normalized_cited_doc_ids"] = normalized_citations
+        debug_metadata["invalid_cited_doc_ids"] = invalid_citations
+        debug_metadata["citation_normalized"] = citation_normalized
+        debug_metadata["cited_doc_ids"] = normalized_citations
+        debug_metadata["gemini_answer_length"] = len(generated.get("answer", ""))
         allowed_ids = {item.doc_id for item in grouped}
         answer = guard_llm_output(
             generated.get("answer", ""),
             allowed_ids,
         )
-        if cited_ids and not cited_ids.issubset(allowed_ids):
+        if generated.get("answer") and not answer:
+            debug_metadata["guard_reason"] = "guard_rejected"
+        elif not generated.get("answer") and in_scope:
+            debug_metadata["guard_reason"] = "empty_answer"
+        if invalid_citations or (cited_ids and not cited_ids.issubset(allowed_ids)):
             answer = ""
+            debug_metadata["guard_reason"] = "invalid_citation"
         if classification.expected_action == "ASK_CLARIFICATION":
             answer = (
                 "Sorununuzu doğru yönlendirebilmem için hangi sipariş, ödeme, "
                 "iade veya teslimat durumuyla ilgili olduğunu biraz daha açıklar mısınız?"
             )
+            debug_metadata["fallback_reason"] = "ask_clarification"
+            debug_metadata["formatter_mode"] = "clarification_natural"
         elif not in_scope:
             answer = "Bu asistan yalnızca e-ticaret müşteri destek konularını yanıtlar."
+            debug_metadata["formatter_mode"] = "out_of_scope_plain"
         elif not answer:
-            answer = await self._fallback_answer(session, grouped, customer_context)
+            if not debug_metadata["fallback_reason"]:
+                if debug_metadata["gemini_error"]:
+                    debug_metadata["fallback_reason"] = "gemini_error"
+                elif not self.gemini.enabled:
+                    debug_metadata["fallback_reason"] = "gemini_disabled"
+                elif debug_metadata["guard_reason"]:
+                    debug_metadata["fallback_reason"] = debug_metadata["guard_reason"]
+                else:
+                    debug_metadata["fallback_reason"] = "empty_answer"
+            answer = await self._fallback_answer(
+                session, grouped, support_context, product_context
+            )
+            debug_metadata["formatter_mode"] = "fallback_natural"
+        else:
+            debug_metadata["formatter_mode"] = "gemini_natural"
         answer, output_pii = mask_pii(answer)
 
         top_score = grouped[0].best_score if grouped else 0.0
@@ -436,6 +647,7 @@ class SupportPipeline:
             security_metadata={
                 "output_pii_masked": output_pii,
                 "pipeline_errors": pipeline_errors,
+                "debug": debug_metadata,
             },
         )
         session.add(assistant)
@@ -478,12 +690,43 @@ class SupportPipeline:
                     / 1_000_000
                 )
             )
+        await self.product_context.update_state(
+            session,
+            conversation,
+            last_topic=category,
+            last_product_id=product_context.get("primary_product", {}).get("id"),
+            last_product_name=product_context.get("primary_product", {}).get("name", ""),
+            last_order_id=product_context.get("primary_order", {}).get("id"),
+            last_order_no=product_context.get("primary_order", {}).get("order_no", ""),
+            last_return_id=product_context.get("primary_return", {}).get("id"),
+            last_intent=product_context.get("route_mode", ""),
+            last_action=(
+                "show_technical_details"
+                if product_context.get("primary_product")
+                else classification.expected_action
+            ),
+            last_mentioned_product_ids=product_context.get("selected_product_ids", []),
+            last_mentioned_order_ids=product_context.get("selected_order_ids", []),
+            state_metadata={
+                "route_mode": product_context.get("route_mode", ""),
+                "support_category": category,
+                "last_recommended_action": (
+                    "show_product_details"
+                    if product_context.get("primary_product")
+                    else ""
+                ),
+                "fallback_reason": debug_metadata["fallback_reason"],
+            },
+        )
         session.add(
             RagRun(
                 assistant_message_id=assistant.id,
                 rewritten_query=canonical,
                 retrieval_results=assistant.sources,
-                customer_context=customer_context,
+                customer_context={
+                    "support": support_context,
+                    "product": product_context,
+                },
                 few_shot_examples=few_shots,
                 model_name=(
                     self.settings.gemini_model_dev

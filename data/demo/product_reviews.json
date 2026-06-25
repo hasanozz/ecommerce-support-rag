@@ -1,0 +1,52 @@
+[
+  {
+    "sku": "MARKET-CAY-SIYAH-500",
+    "user_email": "demo-reviewer-1@example.com",
+    "display_name": "Demo Kullanıcı 1",
+    "rating": 5,
+    "title": "Demi güçlü",
+    "body": "Klasik siyah çay tadı arayanlar için başarılı. Dökme formda geliyor.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "HOME-CAY-BARDAGI-6",
+    "user_email": "demo-reviewer-2@example.com",
+    "display_name": "Demo Kullanıcı 2",
+    "rating": 4,
+    "title": "Günlük kullanım için iyi",
+    "body": "Makinede yıkadım, camlarda matlaşma olmadı. Paketleme daha iyi olabilirdi.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "BAGS-BACKPACK-001",
+    "user_email": "demo-reviewer-3@example.com",
+    "display_name": "Demo Kullanıcı 3",
+    "rating": 5,
+    "title": "Laptop için uygun",
+    "body": "15.6 inç laptop rahat sığıyor. Yağmurda kısa süre kullandım, içine su almadı.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "SHOES-SPORT-001",
+    "user_email": "demo-reviewer-4@example.com",
+    "display_name": "Demo Kullanıcı 4",
+    "rating": 3,
+    "title": "Rahat ama tam su geçirmez değil",
+    "body": "Günlük kullanımda rahat. Hafif yağmurda sorun olmadı ama yoğun yağmur için uygun değil.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "COFFEE-MACHINE-FILTER-001",
+    "user_email": "demo-reviewer-5@example.com",
+    "display_name": "Demo Kullanıcı 5",
+    "rating": 4,
+    "title": "Garantili ve pratik",
+    "body": "Zamanlayıcı kullanışlı. Garanti bilgisinin ürün detayında açık yazması iyi olmuş.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  }
+]

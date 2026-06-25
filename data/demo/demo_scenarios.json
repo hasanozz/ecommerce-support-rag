@@ -1,0 +1,165 @@
+{
+  "cart": {
+    "items": [
+      { "sku": "MARKET-CAY-SIYAH-500", "quantity": 1 },
+      { "sku": "HOME-CAY-BARDAGI-6", "quantity": 1 },
+      { "sku": "HOME-TERMOS-BARDAK-001", "quantity": 1 }
+    ],
+    "coupon_code": "MIN500"
+  },
+  "orders": [
+    {
+      "order_no_suffix": "001",
+      "items": [
+        { "product_sku": "BAGS-BACKPACK-001", "quantity": 1 }
+      ],
+      "order_status": "PROCESSING",
+      "payment_status": "SUCCESS",
+      "shipping_status": "PREPARING",
+      "admin_note": "İptal edilebilir sipariş senaryosu"
+    },
+    {
+      "order_no_suffix": "002",
+      "items": [
+        { "product_sku": "SHOES-SPORT-001", "quantity": 1 }
+      ],
+      "order_status": "SHIPPED",
+      "payment_status": "SUCCESS",
+      "shipping_status": "IN_TRANSIT",
+      "admin_note": "Kargoya verilmiş iptal edilemeyen sipariş"
+    },
+    {
+      "order_no_suffix": "003",
+      "items": [
+        { "product_sku": "HOME-CAY-BARDAGI-6", "quantity": 1 }
+      ],
+      "order_status": "DELIVERED",
+      "payment_status": "REFUND_PENDING",
+      "shipping_status": "DELIVERED",
+      "admin_note": "Teslim edilmiş ve iade bekleyen sipariş"
+    },
+    {
+      "order_no_suffix": "004",
+      "items": [
+        { "product_sku": "ELECTRONICS-HEADPHONE-001", "quantity": 1 }
+      ],
+      "order_status": "DELIVERED",
+      "payment_status": "SUCCESS",
+      "shipping_status": "DELIVERED",
+      "admin_note": "Teslim edildi görünüyor ama kullanıcıya ulaşmadı"
+    },
+    {
+      "order_no_suffix": "005",
+      "items": [
+        { "product_sku": "MARKET-CAY-YESIL-250", "quantity": 1 },
+        { "product_sku": "HOME-CAM-KUPA-001", "quantity": 2 }
+      ],
+      "order_status": "SHIPPED",
+      "payment_status": "SUCCESS",
+      "shipping_status": "PARTIALLY_DELIVERED",
+      "admin_note": "Parçalı teslimat ve çoklu ürün senaryosu"
+    }
+  ],
+  "returns": [
+    {
+      "order_no_suffix": "003",
+      "return_request": "CREATED",
+      "return_code": "RET-003-9421",
+      "return_status": "RETURN_CODE_CREATED",
+      "refund_status": "PENDING",
+      "return_reason": "Ürün teslim edildi ama iade sürecini başlatmak istiyor.",
+      "return_tracking_no": "RR-003-TRACK",
+      "refund": {
+        "refund_status": "PENDING",
+        "refund_amount": "249.90",
+        "refund_reference": "RF-003-001",
+        "refund_reason": "Müşteri iade talebi oluşturdu."
+      }
+    },
+    {
+      "order_no_suffix": "004",
+      "return_request": "CREATED",
+      "return_code": "RET-004-7710",
+      "return_status": "UNDER_REVIEW",
+      "refund_status": "PENDING",
+      "return_reason": "Teslim edildi görünüyor ama müşteri teslim almadığını belirtti.",
+      "return_tracking_no": "RR-004-TRACK",
+      "refund": {
+        "refund_status": "PENDING",
+        "refund_amount": "899.90",
+        "refund_reference": "RF-004-001",
+        "refund_reason": "İnceleme sonrası sonuç bekleniyor."
+      }
+    }
+  ],
+  "payments": [
+    {
+      "order_ref": null,
+      "status": "CAPTURED_NO_ORDER",
+      "amount": "899.90",
+      "provider_reference_prefix": "PAY-NOORDER",
+      "failure_reason": "Ödeme başarılı döndü ancak sipariş kaydı oluşmadı."
+    },
+    {
+      "order_no_suffix": "002",
+      "status": "FAILED",
+      "amount": "899.90",
+      "provider_reference_prefix": "PAY-FAILED",
+      "failure_reason": "Kart doğrulama hatası."
+    }
+  ],
+  "saved_cards": [
+    {
+      "card_token": "tok_demo_visa_1111",
+      "card_brand": "VISA",
+      "last4": "1111",
+      "holder_name": "Demo Kullanıcı",
+      "is_default": true,
+      "is_active": true,
+      "expiry_month": 12,
+      "expiry_year": 2030
+    },
+    {
+      "card_token": "tok_demo_master_2222",
+      "card_brand": "MASTERCARD",
+      "last4": "2222",
+      "holder_name": "Demo Kullanıcı",
+      "is_default": false,
+      "is_active": true,
+      "expiry_month": 11,
+      "expiry_year": 2029
+    }
+  ],
+  "wallet": {
+    "balance": "150.00",
+    "currency": "TRY",
+    "status": "ACTIVE"
+  },
+  "security": {
+    "security_status": "SUSPICIOUS",
+    "suspicious_login_count": 1,
+    "email_verified_required": true,
+    "phone_verified_required": false,
+    "password_change_recommended": true,
+    "risk_note": "Şüpheli giriş denemesi tespit edildi."
+  },
+  "favorites": [
+    { "sku": "MARKET-CAY-SIYAH-500" },
+    { "sku": "BAGS-BACKPACK-001" },
+    { "sku": "HOME-TERMOS-BARDAK-001" }
+  ],
+  "reviews": [
+    {
+      "sku": "MARKET-CAY-SIYAH-500",
+      "rating": 5,
+      "title": "Demo kullanıcı yorumu",
+      "body": "Dem çabuk geliyor, tadı güçlü ve dengeli."
+    },
+    {
+      "sku": "BAGS-BACKPACK-001",
+      "rating": 4,
+      "title": "Laptop için uygun",
+      "body": "Bölmeleri kullanışlı ama iç hacim biraz daha büyük olabilirdi."
+    }
+  ]
+}

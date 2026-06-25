@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+import re
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,25 +18,11 @@ from ..models import (
     DemoPaymentAttempt,
     DemoProduct,
     DemoShipment,
+    DemoReturnRequest,
     User,
 )
+from .demo_seed import DemoSeedService
 
-
-PRODUCT_SEED = [
-    ("Kablosuz Kulaklık", "ELEKTRONIK", Decimal("899.90"), 25),
-    ("Akıllı Saat", "ELEKTRONIK", Decimal("1499.90"), 15),
-    ("Spor Ayakkabı", "MODA", Decimal("1199.90"), 20),
-    ("Sırt Çantası", "MODA", Decimal("599.90"), 30),
-    ("Filtre Kahve Makinesi", "EV_YASAM", Decimal("2199.90"), 8),
-    ("Ofis Sandalyesi", "EV_YASAM", Decimal("3499.90"), 6),
-]
-
-COUPON_SEED = [
-    ("DEMO10", "VALID", "PERCENT", Decimal("10"), Decimal("0"), None, True),
-    ("MIN500", "MIN_CART_NOT_MET", "AMOUNT", Decimal("100"), Decimal("500"), None, True),
-    ("MODA20", "CATEGORY_MISMATCH", "PERCENT", Decimal("20"), Decimal("0"), "MODA", True),
-    ("ESKI50", "EXPIRED", "AMOUNT", Decimal("50"), Decimal("0"), None, True),
-]
 
 STATUS_LABELS = {
     "PREPARING": "Hazırlanıyor",
@@ -61,45 +47,7 @@ def money(value: Decimal | int | str) -> Decimal:
 
 class DemoCommerceService:
     async def ensure_seed_data(self, session: AsyncSession) -> None:
-        existing_products = await session.scalar(
-            select(func.count()).select_from(DemoProduct)
-        )
-        if not existing_products:
-            session.add_all(
-                [
-                    DemoProduct(
-                        name=name,
-                        category=category,
-                        price=price,
-                        stock=stock,
-                        is_active=True,
-                    )
-                    for name, category, price, stock in PRODUCT_SEED
-                ]
-            )
-        existing_coupons = await session.scalar(
-            select(func.count()).select_from(DemoCoupon)
-        )
-        if not existing_coupons:
-            now = datetime.now(UTC)
-            session.add_all(
-                [
-                    DemoCoupon(
-                        code=code,
-                        status=status,
-                        discount_type=discount_type,
-                        discount_value=value,
-                        min_cart_total=min_total,
-                        allowed_category=category or "",
-                        expires_at=now - timedelta(days=1)
-                        if status == "EXPIRED"
-                        else now + timedelta(days=30),
-                        is_active=is_active,
-                    )
-                    for code, status, discount_type, value, min_total, category, is_active in COUPON_SEED
-                ]
-            )
-        await session.flush()
+        await DemoSeedService().seed_catalog(session)
 
     async def active_cart(self, session: AsyncSession, user: User) -> DemoCart:
         await self.ensure_seed_data(session)
@@ -286,6 +234,10 @@ class DemoCommerceService:
             .options(
                 selectinload(DemoOrder.items),
                 selectinload(DemoOrder.shipment),
+                selectinload(DemoOrder.return_request)
+                .selectinload(DemoReturnRequest.refund),
+                selectinload(DemoOrder.return_request)
+                .selectinload(DemoReturnRequest.order),
             )
             .where(DemoOrder.id == order_id, DemoOrder.user_id == user.id)
         )
@@ -294,119 +246,98 @@ class DemoCommerceService:
         return order
 
     async def reset_user_demo(self, session: AsyncSession, user: User) -> dict:
-        await self.ensure_seed_data(session)
-        order_ids = (
-            await session.scalars(select(DemoOrder.id).where(DemoOrder.user_id == user.id))
-        ).all()
-        cart_ids = (
-            await session.scalars(select(DemoCart.id).where(DemoCart.user_id == user.id))
-        ).all()
-        if order_ids:
-            await session.execute(
-                delete(DemoPaymentAttempt).where(
-                    (DemoPaymentAttempt.user_id == user.id)
-                    | (DemoPaymentAttempt.order_id.in_(order_ids))
-                )
-            )
-            await session.execute(delete(DemoOrder).where(DemoOrder.id.in_(order_ids)))
-        else:
-            await session.execute(
-                delete(DemoPaymentAttempt).where(DemoPaymentAttempt.user_id == user.id)
-            )
-        if cart_ids:
-            await session.execute(delete(DemoCart).where(DemoCart.id.in_(cart_ids)))
-        products = (
-            await session.scalars(select(DemoProduct).where(DemoProduct.is_active.is_(True)))
-        ).all()
-        product_by_category = defaultdict(list)
-        for product in products:
-            product_by_category[product.category].append(product)
-        cart = DemoCart(user_id=user.id, status="ACTIVE")
-        session.add(cart)
-        await session.flush()
-        for product in products[:2]:
-            session.add(
-                DemoCartItem(
-                    cart_id=cart.id,
-                    product_id=product.id,
-                    quantity=1,
-                    unit_price=product.price,
-                    line_total=product.price,
-                )
-            )
-        await self.recalculate_cart(session, cart)
-
-        seeded_orders = []
-        scenarios = [
-            ("PROCESSING", "SUCCESS", "DELAYED", "Kargo operasyon yoğunluğu"),
-            ("SHIPPED", "SUCCESS", "IN_TRANSIT", ""),
-            ("DELIVERED", "REFUND_PENDING", "DELIVERED", "İade kontrolü bekleniyor"),
-        ]
-        for index, (order_status, payment_status, shipping_status, note) in enumerate(
-            scenarios, start=1
-        ):
-            product = products[(index + 1) % len(products)]
-            order = DemoOrder(
-                user_id=user.id,
-                order_no=f"DMO-{user.id}-{index:03d}",
-                order_status=order_status,
-                payment_status=payment_status,
-                shipping_status=shipping_status,
-                subtotal=product.price,
-                discount_total=Decimal("0"),
-                total=product.price,
-                admin_note=note,
-            )
-            session.add(order)
-            await session.flush()
-            session.add(
-                DemoOrderItem(
-                    order_id=order.id,
-                    product_id=product.id,
-                    product_name=product.name,
-                    category=product.category,
-                    quantity=1,
-                    unit_price=product.price,
-                    line_total=product.price,
-                )
-            )
-            session.add(
-                DemoShipment(
-                    order_id=order.id,
-                    carrier="Demo Kargo",
-                    tracking_number=f"TRK{user.id}{index:04d}",
-                    status=shipping_status,
-                    estimated_delivery_at=datetime.now(UTC) + timedelta(days=index),
-                    delay_reason=note if shipping_status == "DELAYED" else "",
-                    delivered_at=datetime.now(UTC) if shipping_status == "DELIVERED" else None,
-                    admin_note=note,
-                )
-            )
-            session.add(
-                DemoPaymentAttempt(
-                    user_id=user.id,
-                    order_id=order.id,
-                    status=payment_status,
-                    amount=order.total,
-                    provider_reference=f"PAY-{order.order_no}",
-                )
-            )
-            seeded_orders.append(order)
-        session.add(
-            DemoPaymentAttempt(
-                user_id=user.id,
-                order_id=None,
-                status="CAPTURED_NO_ORDER",
-                amount=Decimal("899.90"),
-                provider_reference=f"PAY-NOORDER-{user.id}",
-                failure_reason="Ödeme başarılı döndü ancak sipariş kaydı oluşmadı.",
-            )
-        )
-        await session.flush()
-        return {"products": len(products), "coupons": 4, "orders": len(seeded_orders)}
+        return await DemoSeedService().reset_user_scenario(session, user)
 
 
 class CustomerContextService:
+    CANCELABLE_ORDER_STATUSES = {"CREATED", "PROCESSING", "PREPARING"}
+    SHIPPED_STATUSES = {"SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"}
+
+    def _detect_intent(self, category: str, canonical_query: str) -> str:
+        normalized = re.sub(r"\s+", " ", canonical_query.casefold()).strip()
+        if category == "SIPARIS" and "iptal" in normalized:
+            if any(term in normalized for term in ("kargo", "kargoya", "gönderildi", "yola çıktı")):
+                return "shipped_order_cancel"
+            return "order_cancel"
+        if category == "KARGO_TESLIMAT":
+            if (
+                "teslim edildi" in normalized
+                and any(term in normalized for term in ("ulaşmadı", "gelmedi", "almadım", "bana ulaşmadı"))
+            ):
+                return "delivered_not_received"
+            if "iptal" in normalized:
+                return "shipped_order_cancel"
+            return "shipping_status"
+        if category == "IADE":
+            if "kod" in normalized:
+                return "return_code"
+            return "return_request"
+        if category == "KAMPANYA_PUAN":
+            if any(term in normalized for term in ("kupon", "indirim", "çalışmıyor", "calismiyor")):
+                return "coupon_issue"
+        if category == "ODEME":
+            if any(term in normalized for term in ("para çekildi", "para cekildi", "kartımdan", "siparişim oluşmadı", "siparisim olusmadi")):
+                return "payment_without_order"
+        return ""
+
+    def _order_line(self, order: DemoOrder, decision: str = "") -> str:
+        shipment = order.shipment
+        item_names = ", ".join(item.product_name for item in order.items[:3])
+        parts = [
+            f"ürünler={item_names}",
+            f"sipariş durumu={STATUS_LABELS.get(order.order_status, order.order_status)}",
+            f"ödeme={STATUS_LABELS.get(order.payment_status, order.payment_status)}",
+            f"kargo={STATUS_LABELS.get(order.shipping_status, order.shipping_status)}",
+        ]
+        if shipment and shipment.tracking_number:
+            parts.append(f"takip no={shipment.tracking_number}")
+        note = (order.admin_note or (shipment.admin_note if shipment else "")).strip()
+        if note:
+            parts.append(f"not={note.rstrip('.')}")
+        if decision:
+            parts.append(f"karar={decision}")
+        return f"Sipariş {order.order_no}: " + "; ".join(parts) + "."
+
+    def _cancel_decision(self, order: DemoOrder) -> str:
+        if (
+            order.order_status in self.CANCELABLE_ORDER_STATUSES
+            and order.shipping_status not in self.SHIPPED_STATUSES
+        ):
+            return "Bu sipariş iptale uygun olabilir; iptal talebi oluşturulabilir."
+        return "Bu sipariş kargoya verildiği veya tamamlandığı için iptal edilemez; teslim sonrası iade süreci önerilir."
+
+    def _selected_orders_for_intent(
+        self, orders: list[DemoOrder], category: str, intent: str
+    ) -> list[DemoOrder]:
+        if intent == "delivered_not_received":
+            delivered = [order for order in orders if order.shipping_status == "DELIVERED"]
+            return delivered or orders
+        if intent == "shipped_order_cancel":
+            shipped = [order for order in orders if order.shipping_status in self.SHIPPED_STATUSES]
+            return shipped or orders
+        if intent == "order_cancel":
+            cancel_related = [
+                order
+                for order in orders
+                if order.order_status in self.CANCELABLE_ORDER_STATUSES
+                or order.shipping_status in self.SHIPPED_STATUSES
+            ]
+            return cancel_related or orders
+        if intent in {"return_code", "return_request"}:
+            return_ready = [
+                order
+                for order in orders
+                if order.shipping_status == "DELIVERED"
+                or order.payment_status == "REFUND_PENDING"
+            ]
+            return return_ready or orders
+        if category == "KARGO_TESLIMAT":
+            active_shipping_orders = [
+                order for order in orders if order.shipping_status not in {"DELIVERED", "LOST"}
+            ]
+            return active_shipping_orders or orders
+        return orders
+
     async def build(
         self,
         session: AsyncSession,
@@ -415,10 +346,18 @@ class CustomerContextService:
         canonical_query: str,
         selected_order_no: str | None = None,
     ) -> dict:
-        del canonical_query
         commerce = DemoCommerceService()
         await commerce.ensure_seed_data(session)
-        context: dict = {"category": category, "items": [], "text": ""}
+        intent = self._detect_intent(category, canonical_query)
+        context: dict = {
+            "category": category,
+            "intent": intent,
+            "context_type": "intent" if intent else "clarification_needed",
+            "items": [],
+            "text": "",
+            "decision_hints": [],
+            "selected_counts": {"orders": 0, "payments": 0, "cart": 0},
+        }
         if category == "HESAP_GUVENLIK":
             return context
         order_query = (
@@ -438,57 +377,84 @@ class CustomerContextService:
             .where(DemoCart.user_id == user.id, DemoCart.status == "ACTIVE")
             .order_by(DemoCart.id.desc())
         )
-        payments = (
-            await session.scalars(
+        payment_query = (
+            select(DemoPaymentAttempt)
+            .where(DemoPaymentAttempt.user_id == user.id)
+            .order_by(DemoPaymentAttempt.created_at.desc())
+            .limit(3)
+        )
+        if intent == "payment_without_order":
+            payment_query = (
                 select(DemoPaymentAttempt)
-                .where(DemoPaymentAttempt.user_id == user.id)
+                .where(
+                    DemoPaymentAttempt.user_id == user.id,
+                    DemoPaymentAttempt.order_id.is_(None),
+                    DemoPaymentAttempt.status.in_({"SUCCESS", "CAPTURED_NO_ORDER"}),
+                )
                 .order_by(DemoPaymentAttempt.created_at.desc())
                 .limit(3)
             )
-        ).all()
+        payments = (await session.scalars(payment_query)).all()
 
         lines = []
+        decision_hints = []
         if category in {"SIPARIS", "KARGO_TESLIMAT", "IADE", "ODEME"}:
-            relevant_orders = orders
-            if category == "KARGO_TESLIMAT":
-                active_shipping_orders = [
-                    order
-                    for order in orders
-                    if order.shipping_status not in {"DELIVERED", "LOST"}
-                ]
-                relevant_orders = active_shipping_orders or orders
+            relevant_orders = (
+                []
+                if intent == "payment_without_order"
+                else self._selected_orders_for_intent(orders, category, intent)
+            )
             for order in relevant_orders:
-                shipment = order.shipment
-                item_names = ", ".join(item.product_name for item in order.items[:3])
-                parts = [
-                    f"ürünler={item_names}",
-                    f"sipariş durumu={STATUS_LABELS.get(order.order_status, order.order_status)}",
-                    f"ödeme={STATUS_LABELS.get(order.payment_status, order.payment_status)}",
-                    f"kargo={STATUS_LABELS.get(order.shipping_status, order.shipping_status)}",
-                ]
-                if shipment and shipment.tracking_number:
-                    parts.append(f"takip no={shipment.tracking_number}")
-                note = (order.admin_note or (shipment.admin_note if shipment else "")).strip()
-                if note:
-                    parts.append(f"not={note.rstrip('.')}")
-                lines.append(f"Sipariş {order.order_no}: " + "; ".join(parts) + ".")
+                decision = ""
+                if intent in {"order_cancel", "shipped_order_cancel"}:
+                    decision = self._cancel_decision(order)
+                    decision_hints.append(f"{order.order_no}: {decision}")
+                elif intent == "delivered_not_received":
+                    decision = "Teslim edildi göründüğü halde ulaşmadıysa destek kaydı açılması önerilir."
+                    decision_hints.append(f"{order.order_no}: {decision}")
+                elif intent == "return_code":
+                    decision = "İade kodu için teslim edilmiş veya iade sürecine uygun sipariş üzerinden iade talebi oluşturulmalıdır."
+                    decision_hints.append(f"{order.order_no}: {decision}")
+                lines.append(self._order_line(order, decision))
+            context["selected_counts"]["orders"] = len(relevant_orders)
         if category == "ODEME":
-            for payment in payments:
+            relevant_payments = payments
+            for payment in relevant_payments:
+                linked = "siparişe bağlı" if payment.order_id else "siparişe bağlı değil"
+                if intent == "payment_without_order" and not payment.order_id and payment.status in {"SUCCESS", "CAPTURED_NO_ORDER"}:
+                    decision_hints.append(
+                        "Siparişe bağlı olmayan başarılı/çekilmiş ödeme var; HIGH öncelikli destek kaydı önerilir."
+                    )
                 lines.append(
                     f"Ödeme kaydı {payment.provider_reference}: "
                     f"durum={STATUS_LABELS.get(payment.status, payment.status)}; "
-                    f"tutar={payment.amount}; açıklama={payment.failure_reason}."
+                    f"tutar={payment.amount}; bağlantı={linked}; açıklama={payment.failure_reason}."
                 )
+            if intent == "payment_without_order" and not decision_hints:
+                decision_hints.append("Mevcut ödeme kayıtları siparişlerle eşleşiyor görünüyor.")
+            context["selected_counts"]["payments"] = len(relevant_payments)
         if category == "KAMPANYA_PUAN" and cart:
             coupon_message = await commerce.recalculate_cart(session, cart)
             product_names = ", ".join(
                 item.product.name for item in cart.items[:3] if item.product
             )
+            if not cart.items:
+                decision_hints.append("Aktif sepet boş olduğu için kupon uygulanamaz.")
+            elif not cart.coupon_code:
+                decision_hints.append("Aktif sepette girilmiş kupon kodu görünmüyor.")
+            else:
+                decision_hints.append(coupon_message or "Kupon durumu doğrulanamadı.")
             lines.append(
                 f"Aktif sepet: ürünler={product_names}; ara toplam={cart.subtotal}; "
                 f"kupon={cart.coupon_code or 'yok'}; indirim={cart.discount_total}; "
                 f"toplam={cart.total}; kupon durumu={coupon_message or 'kupon yok'}."
             )
+            context["selected_counts"]["cart"] = 1
+        context["decision_hints"] = decision_hints
         context["items"] = lines
-        context["text"] = "\n".join(lines[:5])
+        if intent:
+            hint_text = "\n".join(f"Karar notu: {hint}" for hint in decision_hints[:5])
+            context["text"] = "\n".join(part for part in ["\n".join(lines[:5]), hint_text] if part)
+        else:
+            context["text"] = ""
         return context

@@ -1,0 +1,575 @@
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..models import (
+    DemoCart,
+    DemoCartItem,
+    DemoCoupon,
+    DemoOrder,
+    DemoOrderItem,
+    DemoPaymentAttempt,
+    DemoProduct,
+    DemoProductFavorite,
+    DemoProductReview,
+    DemoRefund,
+    DemoReturnRequest,
+    DemoSavedCard,
+    DemoShipment,
+    DemoUserSecurityProfile,
+    DemoWallet,
+    User,
+)
+
+
+DEMO_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "demo"
+
+
+def money(value: Decimal | int | str) -> Decimal:
+    return Decimal(str(value)).quantize(Decimal("0.01"))
+
+
+def _text_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        return ", ".join(_text_value(item) for item in value if _text_value(item))
+    if isinstance(value, dict):
+        return "; ".join(
+            f"{key}: {_text_value(item)}" for key, item in value.items() if _text_value(item)
+        )
+    return str(value)
+
+
+def build_product_search_text(payload: dict) -> str:
+    parts = [
+        payload.get("sku"),
+        payload.get("name"),
+        payload.get("brand"),
+        payload.get("category"),
+        payload.get("subcategory"),
+        payload.get("description"),
+        _text_value(payload.get("tags", [])),
+        _text_value(payload.get("attributes", {})),
+    ]
+    return "\n".join(str(part).strip() for part in parts if str(part or "").strip())
+
+
+def build_product_ai_context(payload: dict) -> str:
+    lines = [
+        f"Ürün: {payload.get('name', '')}",
+        f"SKU: {payload.get('sku', '')}",
+        f"Marka: {payload.get('brand', '')}",
+        f"Kategori: {payload.get('category', '')}/{payload.get('subcategory', '')}",
+        f"Fiyat: {payload.get('price', '')} {payload.get('currency', 'TRY')}",
+        f"Stok: {payload.get('stock', 0)}",
+        f"İade edilebilir: {'evet' if payload.get('returnable', True) else 'hayır'}",
+    ]
+    if payload.get("return_policy_note"):
+        lines.append(f"İade notu: {payload['return_policy_note']}")
+    if payload.get("warranty_months") is not None:
+        lines.append(f"Garanti: {payload['warranty_months']} ay")
+    if payload.get("warranty_note"):
+        lines.append(f"Garanti notu: {payload['warranty_note']}")
+    if payload.get("description"):
+        lines.append(f"Açıklama: {payload['description']}")
+    if payload.get("attributes"):
+        lines.append(f"Teknik özellikler: {_text_value(payload['attributes'])}")
+    if payload.get("tags"):
+        lines.append(f"Etiketler: {_text_value(payload['tags'])}")
+    return "\n".join(line for line in lines if line.strip())
+
+
+class DemoSeedService:
+    def __init__(self, data_dir: Path | None = None) -> None:
+        self.data_dir = data_dir or DEMO_DATA_DIR
+
+    def load_demo_json(self, filename: str) -> Any:
+        path = self.data_dir / filename
+        if not path.exists():
+            return [] if filename.endswith("s.json") else {}
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    async def seed_products(self, session: AsyncSession) -> int:
+        rows = self.load_demo_json("products.json")
+        count = 0
+        for payload in rows:
+            sku = str(payload["sku"]).strip()
+            product = await session.scalar(select(DemoProduct).where(DemoProduct.sku == sku))
+            values = {
+                "sku": sku,
+                "name": str(payload["name"]).strip(),
+                "brand": str(payload.get("brand", "")).strip(),
+                "category": str(payload["category"]).strip(),
+                "subcategory": str(payload.get("subcategory", "")).strip(),
+                "price": money(payload["price"]),
+                "currency": str(payload.get("currency", "TRY")).strip() or "TRY",
+                "stock": int(payload.get("stock", 0)),
+                "is_active": bool(payload.get("is_active", True)),
+                "image_url": str(payload.get("image_url", "")).strip(),
+                "image_urls": payload.get("image_urls", []) or [],
+                "description": str(payload.get("description", "")).strip(),
+                "returnable": bool(payload.get("returnable", True)),
+                "return_policy_note": str(payload.get("return_policy_note", "")).strip(),
+                "warranty_months": payload.get("warranty_months"),
+                "warranty_note": str(payload.get("warranty_note", "")).strip(),
+                "tags": payload.get("tags", []) or [],
+                "attributes": payload.get("attributes", {}) or {},
+                "search_text": build_product_search_text(payload),
+                "ai_context": build_product_ai_context(payload),
+            }
+            if product is None:
+                session.add(DemoProduct(**values))
+            else:
+                for key, value in values.items():
+                    setattr(product, key, value)
+            count += 1
+        await session.flush()
+        return count
+
+    async def seed_coupons(self, session: AsyncSession) -> int:
+        rows = self.load_demo_json("coupons.json")
+        now = datetime.now(UTC)
+        count = 0
+        for payload in rows:
+            code = str(payload["code"]).strip().upper()
+            coupon = await session.scalar(select(DemoCoupon).where(DemoCoupon.code == code))
+            expires_at = payload.get("expires_at")
+            if expires_at:
+                parsed_expires_at = datetime.fromisoformat(str(expires_at))
+            else:
+                parsed_expires_at = now + timedelta(days=int(payload.get("expires_in_days", 30)))
+            values = {
+                "code": code,
+                "status": str(payload.get("status", "VALID")).strip(),
+                "discount_type": str(payload.get("discount_type", "PERCENT")).strip(),
+                "discount_value": money(payload.get("discount_value", "0")),
+                "min_cart_total": money(payload.get("min_cart_total", "0")),
+                "allowed_category": str(payload.get("allowed_category", "")).strip(),
+                "expires_at": parsed_expires_at,
+                "is_active": bool(payload.get("is_active", True)),
+            }
+            if coupon is None:
+                session.add(DemoCoupon(**values))
+            else:
+                for key, value in values.items():
+                    setattr(coupon, key, value)
+            count += 1
+        await session.flush()
+        return count
+
+    async def _demo_reviewer_user(self, session: AsyncSession, payload: dict) -> User:
+        email = str(payload["user_email"]).strip().casefold()
+        user = await session.scalar(select(User).where(User.email == email))
+        if user is not None:
+            return user
+        user = User(
+            google_sub=f"demo-reviewer:{email}",
+            email=email,
+            display_name=str(payload.get("display_name", "Demo Kullanıcı")).strip(),
+            is_admin=False,
+        )
+        session.add(user)
+        await session.flush()
+        return user
+
+    async def seed_product_reviews(self, session: AsyncSession) -> int:
+        rows = self.load_demo_json("product_reviews.json")
+        count = 0
+        for payload in rows:
+            product = await session.scalar(
+                select(DemoProduct).where(DemoProduct.sku == str(payload["sku"]).strip())
+            )
+            if product is None:
+                continue
+            user = await self._demo_reviewer_user(session, payload)
+            review = await session.scalar(
+                select(DemoProductReview).where(
+                    DemoProductReview.product_id == product.id,
+                    DemoProductReview.user_id == user.id,
+                )
+            )
+            values = {
+                "product_id": product.id,
+                "user_id": user.id,
+                "rating": payload.get("rating"),
+                "title": str(payload.get("title", "")).strip(),
+                "body": str(payload.get("body", "")).strip(),
+                "is_verified_purchase": bool(payload.get("is_verified_purchase", False)),
+                "is_visible": bool(payload.get("is_visible", True)),
+            }
+            if review is None:
+                session.add(DemoProductReview(**values))
+            else:
+                for key, value in values.items():
+                    setattr(review, key, value)
+            count += 1
+        await session.flush()
+        return count
+
+    async def seed_catalog(self, session: AsyncSession) -> dict:
+        products = await self.seed_products(session)
+        coupons = await self.seed_coupons(session)
+        reviews = await self.seed_product_reviews(session)
+        return {"products": products, "coupons": coupons, "reviews": reviews}
+
+    async def seed_demo_wallet(self, session: AsyncSession, user: User, payload: dict) -> None:
+        wallet = await session.scalar(select(DemoWallet).where(DemoWallet.user_id == user.id))
+        values = {
+            "user_id": user.id,
+            "balance": money(payload.get("balance", "0")),
+            "currency": str(payload.get("currency", "TRY")).strip() or "TRY",
+            "status": str(payload.get("status", "ACTIVE")).strip(),
+        }
+        if wallet is None:
+            session.add(DemoWallet(**values))
+        else:
+            for key, value in values.items():
+                setattr(wallet, key, value)
+
+    async def seed_demo_security(
+        self, session: AsyncSession, user: User, payload: dict
+    ) -> None:
+        profile = await session.scalar(
+            select(DemoUserSecurityProfile).where(DemoUserSecurityProfile.user_id == user.id)
+        )
+        values = {
+            "user_id": user.id,
+            "security_status": str(payload.get("security_status", "NORMAL")).strip(),
+            "suspicious_login_count": int(payload.get("suspicious_login_count", 0)),
+            "email_verified_required": bool(payload.get("email_verified_required", False)),
+            "phone_verified_required": bool(payload.get("phone_verified_required", False)),
+            "password_change_recommended": bool(
+                payload.get("password_change_recommended", False)
+            ),
+            "risk_note": str(payload.get("risk_note", "")).strip(),
+        }
+        if profile is None:
+            session.add(DemoUserSecurityProfile(**values))
+        else:
+            for key, value in values.items():
+                setattr(profile, key, value)
+
+    async def seed_demo_saved_cards(
+        self, session: AsyncSession, user: User, rows: list[dict]
+    ) -> int:
+        count = 0
+        for payload in rows:
+            token = str(payload.get("card_token", "")).strip()
+            if not token:
+                continue
+            card = await session.scalar(
+                select(DemoSavedCard).where(DemoSavedCard.card_token == token)
+            )
+            values = {
+                "user_id": user.id,
+                "card_token": token,
+                "card_brand": str(payload.get("card_brand", "")).strip(),
+                "last4": str(payload.get("last4", "")).strip()[-4:],
+                "holder_name": str(payload.get("holder_name", "")).strip(),
+                "is_default": bool(payload.get("is_default", False)),
+                "is_active": bool(payload.get("is_active", True)),
+                "expiry_month": int(payload.get("expiry_month", 12)),
+                "expiry_year": int(payload.get("expiry_year", 2030)),
+            }
+            if card is None:
+                session.add(DemoSavedCard(**values))
+            else:
+                for key, value in values.items():
+                    setattr(card, key, value)
+            count += 1
+        return count
+
+    async def seed_demo_return_requests(
+        self, session: AsyncSession, user: User, orders: dict[str, DemoOrder], rows: list[dict]
+    ) -> int:
+        count = 0
+        for payload in rows:
+            order_ref = str(payload.get("order_ref", "")).strip()
+            order_suffix = str(payload.get("order_no_suffix", "")).strip().zfill(3)
+            order = orders.get(order_ref)
+            if order is None and order_suffix:
+                order = next(
+                    (item for key, item in orders.items() if key.endswith(f"-{order_suffix}")),
+                    None,
+                )
+            if order is None:
+                continue
+            return_request = await session.scalar(
+                select(DemoReturnRequest).where(DemoReturnRequest.order_id == order.id)
+            )
+            values = {
+                "order_id": order.id,
+                "user_id": user.id,
+                "return_request": str(payload.get("return_request", "CREATED")).strip(),
+                "return_code": str(payload.get("return_code", "")).strip(),
+                "return_status": str(payload.get("return_status", "CREATED")).strip(),
+                "refund_status": str(payload.get("refund_status", "PENDING")).strip(),
+                "return_reason": str(payload.get("return_reason", "")).strip(),
+                "return_tracking_no": str(payload.get("return_tracking_no", "")).strip(),
+            }
+            if return_request is None:
+                return_request = DemoReturnRequest(**values)
+                session.add(return_request)
+                await session.flush()
+            else:
+                for key, value in values.items():
+                    setattr(return_request, key, value)
+            refund_payload = payload.get("refund") or {}
+            refund = await session.scalar(
+                select(DemoRefund).where(DemoRefund.return_request_id == return_request.id)
+            )
+            refund_values = {
+                "return_request_id": return_request.id,
+                "refund_status": str(refund_payload.get("refund_status", values["refund_status"])).strip(),
+                "refund_amount": money(refund_payload.get("refund_amount", order.total)),
+                "refund_reference": str(refund_payload.get("refund_reference", "")).strip(),
+                "refund_reason": str(refund_payload.get("refund_reason", "")).strip(),
+                "completed_at": (
+                    datetime.fromisoformat(str(refund_payload["completed_at"]))
+                    if refund_payload.get("completed_at")
+                    else None
+                ),
+            }
+            if refund is None:
+                session.add(DemoRefund(**refund_values))
+            else:
+                for key, value in refund_values.items():
+                    setattr(refund, key, value)
+            count += 1
+        return count
+
+    async def reset_user_scenario(self, session: AsyncSession, user: User) -> dict:
+        await self.seed_catalog(session)
+        scenario = self.load_demo_json("demo_scenarios.json") or {}
+        order_ids = (
+            await session.scalars(select(DemoOrder.id).where(DemoOrder.user_id == user.id))
+        ).all()
+        cart_ids = (
+            await session.scalars(select(DemoCart.id).where(DemoCart.user_id == user.id))
+        ).all()
+        if order_ids:
+            await session.execute(
+                delete(DemoRefund).where(
+                    DemoRefund.return_request_id.in_(
+                        select(DemoReturnRequest.id).where(
+                            DemoReturnRequest.order_id.in_(order_ids)
+                        )
+                    )
+                )
+            )
+            await session.execute(
+                delete(DemoReturnRequest).where(DemoReturnRequest.order_id.in_(order_ids))
+            )
+            await session.execute(
+                delete(DemoPaymentAttempt).where(
+                    (DemoPaymentAttempt.user_id == user.id)
+                    | (DemoPaymentAttempt.order_id.in_(order_ids))
+                )
+            )
+            await session.execute(delete(DemoOrder).where(DemoOrder.id.in_(order_ids)))
+        else:
+            await session.execute(
+                delete(DemoPaymentAttempt).where(DemoPaymentAttempt.user_id == user.id)
+            )
+        if cart_ids:
+            await session.execute(delete(DemoCart).where(DemoCart.id.in_(cart_ids)))
+        await session.execute(
+            delete(DemoProductFavorite).where(DemoProductFavorite.user_id == user.id)
+        )
+        await session.execute(
+            delete(DemoProductReview).where(DemoProductReview.user_id == user.id)
+        )
+        await session.execute(delete(DemoWallet).where(DemoWallet.user_id == user.id))
+        await session.execute(delete(DemoSavedCard).where(DemoSavedCard.user_id == user.id))
+        await session.execute(
+            delete(DemoUserSecurityProfile).where(DemoUserSecurityProfile.user_id == user.id)
+        )
+        await session.flush()
+
+        product_rows = (
+            await session.scalars(select(DemoProduct).where(DemoProduct.is_active.is_(True)))
+        ).all()
+        product_by_sku = {product.sku: product for product in product_rows}
+
+        cart = DemoCart(user_id=user.id, status="ACTIVE")
+        session.add(cart)
+        await session.flush()
+        cart_subtotal = Decimal("0")
+        cart_categories: set[str] = set()
+        for item in (scenario.get("cart") or {}).get("items", []):
+            product = product_by_sku.get(str(item.get("sku", "")).strip())
+            if product is None:
+                continue
+            quantity = int(item.get("quantity", 1))
+            line_total = money(product.price * quantity)
+            session.add(
+                DemoCartItem(
+                    cart_id=cart.id,
+                    product_id=product.id,
+                    quantity=quantity,
+                    unit_price=product.price,
+                    line_total=line_total,
+                )
+            )
+            cart_subtotal += line_total
+            cart_categories.add(product.category)
+        cart.coupon_code = str((scenario.get("cart") or {}).get("coupon_code", "")).strip()
+        cart.subtotal = money(cart_subtotal)
+        cart.discount_total = Decimal("0")
+        cart.total = cart.subtotal
+        if cart.coupon_code:
+            coupon = await session.scalar(
+                select(DemoCoupon).where(DemoCoupon.code == cart.coupon_code)
+            )
+            if coupon and coupon.is_active and coupon.expires_at and coupon.expires_at >= datetime.now(UTC):
+                category_ok = not coupon.allowed_category or coupon.allowed_category in cart_categories
+                min_ok = cart.subtotal >= coupon.min_cart_total
+                if category_ok and min_ok and coupon.status in {"VALID", "MIN_CART_NOT_MET", "CATEGORY_MISMATCH"}:
+                    if coupon.discount_type == "PERCENT":
+                        cart.discount_total = money(
+                            cart.subtotal * coupon.discount_value / Decimal("100")
+                        )
+                    else:
+                        cart.discount_total = min(coupon.discount_value, cart.subtotal)
+                    cart.total = money(max(Decimal("0"), cart.subtotal - cart.discount_total))
+
+        seeded_orders: dict[str, DemoOrder] = {}
+        for index, item in enumerate(scenario.get("orders", []), start=1):
+            order_items = item.get("items") or []
+            if not order_items and item.get("product_sku"):
+                order_items = [
+                    {
+                        "product_sku": item.get("product_sku"),
+                        "quantity": item.get("quantity", 1),
+                    }
+                ]
+            resolved_items: list[tuple[object, int]] = []
+            for order_item in order_items:
+                product = product_by_sku.get(str(order_item.get("product_sku", "")).strip())
+                if product is None:
+                    continue
+                quantity = int(order_item.get("quantity", 1))
+                resolved_items.append((product, quantity))
+            if not resolved_items:
+                continue
+            order_no = f"DMO-{user.id}-{str(item.get('order_no_suffix', index)).zfill(3)}"
+            subtotal = sum((product.price * quantity for product, quantity in resolved_items), Decimal("0"))
+            order = DemoOrder(
+                user_id=user.id,
+                order_no=order_no,
+                order_status=str(item.get("order_status", "PROCESSING")),
+                payment_status=str(item.get("payment_status", "SUCCESS")),
+                shipping_status=str(item.get("shipping_status", "PREPARING")),
+                subtotal=subtotal,
+                discount_total=Decimal("0"),
+                total=subtotal,
+                admin_note=str(item.get("admin_note", "")),
+            )
+            session.add(order)
+            await session.flush()
+            for product, quantity in resolved_items:
+                line_total = money(product.price * quantity)
+                session.add(
+                    DemoOrderItem(
+                        order_id=order.id,
+                        product_id=product.id,
+                        product_name=product.name,
+                        category=product.category,
+                        quantity=quantity,
+                        unit_price=product.price,
+                        line_total=line_total,
+                    )
+                )
+            session.add(
+                DemoShipment(
+                    order_id=order.id,
+                    carrier=str(item.get("carrier", "Demo Kargo")),
+                    tracking_number=str(item.get("tracking_number", f"TRK{user.id}{index:04d}")),
+                    status=order.shipping_status,
+                    estimated_delivery_at=datetime.now(UTC) + timedelta(days=index),
+                    delivered_at=(
+                        datetime.now(UTC) if order.shipping_status == "DELIVERED" else None
+                    ),
+                    delay_reason=str(item.get("delay_reason", "")),
+                    admin_note=str(item.get("admin_note", "")),
+                )
+            )
+            session.add(
+                DemoPaymentAttempt(
+                    user_id=user.id,
+                    order_id=order.id,
+                    status=order.payment_status,
+                    amount=order.total,
+                    provider_reference=f"PAY-{order.order_no}",
+                )
+            )
+            seeded_orders[order_no] = order
+
+        await self.seed_demo_return_requests(
+            session,
+            user,
+            seeded_orders,
+            scenario.get("returns", []),
+        )
+
+        for item in scenario.get("payments", []):
+            order = None
+            order_ref = item.get("order_ref")
+            if order_ref:
+                order = seeded_orders.get(str(order_ref))
+            if order is None and item.get("order_no_suffix"):
+                suffix = str(item.get("order_no_suffix", "")).strip().zfill(3)
+                order = next(
+                    (entry for key, entry in seeded_orders.items() if key.endswith(f"-{suffix}")),
+                    None,
+                )
+            session.add(
+                DemoPaymentAttempt(
+                    user_id=user.id,
+                    order_id=order.id if order else None,
+                    status=str(item.get("status", "CAPTURED_NO_ORDER")),
+                    amount=money(item.get("amount", "0")),
+                    provider_reference=f"{item.get('provider_reference_prefix', 'PAY')}-{user.id}",
+                    failure_reason=str(item.get("failure_reason", "")),
+                )
+            )
+
+        for item in scenario.get("favorites", []):
+            product = product_by_sku.get(str(item.get("sku", "")).strip())
+            if product:
+                session.add(DemoProductFavorite(user_id=user.id, product_id=product.id))
+
+        for item in scenario.get("reviews", []):
+            product = product_by_sku.get(str(item.get("sku", "")).strip())
+            if product:
+                session.add(
+                    DemoProductReview(
+                        user_id=user.id,
+                        product_id=product.id,
+                        rating=item.get("rating"),
+                        title=str(item.get("title", "")),
+                        body=str(item.get("body", "")),
+                        is_verified_purchase=True,
+                        is_visible=True,
+                    )
+                )
+
+        if wallet_payload := scenario.get("wallet"):
+            await self.seed_demo_wallet(session, user, wallet_payload)
+        if security_payload := scenario.get("security"):
+            await self.seed_demo_security(session, user, security_payload)
+        await self.seed_demo_saved_cards(session, user, scenario.get("saved_cards", []))
+        await session.flush()
+        return {
+            "products": len(product_rows),
+            "coupons": await session.scalar(select(func.count()).select_from(DemoCoupon)) or 0,
+            "orders": len(seeded_orders),
+        }

@@ -250,8 +250,10 @@ class GeminiService:
         canonical_query: str,
         conversation_history: list[str],
         customer_context: str,
+        product_context: str,
         llm_context: str,
         few_shots: list[dict],
+        available_sources: list[dict] | None = None,
         *,
         model_name: str | None = None,
         use_dev_model: bool = False,
@@ -265,8 +267,10 @@ class GeminiService:
             canonical_query,
             conversation_history,
             customer_context,
+            product_context,
             llm_context,
             few_shots,
+            available_sources,
         )
         return await self._generate_json(
             prompt,

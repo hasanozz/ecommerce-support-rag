@@ -14,3 +14,9 @@ data/reports/
 venv/
 .idea/
 .vscode/
+models/**/*.safetensors
+models/**/*.bin
+models/**/*.gguf
+model/**/*.safetensors
+model/**/*.bin
+model/**/*.gguf

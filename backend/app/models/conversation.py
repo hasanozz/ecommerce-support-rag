@@ -28,3 +28,6 @@ class Conversation(Base):
     messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation", cascade="all, delete-orphan"
     )
+    state: Mapped["ConversationState | None"] = relationship(
+        back_populates="conversation", uselist=False, cascade="all, delete-orphan"
+    )

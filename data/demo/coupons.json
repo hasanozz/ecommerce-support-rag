@@ -1,0 +1,42 @@
+[
+  {
+    "code": "DEMO10",
+    "status": "VALID",
+    "discount_type": "PERCENT",
+    "discount_value": "10",
+    "min_cart_total": "0",
+    "allowed_category": "",
+    "expires_in_days": 30,
+    "is_active": true
+  },
+  {
+    "code": "MIN500",
+    "status": "MIN_CART_NOT_MET",
+    "discount_type": "AMOUNT",
+    "discount_value": "100",
+    "min_cart_total": "500",
+    "allowed_category": "",
+    "expires_in_days": 30,
+    "is_active": true
+  },
+  {
+    "code": "MODA20",
+    "status": "CATEGORY_MISMATCH",
+    "discount_type": "PERCENT",
+    "discount_value": "20",
+    "min_cart_total": "0",
+    "allowed_category": "shoes",
+    "expires_in_days": 30,
+    "is_active": true
+  },
+  {
+    "code": "ESKI50",
+    "status": "EXPIRED",
+    "discount_type": "AMOUNT",
+    "discount_value": "50",
+    "min_cart_total": "0",
+    "allowed_category": "",
+    "expires_in_days": -1,
+    "is_active": true
+  }
+]

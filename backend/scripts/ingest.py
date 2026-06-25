@@ -42,7 +42,6 @@ async def main() -> None:
         checksum = hashlib.sha256()
         for document_file in sorted(documents_path.glob("*.json")):
             checksum.update(document_file.read_bytes())
-        checksum.update(chunks_path.read_bytes())
         dataset_checksum = checksum.hexdigest()
         await session.execute(delete(Chunk))
         await session.execute(delete(Document))

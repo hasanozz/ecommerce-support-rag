@@ -48,3 +48,17 @@ def test_group_chunks_supports_clean_rag_sections():
     assert grouped[0].matched_sections == ["amac_tanim", "sik_yapilan_hatalar"]
     assert "Amaç ve Tanım:\nAmaç ve tanım metni" in grouped[0].combined_context
     assert "Sık Yapılan Hatalar:\nHata metni" in grouped[0].combined_context
+
+
+def test_group_chunks_uses_answer_content_not_embedding_context():
+    item = chunk("DOC_1", "standart_yanit", "Temiz cevap metni", 0.90)
+    item.contextual_content = (
+        "review_notes: internal validation\n"
+        "hard_negative_doc_ids: SHOULD_NOT_LEAK"
+    )
+
+    grouped = group_chunks([item], max_documents=1, max_sections=1)
+
+    assert "Temiz cevap metni" in grouped[0].combined_context
+    assert "review_notes" not in grouped[0].combined_context
+    assert "hard_negative_doc_ids" not in grouped[0].combined_context

@@ -29,3 +29,12 @@ class User(Base):
     )
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")
     tickets: Mapped[list["Ticket"]] = relationship(back_populates="user")
+    demo_wallet: Mapped["DemoWallet | None"] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    security_profile: Mapped["DemoUserSecurityProfile | None"] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    saved_cards: Mapped[list["DemoSavedCard"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
