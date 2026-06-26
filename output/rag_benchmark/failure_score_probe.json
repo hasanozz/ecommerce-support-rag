@@ -1,0 +1,377 @@
+{
+  "status": "PASS",
+  "final_decision": "ACTIVE_DB_OK",
+  "threshold": 0.55,
+  "settings_used": {
+    "embedding_provider": "sentence_transformers",
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_dimension": 1024,
+    "embedding_device": "cpu",
+    "secrets_file_configured": true
+  },
+  "db_counts": {
+    "documents": 61,
+    "chunks": 366,
+    "unique_doc_ids": 61,
+    "source_doc_ids": 61
+  },
+  "chunk_count_validation": {
+    "all_doc_ids_have_6_chunks": true,
+    "non_6_chunk_doc_ids": {},
+    "missing_source_doc_ids_in_db": [],
+    "extra_doc_ids_in_db": [],
+    "expected_failure_doc_chunk_counts": {
+      "PASSWORD_RESET_001": 6,
+      "UNAUTHORIZED_ORDER_PAYMENT_001": 6,
+      "IADE_REDDI_NEDENLERI_001": 6,
+      "KAMPANYA_KULLANIMI_001": 6,
+      "PUAN_KAZANMA_001": 6
+    }
+  },
+  "diagnosis_counts": {
+    "THRESHOLD_ISSUE": 3,
+    "BENCHMARK_QUERY_WEAK": 1,
+    "SEMANTIC_OVERLAP": 1
+  },
+  "probes": [
+    {
+      "query": "Şifremi unuttum.",
+      "expected_doc_id": "PASSWORD_RESET_001",
+      "reported_ranked_doc_ids": [],
+      "expected_doc_in_top30_chunks": true,
+      "expected_best_raw_score": 0.52428,
+      "expected_score_vs_threshold_0_55": "below",
+      "expected_doc_rank_before_threshold": 1,
+      "top_returned_doc_id_before_threshold": "PASSWORD_RESET_001",
+      "top10_doc_scores_before_threshold": [
+        {
+          "doc_id": "PASSWORD_RESET_001",
+          "score": 0.52428,
+          "chunk_id": "PASSWORD_RESET_001__ISTISNALAR",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "SIFRE_SIFIRLAMA",
+          "section": "istisnalar"
+        },
+        {
+          "doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+          "score": 0.460776,
+          "chunk_id": "UNAUTHORIZED_ORDER_PAYMENT_001__DESTEK_GEREKTIREN_DURUMLAR",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+          "section": "destek_gerektiren_durumlar"
+        },
+        {
+          "doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+          "score": 0.449279,
+          "chunk_id": "ACCOUNT_LOGIN_ISSUE_001__KOSULLAR",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "GIRIS_YAPAMAMA",
+          "section": "kosullar"
+        },
+        {
+          "doc_id": "PERSONAL_DATA_SECURITY_001",
+          "score": 0.444199,
+          "chunk_id": "PERSONAL_DATA_SECURITY_001__STANDART_YANIT",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "KISISEL_VERI_GUVENLIGI",
+          "section": "standart_yanit"
+        },
+        {
+          "doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+          "score": 0.435109,
+          "chunk_id": "SUSPICIOUS_LOGIN_ALERT_001__KOSULLAR",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "SUPHELI_GIRIS_BILDIRIMI",
+          "section": "kosullar"
+        }
+      ],
+      "top3_doc_scores_after_0_55_threshold": [],
+      "diagnosis": "THRESHOLD_ISSUE"
+    },
+    {
+      "query": "Ben bu siparişi vermedim.",
+      "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+      "reported_ranked_doc_ids": [
+        "PAYMENT_CHARGED_ORDER_NOT_CREATED_001"
+      ],
+      "expected_doc_in_top30_chunks": true,
+      "expected_best_raw_score": 0.535762,
+      "expected_score_vs_threshold_0_55": "below",
+      "expected_doc_rank_before_threshold": 2,
+      "top_returned_doc_id_before_threshold": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+      "top10_doc_scores_before_threshold": [
+        {
+          "doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+          "score": 0.557503,
+          "chunk_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001__TANIM",
+          "category": "ODEME",
+          "subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+          "score": 0.535762,
+          "chunk_id": "UNAUTHORIZED_ORDER_PAYMENT_001__DESTEK_GEREKTIREN_DURUMLAR",
+          "category": "HESAP_GUVENLIK",
+          "subcategory": "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+          "section": "destek_gerektiren_durumlar"
+        },
+        {
+          "doc_id": "SIPARIS_ORDER_CANCEL_001",
+          "score": 0.513779,
+          "chunk_id": "SIPARIS_ORDER_CANCEL_001__ISTISNALAR",
+          "category": "SIPARIS",
+          "subcategory": "SIPARIS_IPTAL",
+          "section": "istisnalar"
+        },
+        {
+          "doc_id": "PAYMENT_FAILED_001",
+          "score": 0.507108,
+          "chunk_id": "PAYMENT_FAILED_001__ADIMLAR",
+          "category": "ODEME",
+          "subcategory": "ODEME_BASARISIZ_HATASI",
+          "section": "adimlar"
+        },
+        {
+          "doc_id": "SHIPPING_DELIVERY_FAILED_001",
+          "score": 0.506972,
+          "chunk_id": "SHIPPING_DELIVERY_FAILED_001__TANIM",
+          "category": "KARGO_TESLIMAT",
+          "subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+          "section": "tanim"
+        }
+      ],
+      "top3_doc_scores_after_0_55_threshold": [
+        {
+          "doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+          "score": 0.557503,
+          "chunk_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001__TANIM",
+          "category": "ODEME",
+          "subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+          "section": "tanim"
+        }
+      ],
+      "diagnosis": "THRESHOLD_ISSUE"
+    },
+    {
+      "query": "İadem neden reddedildi?",
+      "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+      "reported_ranked_doc_ids": [],
+      "expected_doc_in_top30_chunks": true,
+      "expected_best_raw_score": 0.508167,
+      "expected_score_vs_threshold_0_55": "below",
+      "expected_doc_rank_before_threshold": 1,
+      "top_returned_doc_id_before_threshold": "IADE_REDDI_NEDENLERI_001",
+      "top10_doc_scores_before_threshold": [
+        {
+          "doc_id": "IADE_REDDI_NEDENLERI_001",
+          "score": 0.508167,
+          "chunk_id": "IADE_REDDI_NEDENLERI_001__STANDART_YANIT",
+          "category": "IADE",
+          "subcategory": "IADE_REDDI_NEDENLERI",
+          "section": "standart_yanit"
+        },
+        {
+          "doc_id": "SHIPPING_DELIVERY_FAILED_001",
+          "score": 0.352161,
+          "chunk_id": "SHIPPING_DELIVERY_FAILED_001__STANDART_YANIT",
+          "category": "KARGO_TESLIMAT",
+          "subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+          "section": "standart_yanit"
+        },
+        {
+          "doc_id": "PAYMENT_FAILED_001",
+          "score": 0.348621,
+          "chunk_id": "PAYMENT_FAILED_001__ISTISNALAR",
+          "category": "ODEME",
+          "subcategory": "ODEME_BASARISIZ_HATASI",
+          "section": "istisnalar"
+        },
+        {
+          "doc_id": "IADE_TALEBI_OLUSTURMA_001",
+          "score": 0.33462,
+          "chunk_id": "IADE_TALEBI_OLUSTURMA_001__ISTISNALAR",
+          "category": "IADE",
+          "subcategory": "IADE_TALEBI_OLUSTURMA",
+          "section": "istisnalar"
+        },
+        {
+          "doc_id": "PAYMENT_REFUND_001",
+          "score": 0.326671,
+          "chunk_id": "PAYMENT_REFUND_001__ADIMLAR",
+          "category": "ODEME",
+          "subcategory": "PARA_IADESI_SURECI",
+          "section": "adimlar"
+        }
+      ],
+      "top3_doc_scores_after_0_55_threshold": [],
+      "diagnosis": "THRESHOLD_ISSUE"
+    },
+    {
+      "query": "Kupon Kodu Kullanımı değil, Kampanya Kullanımı konusunda destek istiyorum.",
+      "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+      "reported_ranked_doc_ids": [
+        "KUPON_KODU_KULLANIMI_001",
+        "KAMPANYALARIN_BIRLESTIRILMESI_001",
+        "KAMPANYA_KOSULLARI_001"
+      ],
+      "expected_doc_in_top30_chunks": true,
+      "expected_best_raw_score": 0.60995,
+      "expected_score_vs_threshold_0_55": "above_or_equal",
+      "expected_doc_rank_before_threshold": 5,
+      "top_returned_doc_id_before_threshold": "KUPON_KODU_KULLANIMI_001",
+      "top10_doc_scores_before_threshold": [
+        {
+          "doc_id": "KUPON_KODU_KULLANIMI_001",
+          "score": 0.646234,
+          "chunk_id": "KUPON_KODU_KULLANIMI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KUPON_KODU_KULLANIMI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+          "score": 0.619814,
+          "chunk_id": "KAMPANYALARIN_BIRLESTIRILMESI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "KAMPANYA_KOSULLARI_001",
+          "score": 0.617151,
+          "chunk_id": "KAMPANYA_KOSULLARI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KAMPANYA_KOSULLARI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "KUPON_GECERSIZ_HATASI_001",
+          "score": 0.612511,
+          "chunk_id": "KUPON_GECERSIZ_HATASI_001__ISTISNALAR",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KUPON_GECERSIZ_HATASI",
+          "section": "istisnalar"
+        },
+        {
+          "doc_id": "KAMPANYA_KULLANIMI_001",
+          "score": 0.60995,
+          "chunk_id": "KAMPANYA_KULLANIMI_001__ISTISNALAR",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KAMPANYA_KULLANIMI",
+          "section": "istisnalar"
+        }
+      ],
+      "top3_doc_scores_after_0_55_threshold": [
+        {
+          "doc_id": "KUPON_KODU_KULLANIMI_001",
+          "score": 0.646234,
+          "chunk_id": "KUPON_KODU_KULLANIMI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KUPON_KODU_KULLANIMI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+          "score": 0.619814,
+          "chunk_id": "KAMPANYALARIN_BIRLESTIRILMESI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "KAMPANYA_KOSULLARI_001",
+          "score": 0.617151,
+          "chunk_id": "KAMPANYA_KOSULLARI_001__TANIM",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "KAMPANYA_KOSULLARI",
+          "section": "tanim"
+        }
+      ],
+      "diagnosis": "BENCHMARK_QUERY_WEAK"
+    },
+    {
+      "query": "Siparişimden puan gelmedi.",
+      "expected_doc_id": "PUAN_KAZANMA_001",
+      "reported_ranked_doc_ids": [
+        "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+        "PAYMENT_FAILED_001",
+        "IADE_SONRASI_PUAN_DURUMU_001"
+      ],
+      "expected_doc_in_top30_chunks": true,
+      "expected_best_raw_score": 0.571987,
+      "expected_score_vs_threshold_0_55": "above_or_equal",
+      "expected_doc_rank_before_threshold": 5,
+      "top_returned_doc_id_before_threshold": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+      "top10_doc_scores_before_threshold": [
+        {
+          "doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+          "score": 0.625235,
+          "chunk_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001__TANIM",
+          "category": "ODEME",
+          "subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "PAYMENT_FAILED_001",
+          "score": 0.584028,
+          "chunk_id": "PAYMENT_FAILED_001__KOSULLAR",
+          "category": "ODEME",
+          "subcategory": "ODEME_BASARISIZ_HATASI",
+          "section": "kosullar"
+        },
+        {
+          "doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+          "score": 0.578141,
+          "chunk_id": "IADE_SONRASI_PUAN_DURUMU_001__ADIMLAR",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "IADE_SONRASI_PUAN_DURUMU",
+          "section": "adimlar"
+        },
+        {
+          "doc_id": "SHIPPING_DELIVERY_FAILED_001",
+          "score": 0.572523,
+          "chunk_id": "SHIPPING_DELIVERY_FAILED_001__ADIMLAR",
+          "category": "KARGO_TESLIMAT",
+          "subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+          "section": "adimlar"
+        },
+        {
+          "doc_id": "PUAN_KAZANMA_001",
+          "score": 0.571987,
+          "chunk_id": "PUAN_KAZANMA_001__ADIMLAR",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "PUAN_KAZANMA",
+          "section": "adimlar"
+        }
+      ],
+      "top3_doc_scores_after_0_55_threshold": [
+        {
+          "doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+          "score": 0.625235,
+          "chunk_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001__TANIM",
+          "category": "ODEME",
+          "subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+          "section": "tanim"
+        },
+        {
+          "doc_id": "PAYMENT_FAILED_001",
+          "score": 0.584028,
+          "chunk_id": "PAYMENT_FAILED_001__KOSULLAR",
+          "category": "ODEME",
+          "subcategory": "ODEME_BASARISIZ_HATASI",
+          "section": "kosullar"
+        },
+        {
+          "doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+          "score": 0.578141,
+          "chunk_id": "IADE_SONRASI_PUAN_DURUMU_001__ADIMLAR",
+          "category": "KAMPANYA_PUAN",
+          "subcategory": "IADE_SONRASI_PUAN_DURUMU",
+          "section": "adimlar"
+        }
+      ],
+      "diagnosis": "SEMANTIC_OVERLAP"
+    }
+  ]
+}

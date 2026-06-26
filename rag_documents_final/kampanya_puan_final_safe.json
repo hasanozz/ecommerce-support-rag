@@ -271,7 +271,13 @@
       "Puanlar ne zaman hesabıma eklenir?",
       "İade edip puanımı geri alabilecek miyim?",
       "Kampanya döneminde daha fazla puan kazanıyor muyum?",
-      "Puanlar hesabıma otomatik mi ekleniyor?"
+      "Puanlar hesabıma otomatik mi ekleniyor?",
+      "sipariş puanı gelmedi",
+      "siparişten puan yansımadı",
+      "alışveriş puanı hesabıma eklenmedi",
+      "kampanya puanı kazanamadım",
+      "siparişimden kampanya puanı gelmedi",
+      "puanım siparişten sonra hesabıma yatmadı"
     ],
     "kosullar": [
       "Puanlar yalnızca tamamlanan siparişler üzerinden kazanılır.",

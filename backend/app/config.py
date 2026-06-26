@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     embedding_ingest_version: str = "1"
 
     search_limit: int = 10
-    min_retrieval_score: float = 0.55
+    min_retrieval_score: float = 0.50
     hashing_min_retrieval_score: float = 0.30
     confidence_high_threshold: float = 0.78
     confidence_medium_threshold: float = 0.62

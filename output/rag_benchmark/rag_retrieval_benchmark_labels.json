@@ -1,0 +1,1970 @@
+{
+  "source_file": "C:\\Users\\lenovo\\Desktop\\teknocampus proje\\ecommerce-support-rag\\output\\rag_benchmark\\rag_retrieval_benchmark_questions.jsonl",
+  "adapter_file": "C:\\Users\\lenovo\\Desktop\\teknocampus proje\\ecommerce-support-rag\\output\\rag_benchmark\\rag_retrieval_benchmark_adapter.jsonl",
+  "format_note": "Metadata companion for rag_retrieval_benchmark_adapter.jsonl. Adapter rows preserve order; labels entries use the same order and case_id.",
+  "case_count": 183,
+  "fields": [
+    "case_id",
+    "query",
+    "expected_doc_id",
+    "expected_category",
+    "expected_subcategory",
+    "question_type",
+    "confusable_with",
+    "notes"
+  ],
+  "labels": [
+    {
+      "case_id": "rag_bench_001",
+      "query": "Nasıl hesap oluşturabilirim?",
+      "expected_doc_id": "ACCOUNT_CREATE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_OLUSTURMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hesap Oluşturma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_002",
+      "query": "Yeni üyelik nasıl açılır?",
+      "expected_doc_id": "ACCOUNT_CREATE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_OLUSTURMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hesap Oluşturma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_003",
+      "query": "Hesap Doğrulama değil, Hesap Oluşturma konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_CREATE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_OLUSTURMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_VERIFY_001"
+      ],
+      "notes": "Bu soru Hesap Doğrulama dokümanıyla karışabilir; beklenen doküman Hesap Oluşturma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_004",
+      "query": "Hesabımı nasıl doğrularım?",
+      "expected_doc_id": "ACCOUNT_VERIFY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_DOGRULAMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hesap Doğrulama dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_005",
+      "query": "Doğrulama e-postası gelmedi.",
+      "expected_doc_id": "ACCOUNT_VERIFY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_DOGRULAMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hesap Doğrulama dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_006",
+      "query": "Hesap Oluşturma değil, Hesap Doğrulama konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_VERIFY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_DOGRULAMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_CREATE_001"
+      ],
+      "notes": "Bu soru Hesap Oluşturma dokümanıyla karışabilir; beklenen doküman Hesap Doğrulama senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_007",
+      "query": "Hesabıma giriş yapamıyorum.",
+      "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "GIRIS_YAPAMAMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Giriş Yapamama dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_008",
+      "query": "Şifrem doğru ama giriş yapamıyorum.",
+      "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "GIRIS_YAPAMAMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Giriş Yapamama dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_009",
+      "query": "Şifre Sıfırlama değil, Giriş Yapamama konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "GIRIS_YAPAMAMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PASSWORD_RESET_001"
+      ],
+      "notes": "Bu soru Şifre Sıfırlama dokümanıyla karışabilir; beklenen doküman Giriş Yapamama senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_010",
+      "query": "Şifremi unuttum.",
+      "expected_doc_id": "PASSWORD_RESET_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SIFRE_SIFIRLAMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Şifre Sıfırlama dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_011",
+      "query": "Şifre sıfırlama e-postası gelmedi.",
+      "expected_doc_id": "PASSWORD_RESET_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SIFRE_SIFIRLAMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Şifre Sıfırlama dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_012",
+      "query": "Giriş Yapamama değil, Şifre Sıfırlama konusunda destek istiyorum.",
+      "expected_doc_id": "PASSWORD_RESET_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SIFRE_SIFIRLAMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_LOGIN_ISSUE_001"
+      ],
+      "notes": "Bu soru Giriş Yapamama dokümanıyla karışabilir; beklenen doküman Şifre Sıfırlama senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_013",
+      "query": "E-posta adresimi nasıl değiştiririm?",
+      "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "EPOSTA_DEGISTIRME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "E-posta Değiştirme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_014",
+      "query": "Yeni e-posta adresim doğrulanmıyor.",
+      "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "EPOSTA_DEGISTIRME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "E-posta Değiştirme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_015",
+      "query": "Hesap Doğrulama değil, E-posta Değiştirme konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "EPOSTA_DEGISTIRME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_VERIFY_001"
+      ],
+      "notes": "Bu soru Hesap Doğrulama dokümanıyla karışabilir; beklenen doküman E-posta Değiştirme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_016",
+      "query": "Telefon numaramı nasıl değiştiririm?",
+      "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "TELEFON_NUMARASI_DEGISTIRME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Telefon Numarası Değiştirme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_017",
+      "query": "SMS doğrulama kodu gelmedi.",
+      "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "TELEFON_NUMARASI_DEGISTIRME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Telefon Numarası Değiştirme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_018",
+      "query": "E-posta Değiştirme değil, Telefon Numarası Değiştirme konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "TELEFON_NUMARASI_DEGISTIRME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_EMAIL_CHANGE_001"
+      ],
+      "notes": "Bu soru E-posta Değiştirme dokümanıyla karışabilir; beklenen doküman Telefon Numarası Değiştirme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_019",
+      "query": "Hesabımı nasıl silebilirim?",
+      "expected_doc_id": "ACCOUNT_DELETE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_SILME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hesap Silme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_020",
+      "query": "Üyeliğimi kapatmak istiyorum.",
+      "expected_doc_id": "ACCOUNT_DELETE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_SILME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hesap Silme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_021",
+      "query": "Bağlı Cihazlar ve Oturum Yönetimi değil, Hesap Silme konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_DELETE_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_SILME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SESSION_MANAGEMENT_001"
+      ],
+      "notes": "Bu soru Bağlı Cihazlar ve Oturum Yönetimi dokümanıyla karışabilir; beklenen doküman Hesap Silme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_022",
+      "query": "Şüpheli giriş bildirimi aldım.",
+      "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SUPHELI_GIRIS_BILDIRIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Şüpheli Giriş Bildirimi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_023",
+      "query": "Hesabıma başka biri girmeye çalışıyor olabilir.",
+      "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SUPHELI_GIRIS_BILDIRIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Şüpheli Giriş Bildirimi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_024",
+      "query": "Yetkisiz Sipariş / Ödeme Bildirimi değil, Şüpheli Giriş Bildirimi konusunda destek istiyorum.",
+      "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "SUPHELI_GIRIS_BILDIRIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "UNAUTHORIZED_ORDER_PAYMENT_001"
+      ],
+      "notes": "Bu soru Yetkisiz Sipariş / Ödeme Bildirimi dokümanıyla karışabilir; beklenen doküman Şüpheli Giriş Bildirimi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_025",
+      "query": "İki aşamalı doğrulamayı nasıl açarım?",
+      "expected_doc_id": "TWO_FACTOR_AUTH_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "IKI_ASAMALI_DOGRULAMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İki Aşamalı Doğrulama dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_026",
+      "query": "SMS kodu gelmiyor.",
+      "expected_doc_id": "TWO_FACTOR_AUTH_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "IKI_ASAMALI_DOGRULAMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İki Aşamalı Doğrulama dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_027",
+      "query": "Hesap Doğrulama değil, İki Aşamalı Doğrulama konusunda destek istiyorum.",
+      "expected_doc_id": "TWO_FACTOR_AUTH_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "IKI_ASAMALI_DOGRULAMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_VERIFY_001"
+      ],
+      "notes": "Bu soru Hesap Doğrulama dokümanıyla karışabilir; beklenen doküman İki Aşamalı Doğrulama senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_028",
+      "query": "Bağlı cihazlarımı nasıl görebilirim?",
+      "expected_doc_id": "SESSION_MANAGEMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "BAGLI_CIHAZLAR_OTURUM_YONETIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Bağlı Cihazlar ve Oturum Yönetimi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_029",
+      "query": "Tanımadığım bir cihaz görünüyor.",
+      "expected_doc_id": "SESSION_MANAGEMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "BAGLI_CIHAZLAR_OTURUM_YONETIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Bağlı Cihazlar ve Oturum Yönetimi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_030",
+      "query": "Hesap Silme değil, Bağlı Cihazlar ve Oturum Yönetimi konusunda destek istiyorum.",
+      "expected_doc_id": "SESSION_MANAGEMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "BAGLI_CIHAZLAR_OTURUM_YONETIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_DELETE_001"
+      ],
+      "notes": "Bu soru Hesap Silme dokümanıyla karışabilir; beklenen doküman Bağlı Cihazlar ve Oturum Yönetimi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_031",
+      "query": "Hesabım neden askıya alındı?",
+      "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_ASKIYA_ALMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hesap Askıya Alma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_032",
+      "query": "Hesabıma giriş yapamıyorum askıya alınmış olabilir mi?",
+      "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_ASKIYA_ALMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hesap Askıya Alma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_033",
+      "query": "Giriş Yapamama değil, Hesap Askıya Alma konusunda destek istiyorum.",
+      "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "HESAP_ASKIYA_ALMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_LOGIN_ISSUE_001"
+      ],
+      "notes": "Bu soru Giriş Yapamama dokümanıyla karışabilir; beklenen doküman Hesap Askıya Alma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_034",
+      "query": "Verilerim güvende mi?",
+      "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "KISISEL_VERI_GUVENLIGI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kişisel Veri Güvenliği dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_035",
+      "query": "Kart bilgilerim saklanıyor mu?",
+      "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "KISISEL_VERI_GUVENLIGI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kişisel Veri Güvenliği dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_036",
+      "query": "Hesap Silme değil, Kişisel Veri Güvenliği konusunda destek istiyorum.",
+      "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "KISISEL_VERI_GUVENLIGI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "ACCOUNT_DELETE_001"
+      ],
+      "notes": "Bu soru Hesap Silme dokümanıyla karışabilir; beklenen doküman Kişisel Veri Güvenliği senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_037",
+      "query": "Ben bu siparişi vermedim.",
+      "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Yetkisiz Sipariş / Ödeme Bildirimi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_038",
+      "query": "Kartımdan bilgim dışında ödeme alınmış.",
+      "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Yetkisiz Sipariş / Ödeme Bildirimi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_039",
+      "query": "Şüpheli Giriş Bildirimi değil, Yetkisiz Sipariş / Ödeme Bildirimi konusunda destek istiyorum.",
+      "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+      "expected_category": "HESAP_GUVENLIK",
+      "expected_subcategory": "YETKISIZ_SIPARIS_ODEME_BILDIRIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SUSPICIOUS_LOGIN_ALERT_001"
+      ],
+      "notes": "Bu soru Şüpheli Giriş Bildirimi dokümanıyla karışabilir; beklenen doküman Yetkisiz Sipariş / Ödeme Bildirimi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_040",
+      "query": "Ürünü iade etmek için ne yapmalıyım?",
+      "expected_doc_id": "IADE_IADE_SARTLARI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_SARTLARI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Şartları dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_041",
+      "query": "Hangi şartlarda ürün iade edilebilir?",
+      "expected_doc_id": "IADE_IADE_SARTLARI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_SARTLARI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Şartları dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_042",
+      "query": "Ücret İadesi Süreci değil, İade Şartları konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_IADE_SARTLARI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_SARTLARI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_REFUND_001"
+      ],
+      "notes": "Bu soru Ücret İadesi Süreci dokümanıyla karışabilir; beklenen doküman İade Şartları senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_043",
+      "query": "İade talebimi nasıl açarım?",
+      "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_TALEBI_OLUSTURMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Talebi Oluşturma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_044",
+      "query": "İade talebi oluşturamıyorum.",
+      "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_TALEBI_OLUSTURMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Talebi Oluşturma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_045",
+      "query": "Sipariş İptali değil, İade Talebi Oluşturma konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_TALEBI_OLUSTURMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SIPARIS_ORDER_CANCEL_001"
+      ],
+      "notes": "Bu soru Sipariş İptali dokümanıyla karışabilir; beklenen doküman İade Talebi Oluşturma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_046",
+      "query": "İade kodumu nasıl alırım?",
+      "expected_doc_id": "IADE_KODU_ALMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KODU_ALMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Kodu Alma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_047",
+      "query": "İade kodum görünmüyor.",
+      "expected_doc_id": "IADE_KODU_ALMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KODU_ALMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Kodu Alma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_048",
+      "query": "Ücret İadesi Süreci değil, İade Kodu Alma konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_KODU_ALMA_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KODU_ALMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_REFUND_001"
+      ],
+      "notes": "Bu soru Ücret İadesi Süreci dokümanıyla karışabilir; beklenen doküman İade Kodu Alma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_049",
+      "query": "İade kargomu nasıl göndereceğim?",
+      "expected_doc_id": "IADE_KARGO_SURECI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KARGO_SURECI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Kargo Süreci dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_050",
+      "query": "İade paketimi nereye teslim etmeliyim?",
+      "expected_doc_id": "IADE_KARGO_SURECI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KARGO_SURECI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Kargo Süreci dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_051",
+      "query": "Teslimat Süreci değil, İade Kargo Süreci konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_KARGO_SURECI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_KARGO_SURECI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERY_PROCESS_001"
+      ],
+      "notes": "Bu soru Teslimat Süreci dokümanıyla karışabilir; beklenen doküman İade Kargo Süreci senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_052",
+      "query": "İade ürünüm ne zaman incelenir?",
+      "expected_doc_id": "IADE_URUN_INCELEME_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_URUN_INCELEME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Ürün İnceleme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_053",
+      "query": "Ürün inceleme sonucu ne olur?",
+      "expected_doc_id": "IADE_URUN_INCELEME_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_URUN_INCELEME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Ürün İnceleme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_054",
+      "query": "Hasarlı Teslimat değil, İade Ürün İnceleme konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_URUN_INCELEME_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_URUN_INCELEME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DAMAGED_DELIVERY_001"
+      ],
+      "notes": "Bu soru Hasarlı Teslimat dokümanıyla karışabilir; beklenen doküman İade Ürün İnceleme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_055",
+      "query": "İadem neden reddedildi?",
+      "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_REDDI_NEDENLERI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Reddi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_056",
+      "query": "İade talebim kabul edilmedi.",
+      "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_REDDI_NEDENLERI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Reddi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_057",
+      "query": "Ücret İadesi Süreci değil, İade Reddi konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_REDDI_NEDENLERI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_REFUND_001"
+      ],
+      "notes": "Bu soru Ücret İadesi Süreci dokümanıyla karışabilir; beklenen doküman İade Reddi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_058",
+      "query": "Kullanılmış ürünü iade edebilir miyim?",
+      "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KULLANILMIS_URUN_IADESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kullanılmış Ürün İadesi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_059",
+      "query": "Ürünü test ettim iade etmek istiyorum.",
+      "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KULLANILMIS_URUN_IADESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kullanılmış Ürün İadesi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_060",
+      "query": "İade Kargo Süreci değil, Kullanılmış Ürün İadesi konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KULLANILMIS_URUN_IADESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "IADE_KARGO_SURECI_001"
+      ],
+      "notes": "Bu soru İade Kargo Süreci dokümanıyla karışabilir; beklenen doküman Kullanılmış Ürün İadesi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_061",
+      "query": "Hasarlı ürün teslim aldım.",
+      "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KUSURLU_VEYA_HASARLI_URUN_IADESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hasarlı / Kusurlu Ürün İadesi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_062",
+      "query": "Ürün kırık geldi.",
+      "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KUSURLU_VEYA_HASARLI_URUN_IADESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hasarlı / Kusurlu Ürün İadesi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_063",
+      "query": "Hasarlı Teslimat değil, Hasarlı / Kusurlu Ürün İadesi konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "KUSURLU_VEYA_HASARLI_URUN_IADESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DAMAGED_DELIVERY_001"
+      ],
+      "notes": "Bu soru Hasarlı Teslimat dokümanıyla karışabilir; beklenen doküman Hasarlı / Kusurlu Ürün İadesi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_064",
+      "query": "İade sonrası ücret ne zaman yansır?",
+      "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_UCRETININ_HESABA_GECMESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Sonrası Ücret Süreci dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_065",
+      "query": "Para iadem neden görünmüyor?",
+      "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_UCRETININ_HESABA_GECMESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Sonrası Ücret Süreci dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_066",
+      "query": "Ücret İadesi Süreci değil, İade Sonrası Ücret Süreci konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+      "expected_category": "IADE",
+      "expected_subcategory": "IADE_UCRETININ_HESABA_GECMESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_REFUND_001"
+      ],
+      "notes": "Bu soru Ücret İadesi Süreci dokümanıyla karışabilir; beklenen doküman İade Sonrası Ücret Süreci senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_067",
+      "query": "Kampanya sepetime neden otomatik olarak eklenmedi?",
+      "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KULLANIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kampanya Kullanımı dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_068",
+      "query": "Bu kampanya hangi ürünlere uygulanıyor?",
+      "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KULLANIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kampanya Kullanımı dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_069",
+      "query": "Kupon kodu girmeden, sepetteki kampanyanın hangi ürünlere uygulandığını öğrenmek istiyorum.",
+      "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KULLANIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KUPON_KODU_KULLANIMI_001"
+      ],
+      "notes": "Bu soru Kupon Kodu Kullanımı dokümanıyla karışabilir; beklenen doküman Kampanya Kullanımı senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_070",
+      "query": "Kupon kodunu nasıl kullanırım?",
+      "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_KODU_KULLANIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kupon Kodu Kullanımı dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_071",
+      "query": "Kupon kodu kabul edilmiyor.",
+      "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_KODU_KULLANIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kupon Kodu Kullanımı dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_072",
+      "query": "Kupon Geçersiz Hatası değil, Kupon Kodu Kullanımı konusunda destek istiyorum.",
+      "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_KODU_KULLANIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KUPON_GECERSIZ_HATASI_001"
+      ],
+      "notes": "Bu soru Kupon Geçersiz Hatası dokümanıyla karışabilir; beklenen doküman Kupon Kodu Kullanımı senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_073",
+      "query": "Kupon geçersiz diyor.",
+      "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_GECERSIZ_HATASI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kupon Geçersiz Hatası dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_074",
+      "query": "Kupon neden çalışmıyor?",
+      "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_GECERSIZ_HATASI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kupon Geçersiz Hatası dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_075",
+      "query": "Minimum Sepet Tutarı Şartı değil, Kupon Geçersiz Hatası konusunda destek istiyorum.",
+      "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KUPON_GECERSIZ_HATASI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "MINIMUM_SEPET_TUTARI_001"
+      ],
+      "notes": "Bu soru Minimum Sepet Tutarı Şartı dokümanıyla karışabilir; beklenen doküman Kupon Geçersiz Hatası senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_076",
+      "query": "Sepetim yeterli değil mi?",
+      "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "MINIMUM_SEPET_TUTARI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Minimum Sepet Tutarı Şartı dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_077",
+      "query": "Minimum harcama tutarı nedir?",
+      "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "MINIMUM_SEPET_TUTARI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Minimum Sepet Tutarı Şartı dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_078",
+      "query": "Kupon Geçersiz Hatası değil, Minimum Sepet Tutarı Şartı konusunda destek istiyorum.",
+      "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "MINIMUM_SEPET_TUTARI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KUPON_GECERSIZ_HATASI_001"
+      ],
+      "notes": "Bu soru Kupon Geçersiz Hatası dokümanıyla karışabilir; beklenen doküman Minimum Sepet Tutarı Şartı senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_079",
+      "query": "Puan nasıl kazanıyorum?",
+      "expected_doc_id": "PUAN_KAZANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KAZANMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Puan Kazanma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_080",
+      "query": "Siparişimden puan gelmedi.",
+      "expected_doc_id": "PUAN_KAZANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KAZANMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Puan Kazanma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_081",
+      "query": "Puan Kullanma değil, Puan Kazanma konusunda destek istiyorum.",
+      "expected_doc_id": "PUAN_KAZANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KAZANMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PUAN_KULLANMA_001"
+      ],
+      "notes": "Bu soru Puan Kullanma dokümanıyla karışabilir; beklenen doküman Puan Kazanma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_082",
+      "query": "Puanlarımı nasıl kullanırım?",
+      "expected_doc_id": "PUAN_KULLANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KULLANMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Puan Kullanma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_083",
+      "query": "Sepetimde puan kullanamıyorum.",
+      "expected_doc_id": "PUAN_KULLANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KULLANMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Puan Kullanma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_084",
+      "query": "Puan Kazanma değil, Puan Kullanma konusunda destek istiyorum.",
+      "expected_doc_id": "PUAN_KULLANMA_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "PUAN_KULLANMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PUAN_KAZANMA_001"
+      ],
+      "notes": "Bu soru Puan Kazanma dokümanıyla karışabilir; beklenen doküman Puan Kullanma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_085",
+      "query": "İade sonrası puanlarım ne olacak?",
+      "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "IADE_SONRASI_PUAN_DURUMU",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "İade Sonrası Puan Durumu dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_086",
+      "query": "Kullanılan puanlar geri gelecek mi?",
+      "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "IADE_SONRASI_PUAN_DURUMU",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "İade Sonrası Puan Durumu dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_087",
+      "query": "Ücret İadesi Süreci değil, İade Sonrası Puan Durumu konusunda destek istiyorum.",
+      "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "IADE_SONRASI_PUAN_DURUMU",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_REFUND_001"
+      ],
+      "notes": "Bu soru Ücret İadesi Süreci dokümanıyla karışabilir; beklenen doküman İade Sonrası Puan Durumu senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_088",
+      "query": "Bu kampanya nasıl çalışıyor?",
+      "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KOSULLARI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kampanya Koşulları dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_089",
+      "query": "Kampanya neden bana uygulanmıyor?",
+      "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KOSULLARI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kampanya Koşulları dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_090",
+      "query": "Kampanya Kullanımı değil, Kampanya Koşulları konusunda destek istiyorum.",
+      "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYA_KOSULLARI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KAMPANYA_KULLANIMI_001"
+      ],
+      "notes": "Bu soru Kampanya Kullanımı dokümanıyla karışabilir; beklenen doküman Kampanya Koşulları senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_091",
+      "query": "Birden fazla kampanya kullanabilir miyim?",
+      "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kampanyaların Birleştirilmesi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_092",
+      "query": "Kampanyalarım birlikte mi çalışıyor?",
+      "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kampanyaların Birleştirilmesi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_093",
+      "query": "Kampanya Koşulları değil, Kampanyaların Birleştirilmesi konusunda destek istiyorum.",
+      "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KAMPANYALARIN_BIRLESTIRILMESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KAMPANYA_KOSULLARI_001"
+      ],
+      "notes": "Bu soru Kampanya Koşulları dokümanıyla karışabilir; beklenen doküman Kampanyaların Birleştirilmesi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_094",
+      "query": "Kuponum neden artık geçerli değil?",
+      "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "SURESI_DOLAN_KUPON_PUAN",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Süresi Dolan Kupon / Puan dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_095",
+      "query": "Puanımın süresi doldu mu?",
+      "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "SURESI_DOLAN_KUPON_PUAN",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Süresi Dolan Kupon / Puan dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_096",
+      "query": "Kupon Geçersiz Hatası değil, Süresi Dolan Kupon / Puan konusunda destek istiyorum.",
+      "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "SURESI_DOLAN_KUPON_PUAN",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KUPON_GECERSIZ_HATASI_001"
+      ],
+      "notes": "Bu soru Kupon Geçersiz Hatası dokümanıyla karışabilir; beklenen doküman Süresi Dolan Kupon / Puan senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_097",
+      "query": "Bu kampanya hangi kategoride geçerli?",
+      "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KATEGORIYE_OZEL_KAMPANYALAR",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kategoriye Özel Kampanyalar dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_098",
+      "query": "Ürün kategorim kampanyaya dahil mi?",
+      "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KATEGORIYE_OZEL_KAMPANYALAR",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kategoriye Özel Kampanyalar dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_099",
+      "query": "Kampanya Koşulları değil, Kategoriye Özel Kampanyalar konusunda destek istiyorum.",
+      "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+      "expected_category": "KAMPANYA_PUAN",
+      "expected_subcategory": "KATEGORIYE_OZEL_KAMPANYALAR",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KAMPANYA_KOSULLARI_001"
+      ],
+      "notes": "Bu soru Kampanya Koşulları dokümanıyla karışabilir; beklenen doküman Kategoriye Özel Kampanyalar senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_100",
+      "query": "Siparişim ne zaman teslim edilecek.",
+      "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIMAT_SURECI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Teslimat Süreci dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_101",
+      "query": "Teslimat süreci nasıl işliyor.",
+      "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIMAT_SURECI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Teslimat Süreci dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_102",
+      "query": "Kargo Takip İşlemi değil, Teslimat Süreci konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIMAT_SURECI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_TRACKING_001"
+      ],
+      "notes": "Bu soru Kargo Takip İşlemi dokümanıyla karışabilir; beklenen doküman Teslimat Süreci senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_103",
+      "query": "Tahmini teslimat tarihim nedir.",
+      "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TAHMINI_TESLIMAT_TARIHI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Tahmini Teslimat Tarihi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_104",
+      "query": "Siparişim hangi gün gelir.",
+      "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TAHMINI_TESLIMAT_TARIHI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Tahmini Teslimat Tarihi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_105",
+      "query": "Geç Teslimat değil, Tahmini Teslimat Tarihi konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TAHMINI_TESLIMAT_TARIHI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELAYED_DELIVERY_001"
+      ],
+      "notes": "Bu soru Geç Teslimat dokümanıyla karışabilir; beklenen doküman Tahmini Teslimat Tarihi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_106",
+      "query": "Kargomu nasıl takip edebilirim.",
+      "expected_doc_id": "SHIPPING_TRACKING_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_TAKIP_ISLEMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kargo Takip İşlemi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_107",
+      "query": "Takip numaram nerede.",
+      "expected_doc_id": "SHIPPING_TRACKING_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_TAKIP_ISLEMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kargo Takip İşlemi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_108",
+      "query": "Sipariş Takibi değil, Kargo Takip İşlemi konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_TRACKING_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_TAKIP_ISLEMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SIPARIS_ORDER_TRACKING_001"
+      ],
+      "notes": "Bu soru Sipariş Takibi dokümanıyla karışabilir; beklenen doküman Kargo Takip İşlemi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_109",
+      "query": "Kargo firmasını değiştirebilir miyim.",
+      "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_FIRMASI_DEGISIKLIGI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kargo Firması Seçimi / Değişikliği dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_110",
+      "query": "Siparişim için farklı kargo seçebilir miyim.",
+      "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_FIRMASI_DEGISIKLIGI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kargo Firması Seçimi / Değişikliği dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_111",
+      "query": "Adrese Yeniden Teslimat değil, Kargo Firması Seçimi / Değişikliği konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGO_FIRMASI_DEGISIKLIGI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_ADDRESS_REDELIVERY_001"
+      ],
+      "notes": "Bu soru Adrese Yeniden Teslimat dokümanıyla karışabilir; beklenen doküman Kargo Firması Seçimi / Değişikliği senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_112",
+      "query": "Kargom teslim edilemedi görünüyor.",
+      "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kargonun Teslim Edilememesi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_113",
+      "query": "Teslimat başarısız olmuş.",
+      "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kargonun Teslim Edilememesi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_114",
+      "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Kargonun Teslim Edilememesi konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "KARGONUN_TESLIM_EDILEMEMESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+      ],
+      "notes": "Bu soru Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanıyla karışabilir; beklenen doküman Kargonun Teslim Edilememesi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_115",
+      "query": "Kargom teslim edildi görünüyor ama bana ulaşmadı.",
+      "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIM_EDILDI_GORUNUYOR_AMA_GELMEDI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_116",
+      "query": "Sistemde teslim edildi yazıyor fakat ürün yok.",
+      "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIM_EDILDI_GORUNUYOR_AMA_GELMEDI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_117",
+      "query": "Kargonun Teslim Edilememesi değil, Kargo Teslim Edildi Görünüyor Ama Ulaşmadı konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "TESLIM_EDILDI_GORUNUYOR_AMA_GELMEDI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERY_FAILED_001"
+      ],
+      "notes": "Bu soru Kargonun Teslim Edilememesi dokümanıyla karışabilir; beklenen doküman Kargo Teslim Edildi Görünüyor Ama Ulaşmadı senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_118",
+      "query": "Ürünüm hasarlı geldi.",
+      "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "HASARLI_TESLIMAT",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Hasarlı Teslimat dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_119",
+      "query": "Kargodan çıkan ürün kırık.",
+      "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "HASARLI_TESLIMAT",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Hasarlı Teslimat dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_120",
+      "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Hasarlı Teslimat konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "HASARLI_TESLIMAT",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+      ],
+      "notes": "Bu soru Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanıyla karışabilir; beklenen doküman Hasarlı Teslimat senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_121",
+      "query": "Kargom gecikti.",
+      "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "GEC_TESLIMAT",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Geç Teslimat dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_122",
+      "query": "Siparişim hala gelmedi.",
+      "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "GEC_TESLIMAT",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Geç Teslimat dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_123",
+      "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Geç Teslimat konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "GEC_TESLIMAT",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+      ],
+      "notes": "Bu soru Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanıyla karışabilir; beklenen doküman Geç Teslimat senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_124",
+      "query": "Kargomu şubeden teslim alabilir miyim.",
+      "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "SUBEDEN_TESLIM_ALMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Şubeden Teslim Alma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_125",
+      "query": "Ürünümü kargo şubesinden almak istiyorum.",
+      "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "SUBEDEN_TESLIM_ALMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Şubeden Teslim Alma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_126",
+      "query": "Adrese Yeniden Teslimat değil, Şubeden Teslim Alma konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "SUBEDEN_TESLIM_ALMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_ADDRESS_REDELIVERY_001"
+      ],
+      "notes": "Bu soru Adrese Yeniden Teslimat dokümanıyla karışabilir; beklenen doküman Şubeden Teslim Alma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_127",
+      "query": "Kargom tekrar adrese gelir mi.",
+      "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "ADRESE_YENIDEN_TESLIMAT",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Adrese Yeniden Teslimat dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_128",
+      "query": "Yeniden teslimat talep etmek istiyorum.",
+      "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "ADRESE_YENIDEN_TESLIMAT",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Adrese Yeniden Teslimat dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_129",
+      "query": "Kargo Firması Seçimi / Değişikliği değil, Adrese Yeniden Teslimat konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "ADRESE_YENIDEN_TESLIMAT",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_CARRIER_CHANGE_001"
+      ],
+      "notes": "Bu soru Kargo Firması Seçimi / Değişikliği dokümanıyla karışabilir; beklenen doküman Adrese Yeniden Teslimat senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_130",
+      "query": "Siparişim neden iki kargo halinde geliyor.",
+      "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "BIRDEN_FAZLA_KARGO_ILE_TESLIMAT",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Birden Fazla Kargo ile Teslimat dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_131",
+      "query": "Ürünlerimin bir kısmı geldi diğerleri gelmedi.",
+      "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "BIRDEN_FAZLA_KARGO_ILE_TESLIMAT",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Birden Fazla Kargo ile Teslimat dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_132",
+      "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Birden Fazla Kargo ile Teslimat konusunda destek istiyorum.",
+      "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+      "expected_category": "KARGO_TESLIMAT",
+      "expected_subcategory": "BIRDEN_FAZLA_KARGO_ILE_TESLIMAT",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DELIVERED_NOT_RECEIVED_001"
+      ],
+      "notes": "Bu soru Kargo Teslim Edildi Görünüyor Ama Ulaşmadı dokümanıyla karışabilir; beklenen doküman Birden Fazla Kargo ile Teslimat senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_133",
+      "query": "Kartla ödeme yapamıyorum.",
+      "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTLA_ODEME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kartla Ödeme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_134",
+      "query": "Kredi kartım neden kabul edilmiyor.",
+      "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTLA_ODEME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kartla Ödeme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_135",
+      "query": "Ödeme Başarısız Hatası değil, Kartla Ödeme konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTLA_ODEME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_FAILED_001"
+      ],
+      "notes": "Bu soru Ödeme Başarısız Hatası dokümanıyla karışabilir; beklenen doküman Kartla Ödeme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_136",
+      "query": "Ödeme başarısız oldu.",
+      "expected_doc_id": "PAYMENT_FAILED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "ODEME_BASARISIZ_HATASI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Ödeme Başarısız Hatası dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_137",
+      "query": "Ödeme işlemi tamamlanamadı.",
+      "expected_doc_id": "PAYMENT_FAILED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "ODEME_BASARISIZ_HATASI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Ödeme Başarısız Hatası dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_138",
+      "query": "Karttan Para Çekildi Ama Sipariş Oluşmadı değil, Ödeme Başarısız Hatası konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_FAILED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "ODEME_BASARISIZ_HATASI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_CHARGED_ORDER_NOT_CREATED_001"
+      ],
+      "notes": "Bu soru Karttan Para Çekildi Ama Sipariş Oluşmadı dokümanıyla karışabilir; beklenen doküman Ödeme Başarısız Hatası senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_139",
+      "query": "Kartımdan para çekildi ama siparişim oluşmadı.",
+      "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Karttan Para Çekildi Ama Sipariş Oluşmadı dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_140",
+      "query": "Ödeme yaptım fakat sipariş görünmüyor.",
+      "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Karttan Para Çekildi Ama Sipariş Oluşmadı dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_141",
+      "query": "Ödeme Başarısız Hatası değil, Karttan Para Çekildi Ama Sipariş Oluşmadı konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KARTTAN_PARA_CEKILDI_AMA_SIPARIS_OLUSMADI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_FAILED_001"
+      ],
+      "notes": "Bu soru Ödeme Başarısız Hatası dokümanıyla karışabilir; beklenen doküman Karttan Para Çekildi Ama Sipariş Oluşmadı senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_142",
+      "query": "Kartımdan iki kere para çekildi.",
+      "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "CIFT_CEKIM_PROBLEMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Çift Çekim Problemi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_143",
+      "query": "Aynı sipariş için iki kez ödeme alınmış.",
+      "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "CIFT_CEKIM_PROBLEMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Çift Çekim Problemi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_144",
+      "query": "Provizyon / Bekleyen İşlem değil, Çift Çekim Problemi konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "CIFT_CEKIM_PROBLEMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_AUTHORIZATION_PENDING_001"
+      ],
+      "notes": "Bu soru Provizyon / Bekleyen İşlem dokümanıyla karışabilir; beklenen doküman Çift Çekim Problemi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_145",
+      "query": "Taksitli ödeme yapabilir miyim.",
+      "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "TAKSITLI_ODEME",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Taksitli Ödeme dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_146",
+      "query": "Kaç taksit yapabiliyorum.",
+      "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "TAKSITLI_ODEME",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Taksitli Ödeme dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_147",
+      "query": "Kartla Ödeme değil, Taksitli Ödeme konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "TAKSITLI_ODEME",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_CARD_PAYMENT_001"
+      ],
+      "notes": "Bu soru Kartla Ödeme dokümanıyla karışabilir; beklenen doküman Taksitli Ödeme senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_148",
+      "query": "Para iadem ne zaman yatacak.",
+      "expected_doc_id": "PAYMENT_REFUND_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PARA_IADESI_SURECI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Ücret İadesi Süreci dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_149",
+      "query": "İade ücretim hesabıma gelmedi.",
+      "expected_doc_id": "PAYMENT_REFUND_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PARA_IADESI_SURECI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Ücret İadesi Süreci dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_150",
+      "query": "İade Sonrası Ücret Süreci değil, Ücret İadesi Süreci konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_REFUND_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PARA_IADESI_SURECI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "IADE_UCRETININ_HESABA_GECMESI_001"
+      ],
+      "notes": "Bu soru İade Sonrası Ücret Süreci dokümanıyla karışabilir; beklenen doküman Ücret İadesi Süreci senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_151",
+      "query": "Banka uygulamasında bekleyen işlem görünüyor.",
+      "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PROVIZYON_BEKLEYEN_ISLEM",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Provizyon / Bekleyen İşlem dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_152",
+      "query": "Provizyon mu gerçek çekim mi anlayamadım.",
+      "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PROVIZYON_BEKLEYEN_ISLEM",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Provizyon / Bekleyen İşlem dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_153",
+      "query": "Çift Çekim Problemi değil, Provizyon / Bekleyen İşlem konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "PROVIZYON_BEKLEYEN_ISLEM",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "PAYMENT_DOUBLE_CHARGE_001"
+      ],
+      "notes": "Bu soru Çift Çekim Problemi dokümanıyla karışabilir; beklenen doküman Provizyon / Bekleyen İşlem senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_154",
+      "query": "Kuponlı ödeme yaptığımda tutardan ne düşülür.",
+      "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KUPON_PUAN_KULLANILAN_ODEMELER",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Kupon / Puan Kullanılan Ödemeler dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_155",
+      "query": "Puanlarla ödeme yaptığımda kaç para düşer.",
+      "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KUPON_PUAN_KULLANILAN_ODEMELER",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Kupon / Puan Kullanılan Ödemeler dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_156",
+      "query": "Kupon Geçersiz Hatası değil, Kupon / Puan Kullanılan Ödemeler konusunda destek istiyorum.",
+      "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+      "expected_category": "ODEME",
+      "expected_subcategory": "KUPON_PUAN_KULLANILAN_ODEMELER",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "KUPON_GECERSIZ_HATASI_001"
+      ],
+      "notes": "Bu soru Kupon Geçersiz Hatası dokümanıyla karışabilir; beklenen doküman Kupon / Puan Kullanılan Ödemeler senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_157",
+      "query": "Siparişimi nasıl oluşturacağım?",
+      "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_OLUSTURMA",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş Oluşturma dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_158",
+      "query": "Sepetime eklediğim ürünleri nasıl onaylarım?",
+      "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_OLUSTURMA",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş Oluşturma dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_159",
+      "query": "Adrese Yeniden Teslimat değil, Sipariş Oluşturma konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_OLUSTURMA",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_ADDRESS_REDELIVERY_001"
+      ],
+      "notes": "Bu soru Adrese Yeniden Teslimat dokümanıyla karışabilir; beklenen doküman Sipariş Oluşturma senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_160",
+      "query": "Sipariş durumumu nasıl takip edebilirim?",
+      "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_DURUMLARI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş Durumları dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_161",
+      "query": "Siparişim neden beklemede gösteriliyor?",
+      "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_DURUMLARI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş Durumları dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_162",
+      "query": "Kargo Takip İşlemi değil, Sipariş Durumları konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_DURUMLARI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_TRACKING_001"
+      ],
+      "notes": "Bu soru Kargo Takip İşlemi dokümanıyla karışabilir; beklenen doküman Sipariş Durumları senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_163",
+      "query": "Siparişimi nasıl iptal edebilirim?",
+      "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_IPTAL",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş İptali dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_164",
+      "query": "Sipariş kargoya verilmeden önce iptal edilebilir mi?",
+      "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_IPTAL",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş İptali dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_165",
+      "query": "İade Talebi Oluşturma değil, Sipariş İptali konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_IPTAL",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "IADE_TALEBI_OLUSTURMA_001"
+      ],
+      "notes": "Bu soru İade Talebi Oluşturma dokümanıyla karışabilir; beklenen doküman Sipariş İptali senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_166",
+      "query": "Sipariş adresimi değiştirebilir miyim?",
+      "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ADRES_DEGISIKLIGI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş Adres Değişikliği dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_167",
+      "query": "Adres değişikliği seçeneğini nerede bulurum?",
+      "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ADRES_DEGISIKLIGI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş Adres Değişikliği dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_168",
+      "query": "Adrese Yeniden Teslimat değil, Sipariş Adres Değişikliği konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ADRES_DEGISIKLIGI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_ADDRESS_REDELIVERY_001"
+      ],
+      "notes": "Bu soru Adrese Yeniden Teslimat dokümanıyla karışabilir; beklenen doküman Sipariş Adres Değişikliği senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_169",
+      "query": "Siparişimdeki ürünü nasıl değiştirebilirim?",
+      "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ICEKIKLI_DEGISIKLIK",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş İçeriği Değişikliği dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_170",
+      "query": "Sipariş adedini artırabilir miyim?",
+      "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ICEKIKLI_DEGISIKLIK",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş İçeriği Değişikliği dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_171",
+      "query": "Birden Fazla Kargo ile Teslimat değil, Sipariş İçeriği Değişikliği konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_ICEKIKLI_DEGISIKLIK",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_MULTI_PACKAGE_DELIVERY_001"
+      ],
+      "notes": "Bu soru Birden Fazla Kargo ile Teslimat dokümanıyla karışabilir; beklenen doküman Sipariş İçeriği Değişikliği senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_172",
+      "query": "Siparişimi nasıl takip edebilirim?",
+      "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_TAKIP",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Sipariş Takibi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_173",
+      "query": "Sipariş takip numaram nerede?",
+      "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_TAKIP",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Sipariş Takibi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_174",
+      "query": "Kargo Takip İşlemi değil, Sipariş Takibi konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_TAKIP",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_TRACKING_001"
+      ],
+      "notes": "Bu soru Kargo Takip İşlemi dokümanıyla karışabilir; beklenen doküman Sipariş Takibi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_175",
+      "query": "Siparişimde eksik ürün var.",
+      "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "EKSIK_URUN_TESLIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Eksik Ürün Teslimi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_176",
+      "query": "Pakette olması gereken ürünü bulamadım.",
+      "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "EKSIK_URUN_TESLIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Eksik Ürün Teslimi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_177",
+      "query": "Birden Fazla Kargo ile Teslimat değil, Eksik Ürün Teslimi konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "EKSIK_URUN_TESLIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_MULTI_PACKAGE_DELIVERY_001"
+      ],
+      "notes": "Bu soru Birden Fazla Kargo ile Teslimat dokümanıyla karışabilir; beklenen doküman Eksik Ürün Teslimi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_178",
+      "query": "Sipariş ettiğim ürün farklı geldi.",
+      "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "YANLIS_URUN_TESLIMI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Yanlış Ürün Teslimi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_179",
+      "query": "Teslim edilen ürün siparişimle eşleşmiyor.",
+      "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "YANLIS_URUN_TESLIMI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Yanlış Ürün Teslimi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_180",
+      "query": "Hasarlı Teslimat değil, Yanlış Ürün Teslimi konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "YANLIS_URUN_TESLIMI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_DAMAGED_DELIVERY_001"
+      ],
+      "notes": "Bu soru Hasarlı Teslimat dokümanıyla karışabilir; beklenen doküman Yanlış Ürün Teslimi senaryosudur."
+    },
+    {
+      "case_id": "rag_bench_181",
+      "query": "Siparişim neden birden fazla paketle geliyor?",
+      "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_BOLUNMESI",
+      "question_type": "direct",
+      "confusable_with": [],
+      "notes": "Siparişin Bölünmesi dokümanını hedefleyen direct retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_182",
+      "query": "Siparişimin bazı ürünleri daha sonra mı gelecek?",
+      "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_BOLUNMESI",
+      "question_type": "natural",
+      "confusable_with": [],
+      "notes": "Siparişin Bölünmesi dokümanını hedefleyen natural retrieval sorusu."
+    },
+    {
+      "case_id": "rag_bench_183",
+      "query": "Birden Fazla Kargo ile Teslimat değil, Siparişin Bölünmesi konusunda destek istiyorum.",
+      "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+      "expected_category": "SIPARIS",
+      "expected_subcategory": "SIPARIS_BOLUNMESI",
+      "question_type": "hard_negative",
+      "confusable_with": [
+        "SHIPPING_MULTI_PACKAGE_DELIVERY_001"
+      ],
+      "notes": "Bu soru Birden Fazla Kargo ile Teslimat dokümanıyla karışabilir; beklenen doküman Siparişin Bölünmesi senaryosudur."
+    }
+  ]
+}
