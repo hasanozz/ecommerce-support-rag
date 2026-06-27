@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
@@ -116,53 +118,77 @@ def test_product_context_routing_detects_product_and_return_flows():
 
 @pytest.mark.asyncio
 async def test_product_context_prefers_explicit_catalog_matches_and_ignores_support_queries():
-    import os
+    service = ProductContextService()
+    session = AsyncMock()
+    session.scalar = AsyncMock(return_value=None)
+    session.scalars = AsyncMock(return_value=SimpleNamespace(all=lambda: []))
+    user = SimpleNamespace(id=1)
+    blender = SimpleNamespace(
+        id=11,
+        sku="BLENDER-001",
+        name="Blender",
+        brand="DemoHome",
+        category="HOME_KITCHEN",
+        subcategory="BLENDER",
+        price=Decimal("1299.90"),
+        currency="TRY",
+        stock=12,
+        returnable=True,
+        warranty_months=24,
+        description="Günlük kullanım için güçlü blender.",
+        ai_context="1000 W motor gücü ve cam hazne sunar.",
+        attributes={"guc_watt": "1000", "hazne_litre": "1.5", "mikrofon": False},
+        tags=["mutfak", "blender"],
+    )
+    headphone = SimpleNamespace(
+        id=12,
+        sku="HEADPHONE-001",
+        name="Kablosuz Kulaklık",
+        brand="DemoAudio",
+        category="ELECTRONICS",
+        subcategory="HEADPHONE",
+        price=Decimal("899.90"),
+        currency="TRY",
+        stock=8,
+        returnable=True,
+        warranty_months=12,
+        description="Günlük kullanım için kablosuz kulaklık.",
+        ai_context="Uzun pil ömrü ve mikrofon desteği sunar.",
+        attributes={"pil_suresi_saat": "20", "mikrofon": True},
+        tags=["ses", "kulaklık"],
+    )
 
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    service._selected_products = AsyncMock(side_effect=[[blender], [headphone]])
+    service._product_stats = AsyncMock(return_value={11: {}, 12: {}})
 
-    from backend.app.config import get_settings
-    from backend.app.models import User
+    blender_ctx = await service.build(
+        session,
+        user,
+        "GENEL_DESTEK",
+        "blenderin özelliklerini anlatsana bana",
+    )
+    assert blender_ctx["route_mode"] == "product_only"
+    assert blender_ctx["product_match_reason"] == "catalog_match"
+    assert blender_ctx["primary_product"]["name"] == "Blender"
+    assert "Sırt Çantası" not in blender_ctx["text"]
+    assert "Blender" in blender_ctx["text"]
 
-    os.environ['SECRETS_FILE'] = r'C:\Users\hasanozz\Desktop\teknopark-ai\project_secrets\.env.local'
-    settings = get_settings()
-    engine = create_async_engine(settings.database_url)
-    SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+    headphone_ctx = await service.build(
+        session,
+        user,
+        "GENEL_DESTEK",
+        "Kablosuz Kulaklık hakkında bilgi verir misin?",
+    )
+    assert headphone_ctx["route_mode"] == "product_only"
+    assert headphone_ctx["primary_product"]["name"] == "Kablosuz Kulaklık"
+    assert "Sırt Çantası" not in headphone_ctx["text"]
 
-    async with SessionLocal() as session:
-        user = await session.scalar(select(User).order_by(User.id.asc()))
-        service = ProductContextService()
-
-        blender_ctx = await service.build(
-            session,
-            user,
-            'GENEL_DESTEK',
-            'blenderin özelliklerini anlatsana bana',
-        )
-        assert blender_ctx['route_mode'] == 'product_only'
-        assert blender_ctx['product_match_reason'] == 'catalog_match'
-        assert blender_ctx['primary_product']['name'] == 'Blender'
-        assert 'Sırt Çantası' not in blender_ctx['text']
-        assert 'Blender' in blender_ctx['text']
-
-        headphone_ctx = await service.build(
-            session,
-            user,
-            'GENEL_DESTEK',
-            'Kablosuz Kulaklık hakkında bilgi verir misin?',
-        )
-        assert headphone_ctx['route_mode'] == 'product_only'
-        assert headphone_ctx['primary_product']['name'] == 'Kablosuz Kulaklık'
-        assert 'Sırt Çantası' not in headphone_ctx['text']
-
-        support_ctx = await service.build(
-            session,
-            user,
-            'ODEME',
-            'Kartımdan para çekildi ama siparişim oluşmadı.',
-        )
-        assert support_ctx['route_mode'] == 'payment_account_mixed'
-        assert support_ctx['selected_product_ids'] == []
-        assert 'Sırt Çantası' not in support_ctx['text']
-
-    await engine.dispose()
+    support_ctx = await service.build(
+        session,
+        user,
+        "ODEME",
+        "Kartımdan para çekildi ama siparişim oluşmadı.",
+    )
+    assert support_ctx["route_mode"] == "payment_account_mixed"
+    assert support_ctx["selected_product_ids"] == []
+    assert "Sırt Çantası" not in support_ctx["text"]
