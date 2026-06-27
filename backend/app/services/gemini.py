@@ -298,6 +298,21 @@ def guard_llm_output(answer: str, allowed_doc_ids: set[str]) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     lowered = cleaned.casefold()
     forbidden = ["api key", "system prompt", "developer message", "gizli talimat"]
-    if not cleaned or len(cleaned) > 4000 or any(item in lowered for item in forbidden):
+    action_claim_patterns = [
+        r"(sizin adınıza|adınıza).{0,80}(destek kayd[ıi]|ticket).{0,80}(oluştur|olustur|aç|ac)",
+        r"(destek kayd[ıi]|ticket).{0,80}(oluşturacağım|olusturacagim|oluşturuyorum|olusturuyorum|oluşturdum|olusturdum|açacağım|acacagim|açıyorum|aciyorum|açtım|actim)",
+        r"(destek kayd[ıi]|ticket).{0,80}(oluşturuldu|olusturuldu|açıldı|acildi)",
+        r"(ekibimiz|destek ekibimiz).{0,80}(iletişime geçecek|iletisime gececek|sizinle iletişime|sizinle iletisime)",
+    ]
+    has_unperformed_action_claim = any(
+        re.search(pattern, lowered, flags=re.IGNORECASE)
+        for pattern in action_claim_patterns
+    )
+    if (
+        not cleaned
+        or len(cleaned) > 4000
+        or any(item in lowered for item in forbidden)
+        or has_unperformed_action_claim
+    ):
         return ""
     return cleaned

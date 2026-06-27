@@ -49,6 +49,37 @@ PRODUCT_HINTS = {
     "demlik",
     "saklama",
     "gram",
+    "ürün",
+    "urun",
+}
+
+QUERY_STOPWORDS = {
+    "hakkinda",
+    "hakkında",
+    "bilgi",
+    "ver",
+    "verir",
+    "misin",
+    "mısın",
+    "mi",
+    "mı",
+    "mu",
+    "mü",
+    "bana",
+    "anlat",
+    "anlatsana",
+    "ozellik",
+    "özellik",
+    "ozellikleri",
+    "özellikleri",
+    "detay",
+    "detaylari",
+    "detayları",
+    "nedir",
+    "ne",
+    "kadar",
+    "icin",
+    "için",
 }
 
 SUPPORT_HINTS = {
@@ -214,9 +245,22 @@ def _positive_int(value: object) -> int | None:
 class ProductMatch:
     product: DemoProduct
     score: int
+    reason: str
+
+
+@dataclass(slots=True)
+class ProductMatchResult:
+    products: list[DemoProduct]
+    reason: str
+    score: int
+    explicit_product_mention: bool
+    top_candidates: list[dict]
 
 
 class ProductContextService:
+    def __init__(self) -> None:
+        self._last_product_match = ProductMatchResult([], "not_applicable", 0, False, [])
+
     async def _load_state(
         self, session: AsyncSession, conversation: Conversation | None
     ) -> ConversationState | None:
@@ -324,6 +368,34 @@ class ProductContextService:
         if re.search(r"\bDMO-\d+-\d+\b", normalized, flags=re.IGNORECASE):
             return False
         return any(term in normalized for term in FOLLOWUP_HINTS)
+
+    def _query_tokens(self, query: str) -> list[str]:
+        normalized = _normalize(query)
+        tokens = [
+            token
+            for token in re.split(r"[^\wçğıöşüÇĞİÖŞÜ0-9]+", normalized)
+            if token and token not in QUERY_STOPWORDS and len(token) > 1
+        ]
+        return tokens
+
+    def _product_name_tokens(self, product: DemoProduct) -> list[str]:
+        return [
+            token
+            for token in re.split(r"[^\wçğıöşüÇĞİÖŞÜ0-9]+", _normalize(product.name))
+            if token and token not in QUERY_STOPWORDS
+        ]
+
+    def _candidate_debug(self, scored: list[ProductMatch]) -> list[dict]:
+        return [
+            {
+                "product_id": item.product.id,
+                "sku": item.product.sku,
+                "name": item.product.name,
+                "score": item.score,
+                "reason": item.reason,
+            }
+            for item in scored[:5]
+        ]
 
     async def _product_stats(
         self,
@@ -449,17 +521,24 @@ class ProductContextService:
         query: str,
         selected_product_id: int | None = None,
     ) -> list[DemoProduct]:
+        self._last_product_match = ProductMatchResult([], "not_applicable", 0, False, [])
         statement = select(DemoProduct).where(DemoProduct.is_active.is_(True))
         if selected_product_id is not None:
             statement = statement.where(DemoProduct.id == selected_product_id)
             product = await session.scalar(statement)
+            if product:
+                self._last_product_match = ProductMatchResult(
+                    [product], "trusted_context_match", 100, False, []
+                )
             return [product] if product else []
         normalized = _normalize(query)
-        terms = [term for term in re.split(r"[^\wçğıöşüÇĞİÖŞÜ0-9]+", normalized) if term]
+        terms = self._query_tokens(query)
         if not terms:
+            self._last_product_match = ProductMatchResult([], "no_product_mention", 0, False, [])
             return []
         rows = (await session.scalars(statement)).all()
-        scored: list[ProductMatch] = []
+        explicit_scored: list[ProductMatch] = []
+        weak_scored: list[ProductMatch] = []
         for product in rows:
             name_haystack = _normalize(product.name)
             sku_haystack = _normalize(product.sku)
@@ -478,32 +557,108 @@ class ProductContextService:
                     ]
                 )
             )
-            name_tokens = [
-                token
-                for token in re.split(r"[^\wçğıöşüÇĞİÖŞÜ0-9]+", name_haystack)
-                if token
-            ]
+            name_tokens = self._product_name_tokens(product)
             haystack_tokens = [
                 token
                 for token in re.split(r"[^\wçğıöşüÇĞİÖŞÜ0-9]+", haystack)
                 if token
             ]
             score = 0
-            if sku_haystack and sku_haystack in _normalize(query):
-                score += 100
-            if name_haystack and (
-                name_haystack in _normalize(query) or _normalize(query) in name_haystack
-            ):
-                score += 80
-            for term in terms:
-                if term and any(_token_matches(term, token) for token in name_tokens):
-                    score += 10
-                elif term and any(_token_matches(term, token) for token in haystack_tokens):
-                    score += 1
+            reason = ""
+            if sku_haystack and sku_haystack in normalized:
+                score = 130
+                reason = "sku_contains"
+            elif name_haystack and name_haystack in normalized:
+                score = 120
+                reason = "name_contains"
+            elif name_haystack and normalized == name_haystack:
+                score = 120
+                reason = "name_exact"
+            else:
+                matched_name_tokens = [
+                    token
+                    for token in name_tokens
+                    if any(_token_matches(term, token) for term in terms)
+                ]
+                coverage = len(set(matched_name_tokens)) / len(set(name_tokens)) if name_tokens else 0
+                numeric_bonus = sum(
+                    12
+                    for token in name_tokens
+                    if any(char.isdigit() for char in token)
+                    and any(_token_matches(term, token) for term in terms)
+                )
+                if coverage >= 0.75 and matched_name_tokens:
+                    score = int(coverage * 90) + numeric_bonus
+                    reason = "name_token_coverage"
             if score:
-                scored.append(ProductMatch(product=product, score=score))
-        scored.sort(key=lambda item: (-item.score, item.product.category, item.product.name))
-        return [item.product for item in scored[:1]]
+                explicit_scored.append(ProductMatch(product=product, score=score, reason=reason))
+                continue
+
+            weak_score = 0
+            for term in terms:
+                if term and any(_token_matches(term, token) for token in haystack_tokens):
+                    weak_score += 1
+            if weak_score >= 2:
+                weak_scored.append(
+                    ProductMatch(product=product, score=weak_score, reason="weak_haystack")
+                )
+
+        explicit_scored.sort(
+            key=lambda item: (-item.score, item.product.category, item.product.name)
+        )
+        if explicit_scored:
+            top_score = explicit_scored[0].score
+            close = [item for item in explicit_scored if top_score - item.score <= 8]
+            if len(close) > 1:
+                self._last_product_match = ProductMatchResult(
+                    [],
+                    "ambiguous_catalog_match",
+                    top_score,
+                    True,
+                    self._candidate_debug(close),
+                )
+                return []
+            self._last_product_match = ProductMatchResult(
+                [explicit_scored[0].product],
+                "explicit_catalog_match",
+                explicit_scored[0].score,
+                True,
+                self._candidate_debug(explicit_scored),
+            )
+            return [explicit_scored[0].product]
+
+        weak_scored.sort(key=lambda item: (-item.score, item.product.category, item.product.name))
+        if weak_scored:
+            top_score = weak_scored[0].score
+            close = [item for item in weak_scored if top_score - item.score <= 1]
+            if len(close) > 1:
+                self._last_product_match = ProductMatchResult(
+                    [],
+                    "ambiguous_weak_match",
+                    top_score,
+                    False,
+                    self._candidate_debug(close),
+                )
+                return []
+            if top_score < 3:
+                self._last_product_match = ProductMatchResult(
+                    [], "no_catalog_match", 0, bool(terms), self._candidate_debug(weak_scored)
+                )
+                return []
+            self._last_product_match = ProductMatchResult(
+                [weak_scored[0].product],
+                "weak_catalog_match",
+                weak_scored[0].score,
+                False,
+                self._candidate_debug(weak_scored),
+            )
+            return [weak_scored[0].product]
+
+        candidates = explicit_scored or weak_scored
+        self._last_product_match = ProductMatchResult(
+            [], "no_catalog_match", 0, bool(terms), self._candidate_debug(candidates)
+        )
+        return []
 
     async def _selected_orders(
         self,
@@ -661,7 +816,9 @@ class ProductContextService:
             "return_refund_mixed",
             "followup_resolved",
         }
-        selected_product_id = current_product_id or (state.last_product_id if state else None)
+        selected_product_id = current_product_id or (
+            state.last_product_id if state and is_followup else None
+        )
         selected_order_id = current_order_id or (state.last_order_id if state and is_followup else None)
         selected_cart_id = current_cart_id or (state.last_cart_id if state and is_followup else None)
         selected_return_id = current_return_id or (state.last_return_id if state and is_followup else None)
@@ -679,21 +836,42 @@ class ProductContextService:
         returns: list[DemoReturnRequest] = []
         selected_payment: DemoPaymentAttempt | None = None
         product_match_reason = "not_applicable"
+        product_match_score = 0
+        explicit_product_mention = False
+        top_candidates: list[dict] = []
 
         if route_mode in product_context_modes:
             selected_products = await self._selected_products(session, user, canonical_query)
+            match_result = self._last_product_match
+            product_match_reason = match_result.reason
+            product_match_score = match_result.score
+            explicit_product_mention = match_result.explicit_product_mention
+            top_candidates = match_result.top_candidates
             if selected_products:
-                product_match_reason = "catalog_match"
-            elif selected_product_id is not None:
+                product_match_reason = match_result.reason
+            elif selected_product_id is not None and not explicit_product_mention:
                 selected_products = await self._selected_products(
                     session, user, canonical_query, selected_product_id=selected_product_id
                 )
                 if selected_products:
+                    match_result = self._last_product_match
                     product_match_reason = (
                         "frontend_context" if current_product_id else "followup_state"
                     )
+                    product_match_score = match_result.score
+                    top_candidates = match_result.top_candidates
             elif route_mode == "product_only":
-                product_match_reason = "clarification_needed"
+                product_match_reason = (
+                    product_match_reason
+                    if product_match_reason
+                    in {
+                        "ambiguous_catalog_match",
+                        "ambiguous_weak_match",
+                        "no_catalog_match",
+                        "no_product_mention",
+                    }
+                    else "clarification_needed"
+                )
 
             if route_mode == "order_product_mixed" or selected_order_id or selected_order_no:
                 selected_orders = await self._selected_orders(
@@ -881,6 +1059,9 @@ class ProductContextService:
             "text": "\n".join(part for part in text_parts if part.strip()),
             "decision_hints": decision_hints,
             "product_match_reason": product_match_reason,
+            "product_match_score": product_match_score,
+            "explicit_product_mention": explicit_product_mention,
+            "top_candidates": top_candidates,
             "selected_counts": {
                 "products": len(selected_products),
                 "orders": len(selected_orders),

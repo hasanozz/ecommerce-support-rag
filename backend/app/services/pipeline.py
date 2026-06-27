@@ -204,6 +204,18 @@ class SupportPipeline:
             if str(item).strip()
         ]
         route_mode = product_context.get("route_mode", "")
+        product_match_reason = product_context.get("product_match_reason", "")
+        if product_match_reason in {"ambiguous_catalog_match", "ambiguous_weak_match"}:
+            names = [
+                str(item.get("name", "")).strip()
+                for item in product_context.get("top_candidates", [])[:3]
+                if str(item.get("name", "")).strip()
+            ]
+            if len(names) >= 2:
+                return f"{' mi, '.join(names)} mi? Hangi ürünü kastettiğinizi seçer misiniz?"
+            return "Bu ürün için birden fazla benzer kayıt buldum. Ürün adını biraz daha net yazar mısınız?"
+        if product_match_reason in {"no_catalog_match", "no_product_mention", "clarification_needed"} and route_mode == "product_only":
+            return "Bu ürünle eşleşen net bir kayıt bulamadım. Ürün adını biraz daha açık yazar mısınız?"
         if formatted_products and (
             not route_mode or route_mode in {"product_only", "review_favorite_mixed"}
         ):
@@ -485,6 +497,9 @@ class SupportPipeline:
                 "route_mode": route_mode,
                 "context_type": product_context.get("context_type"),
                 "product_match_reason": product_context.get("product_match_reason", ""),
+                "product_match_score": product_context.get("product_match_score", 0),
+                "explicit_product_mention": product_context.get("explicit_product_mention", False),
+                "top_candidates": product_context.get("top_candidates", []),
                 "selected_counts": product_context.get("selected_counts", {}),
                 "item_count": len(product_context.get("items", [])),
                 "decision_hint_count": len(product_context.get("decision_hints", [])),

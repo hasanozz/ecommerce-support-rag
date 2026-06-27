@@ -121,7 +121,6 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
     service = ProductContextService()
     session = AsyncMock()
     session.scalar = AsyncMock(return_value=None)
-    session.scalars = AsyncMock(return_value=SimpleNamespace(all=lambda: []))
     user = SimpleNamespace(id=1)
     blender = SimpleNamespace(
         id=11,
@@ -136,6 +135,7 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
         returnable=True,
         warranty_months=24,
         description="Günlük kullanım için güçlü blender.",
+        search_text="Blender mutfak küçük ev aleti",
         ai_context="1000 W motor gücü ve cam hazne sunar.",
         attributes={"guc_watt": "1000", "hazne_litre": "1.5", "mikrofon": False},
         tags=["mutfak", "blender"],
@@ -153,13 +153,34 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
         returnable=True,
         warranty_months=12,
         description="Günlük kullanım için kablosuz kulaklık.",
+        search_text="Kablosuz kulaklık bluetooth mikrofon",
         ai_context="Uzun pil ömrü ve mikrofon desteği sunar.",
         attributes={"pil_suresi_saat": "20", "mikrofon": True},
         tags=["ses", "kulaklık"],
     )
+    backpack = SimpleNamespace(
+        id=13,
+        sku="BAGS-BACKPACK-001",
+        name="Sırt Çantası",
+        brand="DemoBag",
+        category="bags",
+        subcategory="backpack",
+        price=Decimal("599.90"),
+        currency="TRY",
+        stock=30,
+        returnable=True,
+        warranty_months=12,
+        description="Laptop bölmeli sırt çantası.",
+        search_text="Sırt çantası laptop ofis",
+        ai_context="Laptop bölmesi ve suya dayanıklı kumaş sunar.",
+        attributes={"laptop_bolmesi": True, "suya_dayanikli": True},
+        tags=["sirt_cantasi", "laptop", "ofis"],
+    )
 
-    service._selected_products = AsyncMock(side_effect=[[blender], [headphone]])
     service._product_stats = AsyncMock(return_value={11: {}, 12: {}})
+    session.scalars = AsyncMock(
+        return_value=SimpleNamespace(all=lambda: [backpack, blender, headphone])
+    )
 
     blender_ctx = await service.build(
         session,
@@ -168,7 +189,7 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
         "blenderin özelliklerini anlatsana bana",
     )
     assert blender_ctx["route_mode"] == "product_only"
-    assert blender_ctx["product_match_reason"] == "catalog_match"
+    assert blender_ctx["product_match_reason"] == "explicit_catalog_match"
     assert blender_ctx["primary_product"]["name"] == "Blender"
     assert "Sırt Çantası" not in blender_ctx["text"]
     assert "Blender" in blender_ctx["text"]
@@ -183,8 +204,11 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
     assert headphone_ctx["primary_product"]["name"] == "Kablosuz Kulaklık"
     assert "Sırt Çantası" not in headphone_ctx["text"]
 
+    support_session = AsyncMock()
+    support_session.scalar = AsyncMock(return_value=None)
+    support_session.scalars = AsyncMock(return_value=SimpleNamespace(all=lambda: []))
     support_ctx = await service.build(
-        session,
+        support_session,
         user,
         "ODEME",
         "Kartımdan para çekildi ama siparişim oluşmadı.",
@@ -192,3 +216,146 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
     assert support_ctx["route_mode"] == "payment_account_mixed"
     assert support_ctx["selected_product_ids"] == []
     assert "Sırt Çantası" not in support_ctx["text"]
+
+
+@pytest.mark.asyncio
+async def test_product_context_does_not_let_state_or_page_override_explicit_product_name():
+    service = ProductContextService()
+    session = AsyncMock()
+    session.scalar = AsyncMock(return_value=None)
+    user = SimpleNamespace(id=1)
+    backpack = SimpleNamespace(
+        id=13,
+        sku="BAGS-BACKPACK-001",
+        name="Sırt Çantası",
+        brand="DemoBag",
+        category="bags",
+        subcategory="backpack",
+        price=Decimal("599.90"),
+        currency="TRY",
+        stock=30,
+        returnable=True,
+        warranty_months=12,
+        description="Laptop bölmeli sırt çantası.",
+        search_text="Sırt çantası laptop ofis",
+        ai_context="Laptop bölmesi ve suya dayanıklı kumaş sunar.",
+        attributes={"laptop_bolmesi": True},
+        tags=["sirt_cantasi", "laptop"],
+    )
+    filter_coffee = SimpleNamespace(
+        id=21,
+        sku="COFFEE-FILTRE-250",
+        name="Filtre Kahve 250g",
+        brand="Demo Kahve",
+        category="coffee_equipment",
+        subcategory="coffee",
+        price=Decimal("169.90"),
+        currency="TRY",
+        stock=60,
+        returnable=True,
+        warranty_months=None,
+        description="Filtre kahve makineleri ve dripper için orta öğütülmüş kahve.",
+        search_text="Filtre Kahve 250g gramaj orta öğütüm",
+        ai_context="250g orta öğütülmüş filtre kahve.",
+        attributes={"gramaj": "250g", "ogutum": "orta"},
+        tags=["filtre_kahve", "kahve"],
+    )
+    coffee_machine = SimpleNamespace(
+        id=22,
+        sku="COFFEE-MACHINE-FILTER-001",
+        name="Filtre Kahve Makinesi",
+        brand="DemoTech",
+        category="electronics",
+        subcategory="coffee_machine",
+        price=Decimal("2199.90"),
+        currency="TRY",
+        stock=8,
+        returnable=True,
+        warranty_months=24,
+        description="Zamanlayıcılı cam sürahili filtre kahve makinesi.",
+        search_text="Filtre Kahve Makinesi elektronik",
+        ai_context="900 W filtre kahve makinesi.",
+        attributes={"guc_watt": 900},
+        tags=["filtre_kahve", "kahve_makinesi"],
+    )
+    session.scalars = AsyncMock(
+        return_value=SimpleNamespace(all=lambda: [backpack, filter_coffee, coffee_machine])
+    )
+    service._product_stats = AsyncMock(return_value={21: {}})
+
+    ctx = await service.build(
+        session,
+        user,
+        "GENEL_DESTEK",
+        "Filtre Kahve 250g hakkında bilgi verir misin?",
+        frontend_context={"current_product_id": 13, "page_context": "product"},
+    )
+
+    assert ctx["product_match_reason"] == "explicit_catalog_match"
+    assert ctx["primary_product"]["name"] == "Filtre Kahve 250g"
+    assert ctx["selected_product_ids"] == [21]
+    assert "Sırt Çantası" not in ctx["text"]
+
+
+@pytest.mark.asyncio
+async def test_product_context_asks_clarification_for_unknown_or_ambiguous_products():
+    service = ProductContextService()
+    session = AsyncMock()
+    session.scalar = AsyncMock(return_value=None)
+    user = SimpleNamespace(id=1)
+    filter_coffee = SimpleNamespace(
+        id=21,
+        sku="COFFEE-FILTRE-250",
+        name="Filtre Kahve 250g",
+        brand="Demo Kahve",
+        category="coffee_equipment",
+        subcategory="coffee",
+        price=Decimal("169.90"),
+        currency="TRY",
+        stock=60,
+        returnable=True,
+        warranty_months=None,
+        description="Filtre kahve.",
+        search_text="Filtre Kahve 250g",
+        ai_context="250g filtre kahve.",
+        attributes={"gramaj": "250g"},
+        tags=["filtre_kahve", "kahve"],
+    )
+    coffee_machine = SimpleNamespace(
+        id=22,
+        sku="COFFEE-MACHINE-FILTER-001",
+        name="Filtre Kahve Makinesi",
+        brand="DemoTech",
+        category="electronics",
+        subcategory="coffee_machine",
+        price=Decimal("2199.90"),
+        currency="TRY",
+        stock=8,
+        returnable=True,
+        warranty_months=24,
+        description="Filtre kahve makinesi.",
+        search_text="Filtre Kahve Makinesi",
+        ai_context="Kahve makinesi.",
+        attributes={"guc_watt": 900},
+        tags=["filtre_kahve", "kahve_makinesi"],
+    )
+    session.scalars = AsyncMock(
+        return_value=SimpleNamespace(all=lambda: [filter_coffee, coffee_machine])
+    )
+    service._product_stats = AsyncMock(return_value={})
+
+    ambiguous = await service.build(
+        session, user, "GENEL_DESTEK", "Filtre kahve hakkında bilgi verir misin?"
+    )
+    assert ambiguous["selected_product_ids"] == []
+    assert ambiguous["product_match_reason"] == "ambiguous_weak_match"
+    assert {item["name"] for item in ambiguous["top_candidates"]} == {
+        "Filtre Kahve 250g",
+        "Filtre Kahve Makinesi",
+    }
+
+    unknown = await service.build(
+        session, user, "GENEL_DESTEK", "xyz ürün hakkında bilgi ver"
+    )
+    assert unknown["selected_product_ids"] == []
+    assert unknown["product_match_reason"] == "no_catalog_match"
