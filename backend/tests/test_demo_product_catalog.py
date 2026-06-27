@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from backend.app.schemas.conversation import MessageCreate
 from backend.app.schemas.demo_commerce import DemoProductReviewUpsert
 from backend.app.services.demo_seed import (
     build_product_ai_context,
@@ -72,6 +73,21 @@ def test_review_rating_contract_allows_null_zero_and_five():
         DemoProductReviewUpsert(rating=-1)
     with pytest.raises(ValidationError):
         DemoProductReviewUpsert(rating=6)
+
+
+def test_message_create_accepts_optional_frontend_context():
+    payload = MessageCreate(
+        message="Bu ürün iade edilebilir mi?",
+        current_product_id=12,
+        current_order_id=3,
+        current_cart_id=1,
+        current_return_id=2,
+        current_payment_id=4,
+        page_context="product",
+    )
+
+    assert payload.current_product_id == 12
+    assert payload.page_context == "product"
 
 
 def test_product_search_and_ai_context_include_attributes_without_float_prices():
@@ -145,8 +161,8 @@ async def test_product_context_prefers_explicit_catalog_matches_and_ignores_supp
             'ODEME',
             'Kartımdan para çekildi ama siparişim oluşmadı.',
         )
-        assert support_ctx['route_mode'] == 'support_only'
+        assert support_ctx['route_mode'] == 'payment_account_mixed'
         assert support_ctx['selected_product_ids'] == []
-        assert support_ctx['text'] == ''
+        assert 'Sırt Çantası' not in support_ctx['text']
 
     await engine.dispose()

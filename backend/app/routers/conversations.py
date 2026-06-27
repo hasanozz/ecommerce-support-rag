@@ -140,8 +140,24 @@ async def send_message(
     )
     safe_query = sanitize_query(payload.message, settings)
     conversation = await owned_conversation(session, conversation_id, user.id)
+    frontend_context = payload.model_dump(
+        include={
+            "current_product_id",
+            "current_order_id",
+            "current_cart_id",
+            "current_return_id",
+            "current_payment_id",
+            "page_context",
+        },
+        exclude_none=True,
+    )
     assistant, canonical, grouped, similar, classification = await SupportPipeline(settings).run(
-        session, conversation, user, safe_query, ip_hash
+        session,
+        conversation,
+        user,
+        safe_query,
+        ip_hash,
+        frontend_context=frontend_context,
     )
     return AssistantAnswerResponse(
         assistant_message_id=assistant.id,

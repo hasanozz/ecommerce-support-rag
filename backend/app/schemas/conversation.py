@@ -12,6 +12,23 @@ class ConversationCreate(BaseModel):
 
 class MessageCreate(BaseModel):
     message: str = Field(min_length=1, max_length=1000)
+    current_product_id: int | None = Field(default=None, ge=1)
+    current_order_id: int | None = Field(default=None, ge=1)
+    current_cart_id: int | None = Field(default=None, ge=1)
+    current_return_id: int | None = Field(default=None, ge=1)
+    current_payment_id: int | None = Field(default=None, ge=1)
+    page_context: Literal[
+        "shop",
+        "product",
+        "cart",
+        "orders",
+        "returns",
+        "favorites",
+        "tickets",
+        "history",
+        "admin",
+        "admin-demo",
+    ] | None = None
 
 
 class SourceResponse(BaseModel):

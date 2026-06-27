@@ -395,7 +395,7 @@ function scenarioCards() {
       <span>İptal / kargo</span>
       <strong>${esc(shipped?.order_no || "Kargoya verilen sipariş")}</strong>
       <p>${shipped ? `${orderProducts(shipped)} · ${demoStatusLabel(shipped.shipping_status)}` : "Demo senaryo oluşturunca kargoya verilmiş sipariş burada görünür."}</p>
-      <button data-chat-prompt="Kargoya verilen siparişimi iptal edebilir miyim?">${icons.chat} Copilot'a sor</button>
+      <button data-chat-prompt="Kargoya verilen siparişimi iptal edebilir miyim?" data-current-order-id="${shipped?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
     </article>
     <article class="scenario-card">
       <span>İade süreci</span>
@@ -407,7 +407,7 @@ function scenarioCards() {
       <span>Teslimat sorunu</span>
       <strong>${esc(delivered?.order_no || "Teslim edildi görünüyor")}</strong>
       <p>${delivered ? `${orderProducts(delivered)} · ${demoStatusLabel(delivered.shipping_status)}` : "Teslim edildi ama ulaşmadı senaryosunu Copilot'a anlatabilirsin."}</p>
-      <button data-chat-prompt="Kargom teslim edildi görünüyor ama bana ulaşmadı.">${icons.chat} Copilot'a sor</button>
+      <button data-chat-prompt="Kargom teslim edildi görünüyor ama bana ulaşmadı." data-current-order-id="${delivered?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
     </article>
     <article class="scenario-card">
       <span>Ödeme</span>
@@ -734,12 +734,12 @@ function demoOrdersPage(admin = false) {
       ${item.return_request ? `<div class="shipment-box"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
         <p>${esc(item.return_request.return_status)} · ${esc(item.return_request.refund_status)}</p>
         <p>${esc(item.return_request.return_reason || "")}</p>
-        <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}">${icons.chat} Copilot'a sor</button></div>` : ""}
+        <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button></div>` : ""}
       <div class="order-flow-actions">
         ${item.return_request ? `<span class="status-chip">İade talebi açıldı</span>`
           : canRequestReturn(item) ? `<button class="primary-button" data-create-return="${item.id}">${icons.box} İade talebi oluştur</button>`
           : `<span class="status-chip">İade için uygun değil</span>`}
-        <button data-chat-prompt="${esc(`${item.order_no} siparişimdeki ürün için iade süreci nasıl olur?`)}">${icons.chat} Copilot'a sor</button>
+        <button data-chat-prompt="${esc(`${item.order_no} siparişimdeki ürün için iade süreci nasıl olur?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
       </div>
       ${item.admin_note ? `<div class="ticket-note admin-note"><small>Admin notu</small><p>${esc(item.admin_note)}</p></div>` : ""}
       ${admin && state.editingDemoOrderId === item.id ? `<div class="admin-demo-editor">
@@ -852,7 +852,36 @@ async function refreshContext(content) {
   }
 }
 
-async function sendMessage(text) {
+function positiveId(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : undefined;
+}
+
+function activeChatContext(extra = {}) {
+  const base = {
+    page_context: state.productDetail ? "product" : state.page,
+    current_product_id: state.productDetail?.id,
+    current_cart_id: state.page === "shop" ? state.cart?.id : undefined
+  };
+  return Object.fromEntries(
+    Object.entries({ ...base, ...extra }).filter(([, value]) =>
+      value !== undefined && value !== null && value !== ""
+    )
+  );
+}
+
+function chatContextFromDataset(dataset) {
+  return activeChatContext({
+    current_product_id: positiveId(dataset.currentProductId),
+    current_order_id: positiveId(dataset.currentOrderId),
+    current_cart_id: positiveId(dataset.currentCartId),
+    current_return_id: positiveId(dataset.currentReturnId),
+    current_payment_id: positiveId(dataset.currentPaymentId),
+    page_context: dataset.pageContext
+  });
+}
+
+async function sendMessage(text, context = {}) {
   const content = text.trim();
   if (!content || state.loading) return;
   state.messages.push({ role: "USER", content });
@@ -862,7 +891,7 @@ async function sendMessage(text) {
   try {
     const id = await ensureConversation();
     const result = await api(`${API}/conversations/${id}/messages`, {
-      method: "POST", body: JSON.stringify({ message: content })
+      method: "POST", body: JSON.stringify({ message: content, ...activeChatContext(context) })
     });
     state.messages.push({
       id: result.assistant_message_id, role: "ASSISTANT", content: result.answer,
@@ -1023,7 +1052,7 @@ function bind() {
     node.addEventListener("click", async event => {
       event.stopPropagation();
       state.copilotOpen = true;
-      await sendMessage(node.dataset.chatPrompt);
+      await sendMessage(node.dataset.chatPrompt, chatContextFromDataset(node.dataset));
     }));
   document.querySelector("[data-action='logout']")?.addEventListener("click", async () => {
     await api("/auth/logout", { method: "POST" }); location.reload();
@@ -1071,7 +1100,10 @@ function bind() {
     state.copilotOpen = true;
     const product = state.productDetail;
     if (product) {
-      await sendMessage(`${product.name} hakkında bilgi verir misin?`);
+      await sendMessage(`${product.name} hakkında bilgi verir misin?`, {
+        current_product_id: product.id,
+        page_context: "product"
+      });
     }
   });
   document.querySelector("[data-action='context']")?.addEventListener("click", () => {

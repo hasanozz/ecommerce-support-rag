@@ -17,6 +17,7 @@ from ..models import (
     DemoCoupon,
     DemoOrder,
     DemoOrderItem,
+    DemoPaymentAttempt,
     DemoProduct,
     DemoProductFavorite,
     DemoProductReview,
@@ -201,6 +202,14 @@ def _clean_dict(value: dict | None) -> dict:
     return value or {}
 
 
+def _positive_int(value: object) -> int | None:
+    try:
+        number = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
 @dataclass(slots=True)
 class ProductMatch:
     product: DemoProduct
@@ -230,8 +239,11 @@ class ProductContextService:
         last_order_id: int | None = None,
         last_order_no: str = "",
         last_return_id: int | None = None,
+        last_cart_id: int | None = None,
+        last_payment_id: int | None = None,
         last_intent: str = "",
         last_action: str = "",
+        last_suggested_action: str = "",
         last_mentioned_product_ids: list[int] | None = None,
         last_mentioned_order_ids: list[int] | None = None,
         state_metadata: dict | None = None,
@@ -254,10 +266,16 @@ class ProductContextService:
             state.last_order_no = last_order_no
         if last_return_id is not None:
             state.last_return_id = last_return_id
+        if last_cart_id is not None:
+            state.last_cart_id = last_cart_id
+        if last_payment_id is not None:
+            state.last_payment_id = last_payment_id
         if last_intent:
             state.last_intent = last_intent
         if last_action:
             state.last_action = last_action
+        if last_suggested_action:
+            state.last_suggested_action = last_suggested_action
         if last_mentioned_product_ids is not None:
             state.last_mentioned_product_ids = last_mentioned_product_ids
         if last_mentioned_order_ids is not None:
@@ -277,6 +295,8 @@ class ProductContextService:
             return "review_favorite_mixed" if has_support else "product_only"
         if "kupon" in query or "sepet" in query or "kampanya" in query:
             return "cart_coupon_mixed"
+        if "kart" in query or "cüzdan" in query or "wallet" in query or "bakiye" in query:
+            return "product_support_mixed" if has_product else "payment_account_mixed"
         if ("iade" in query or "return" in query or "refund" in query) and "kod" in query:
             return "return_refund_mixed"
         if "iade" in query or "refund" in query or "return" in query:
@@ -491,6 +511,7 @@ class ProductContextService:
         user: User,
         query: str,
         selected_order_no: str | None = None,
+        selected_order_id: int | None = None,
     ) -> list[DemoOrder]:
         statement = (
             select(DemoOrder)
@@ -502,7 +523,9 @@ class ProductContextService:
             .where(DemoOrder.user_id == user.id)
             .order_by(DemoOrder.updated_at.desc())
         )
-        if selected_order_no:
+        if selected_order_id is not None:
+            statement = statement.where(DemoOrder.id == selected_order_id)
+        elif selected_order_no:
             statement = statement.where(DemoOrder.order_no == selected_order_no)
         elif match := re.search(r"\bDMO-\d+-\d+\b", query, flags=re.IGNORECASE):
             statement = statement.where(DemoOrder.order_no == match.group(0).upper())
@@ -539,12 +562,58 @@ class ProductContextService:
             f"kategori={coupon.allowed_category or 'tümü'}; sepet={cart.total}"
         )
 
-    async def _active_cart(self, session: AsyncSession, user: User) -> DemoCart | None:
-        return await session.scalar(
+    async def _active_cart(
+        self, session: AsyncSession, user: User, selected_cart_id: int | None = None
+    ) -> DemoCart | None:
+        statement = (
             select(DemoCart)
             .options(selectinload(DemoCart.items).selectinload(DemoCartItem.product))
             .where(DemoCart.user_id == user.id, DemoCart.status == "ACTIVE")
             .order_by(DemoCart.id.desc())
+        )
+        if selected_cart_id is not None:
+            statement = statement.where(DemoCart.id == selected_cart_id)
+        return await session.scalar(statement)
+
+    async def _selected_returns(
+        self,
+        session: AsyncSession,
+        user: User,
+        *,
+        selected_return_id: int | None = None,
+        selected_order_id: int | None = None,
+        limit: int = 2,
+    ) -> list[DemoReturnRequest]:
+        statement = (
+            select(DemoReturnRequest)
+            .options(
+                selectinload(DemoReturnRequest.refund),
+                selectinload(DemoReturnRequest.order),
+            )
+            .where(DemoReturnRequest.user_id == user.id)
+            .order_by(DemoReturnRequest.updated_at.desc())
+        )
+        if selected_return_id is not None:
+            statement = statement.where(DemoReturnRequest.id == selected_return_id)
+        elif selected_order_id is not None:
+            statement = statement.where(DemoReturnRequest.order_id == selected_order_id)
+        else:
+            statement = statement.limit(limit)
+        return (await session.scalars(statement)).all()
+
+    async def _selected_payment(
+        self,
+        session: AsyncSession,
+        user: User,
+        selected_payment_id: int | None = None,
+    ) -> DemoPaymentAttempt | None:
+        if selected_payment_id is None:
+            return None
+        return await session.scalar(
+            select(DemoPaymentAttempt).where(
+                DemoPaymentAttempt.user_id == user.id,
+                DemoPaymentAttempt.id == selected_payment_id,
+            )
         )
 
     async def build(
@@ -556,10 +625,31 @@ class ProductContextService:
         *,
         conversation: Conversation | None = None,
         selected_order_no: str | None = None,
+        frontend_context: dict | None = None,
     ) -> dict:
         state = await self._load_state(session, conversation)
+        frontend_context = frontend_context or {}
+        current_product_id = _positive_int(frontend_context.get("current_product_id"))
+        current_order_id = _positive_int(frontend_context.get("current_order_id"))
+        current_cart_id = _positive_int(frontend_context.get("current_cart_id"))
+        current_return_id = _positive_int(frontend_context.get("current_return_id"))
+        current_payment_id = _positive_int(frontend_context.get("current_payment_id"))
+        page_context = str(frontend_context.get("page_context") or "").strip()
         route_mode = self._detect_route_mode(category, canonical_query)
-        if state and self._looks_like_followup(canonical_query):
+        is_followup = self._looks_like_followup(canonical_query)
+        if page_context == "product" and current_product_id and route_mode in {
+            "fallback_unclear",
+            "support_only",
+            "product_only",
+        }:
+            route_mode = "product_only"
+        if page_context == "cart" and route_mode in {"fallback_unclear", "support_only"}:
+            route_mode = "cart_coupon_mixed"
+        if page_context == "returns" and route_mode in {"fallback_unclear", "support_only"}:
+            route_mode = "return_refund_mixed"
+        if current_order_id and route_mode in {"fallback_unclear", "support_only"} and is_followup:
+            route_mode = "order_product_mixed"
+        if state and is_followup:
             if route_mode in {"support_only", "product_only", "fallback_unclear"}:
                 route_mode = "followup_resolved"
         product_context_modes = {
@@ -567,9 +657,17 @@ class ProductContextService:
             "product_support_mixed",
             "review_favorite_mixed",
             "cart_coupon_mixed",
+            "order_product_mixed",
+            "return_refund_mixed",
             "followup_resolved",
         }
-        selected_product_id = state.last_product_id if state else None
+        selected_product_id = current_product_id or (state.last_product_id if state else None)
+        selected_order_id = current_order_id or (state.last_order_id if state and is_followup else None)
+        selected_cart_id = current_cart_id or (state.last_cart_id if state and is_followup else None)
+        selected_return_id = current_return_id or (state.last_return_id if state and is_followup else None)
+        selected_payment_id = current_payment_id or (
+            state.last_payment_id if state and is_followup else None
+        )
         selected_order_no = selected_order_no or (state.last_order_no if state else None)
         selected_products: list[DemoProduct] = []
         selected_orders: list[DemoOrder] = []
@@ -579,41 +677,55 @@ class ProductContextService:
         security: DemoUserSecurityProfile | None = None
         saved_cards: list[DemoSavedCard] = []
         returns: list[DemoReturnRequest] = []
+        selected_payment: DemoPaymentAttempt | None = None
         product_match_reason = "not_applicable"
 
         if route_mode in product_context_modes:
             selected_products = await self._selected_products(session, user, canonical_query)
             if selected_products:
                 product_match_reason = "catalog_match"
-            elif route_mode == "followup_resolved" and selected_product_id is not None:
+            elif selected_product_id is not None:
                 selected_products = await self._selected_products(
                     session, user, canonical_query, selected_product_id=selected_product_id
                 )
                 if selected_products:
-                    product_match_reason = "followup_state"
+                    product_match_reason = (
+                        "frontend_context" if current_product_id else "followup_state"
+                    )
             elif route_mode == "product_only":
                 product_match_reason = "clarification_needed"
 
-            if route_mode in {
-                "product_support_mixed",
-                "review_favorite_mixed",
-                "cart_coupon_mixed",
-            }:
+            if route_mode == "order_product_mixed" or selected_order_id or selected_order_no:
                 selected_orders = await self._selected_orders(
-                    session, user, canonical_query, selected_order_no=selected_order_no
+                    session,
+                    user,
+                    canonical_query,
+                    selected_order_no=selected_order_no,
+                    selected_order_id=selected_order_id,
                 )
-                cart = await self._active_cart(session, user)
+            elif route_mode == "return_refund_mixed" and selected_order_id:
+                selected_orders = await self._selected_orders(
+                    session,
+                    user,
+                    canonical_query,
+                    selected_order_id=selected_order_id,
+                )
+            if route_mode == "cart_coupon_mixed" or selected_cart_id:
+                cart = await self._active_cart(session, user, selected_cart_id)
                 if cart and cart.coupon_code:
                     coupon = await session.scalar(
                         select(DemoCoupon).where(DemoCoupon.code == cart.coupon_code)
                     )
+            if route_mode == "return_refund_mixed" or selected_return_id:
+                returns = await self._selected_returns(
+                    session,
+                    user,
+                    selected_return_id=selected_return_id,
+                    selected_order_id=selected_order_id,
+                )
+            if route_mode in {"payment_account_mixed", "cart_coupon_mixed"}:
                 wallet = await session.scalar(
                     select(DemoWallet).where(DemoWallet.user_id == user.id)
-                )
-                security = await session.scalar(
-                    select(DemoUserSecurityProfile).where(
-                        DemoUserSecurityProfile.user_id == user.id
-                    )
                 )
                 saved_cards = (
                     await session.scalars(
@@ -628,15 +740,33 @@ class ProductContextService:
                         )
                     )
                 ).all()
-                returns = (
-                    await session.scalars(
-                        select(DemoReturnRequest)
-                        .options(selectinload(DemoReturnRequest.refund))
-                        .where(DemoReturnRequest.user_id == user.id)
-                        .order_by(DemoReturnRequest.updated_at.desc())
-                        .limit(3)
+            selected_payment = await self._selected_payment(
+                session, user, selected_payment_id
+            )
+        if route_mode == "payment_account_mixed":
+            wallet = await session.scalar(
+                select(DemoWallet).where(DemoWallet.user_id == user.id)
+            )
+            saved_cards = (
+                await session.scalars(
+                    select(DemoSavedCard)
+                    .where(
+                        DemoSavedCard.user_id == user.id,
+                        DemoSavedCard.is_active.is_(True),
                     )
-                ).all()
+                    .order_by(
+                        DemoSavedCard.is_default.desc(),
+                        DemoSavedCard.created_at.desc(),
+                    )
+                )
+            ).all()
+            selected_payment = await self._selected_payment(session, user, selected_payment_id)
+        if category == "HESAP_GUVENLIK" or "güvenlik" in _normalize(canonical_query):
+            security = await session.scalar(
+                select(DemoUserSecurityProfile).where(
+                    DemoUserSecurityProfile.user_id == user.id
+                )
+            )
 
         product_stats = await self._product_stats(session, [p.id for p in selected_products], user)
         product_lines = [
@@ -657,6 +787,17 @@ class ProductContextService:
                     if refund
                     else ""
                 )
+            )
+        payment_lines = []
+        if selected_payment:
+            linked = (
+                f"sipariş={selected_payment.order_id}"
+                if selected_payment.order_id
+                else "siparişe bağlı değil"
+            )
+            payment_lines.append(
+                f"Ödeme {selected_payment.provider_reference}: durum={selected_payment.status}; "
+                f"tutar={selected_payment.amount}; {linked}; sebep={selected_payment.failure_reason or '-'}"
             )
 
         decision_hints: list[str] = []
@@ -704,6 +845,9 @@ class ProductContextService:
         if returns:
             text_parts.append("İADE / REFUND BAĞLAMI:")
             text_parts.extend(return_lines)
+        if payment_lines:
+            text_parts.append("ÖDEME BAĞLAMI:")
+            text_parts.extend(payment_lines)
         if cart:
             cart_product_names = ", ".join(
                 item.product.name for item in cart.items[:3] if item.product
@@ -733,13 +877,14 @@ class ProductContextService:
                 else "intent"
             ),
             "items": product_lines + order_lines + return_lines,
+            "payment_items": payment_lines,
             "text": "\n".join(part for part in text_parts if part.strip()),
             "decision_hints": decision_hints,
             "product_match_reason": product_match_reason,
             "selected_counts": {
                 "products": len(selected_products),
                 "orders": len(selected_orders),
-                "payments": 0,
+                "payments": 1 if selected_payment else 0,
                 "cart": 1 if cart else 0,
                 "returns": len(returns),
                 "saved_cards": len(saved_cards),
@@ -747,6 +892,7 @@ class ProductContextService:
             "selected_product_ids": [product.id for product in selected_products],
             "selected_order_ids": [order.id for order in selected_orders],
             "selected_return_ids": [item.id for item in returns],
+            "selected_payment_ids": [selected_payment.id] if selected_payment else [],
             "cart_summary": (
                 {
                     "id": cart.id,
@@ -784,6 +930,19 @@ class ProductContextService:
                 "return_code": returns[0].return_code,
                 "return_status": returns[0].return_status,
                 "refund_status": returns[0].refund_status,
+            }
+        if cart:
+            context["primary_cart"] = {
+                "id": cart.id,
+                "coupon_code": cart.coupon_code,
+                "item_count": len(cart.items),
+            }
+        if selected_payment:
+            context["primary_payment"] = {
+                "id": selected_payment.id,
+                "provider_reference": selected_payment.provider_reference,
+                "status": selected_payment.status,
+                "order_id": selected_payment.order_id,
             }
 
         if route_mode == "followup_resolved" and state:

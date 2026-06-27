@@ -400,8 +400,15 @@ class ConversationState(Base):
     last_return_id: Mapped[int | None] = mapped_column(
         ForeignKey("demo_return_requests.id", ondelete="SET NULL"), nullable=True
     )
+    last_cart_id: Mapped[int | None] = mapped_column(
+        ForeignKey("demo_carts.id", ondelete="SET NULL"), nullable=True
+    )
+    last_payment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("demo_payment_attempts.id", ondelete="SET NULL"), nullable=True
+    )
     last_intent: Mapped[str] = mapped_column(String(64), default="")
     last_action: Mapped[str] = mapped_column(String(64), default="")
+    last_suggested_action: Mapped[str] = mapped_column(String(64), default="")
     last_mentioned_product_ids: Mapped[list[int]] = mapped_column(JSONB, default=list)
     last_mentioned_order_ids: Mapped[list[int]] = mapped_column(JSONB, default=list)
     state_metadata: Mapped[dict] = mapped_column(JSONB, default=dict)

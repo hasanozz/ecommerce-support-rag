@@ -203,7 +203,10 @@ class SupportPipeline:
             for item in product_items[:2]
             if str(item).strip()
         ]
-        if formatted_products:
+        route_mode = product_context.get("route_mode", "")
+        if formatted_products and (
+            not route_mode or route_mode in {"product_only", "review_favorite_mixed"}
+        ):
             return formatted_products[0]
         if decision_hints:
             lead = formatted_items[0] if formatted_items else "İlgili demo kayıt kontrol edildi."
@@ -335,6 +338,7 @@ class SupportPipeline:
         user: User,
         safe_query: str,
         ip_hash: str,
+        frontend_context: dict | None = None,
     ) -> tuple[
         Message,
         str,
@@ -343,6 +347,7 @@ class SupportPipeline:
         ClassificationResult,
     ]:
         started = time.perf_counter()
+        frontend_context = frontend_context or {}
         masked_query, pii_findings = mask_pii(safe_query)
         previous_customer_context = await self._last_customer_context(session, conversation)
         followup_reference = self._resolve_followup_reference(
@@ -355,7 +360,7 @@ class SupportPipeline:
                 select(Message.role, Message.safe_content)
                 .where(Message.conversation_id == conversation.id)
                 .order_by(Message.id.desc())
-                .limit(4)
+                .limit(8)
             )
         ).all()
         history = [
@@ -429,6 +434,7 @@ class SupportPipeline:
             canonical,
             conversation=conversation,
             selected_order_no=followup_reference.get("order_no"),
+            frontend_context=frontend_context,
         )
         route_mode = product_context.get("route_mode", "support_only")
         product_in_scope = route_mode != "fallback_unclear"
@@ -454,6 +460,19 @@ class SupportPipeline:
             },
             "canonical_query": canonical,
             "followup_reference": followup_reference,
+            "frontend_context": {
+                key: value
+                for key, value in frontend_context.items()
+                if key
+                in {
+                    "current_product_id",
+                    "current_order_id",
+                    "current_cart_id",
+                    "current_return_id",
+                    "current_payment_id",
+                    "page_context",
+                }
+            },
             "customer_context": {
                 "category": support_context.get("category"),
                 "intent": support_context.get("intent"),
@@ -472,6 +491,7 @@ class SupportPipeline:
                 "selected_product_ids": product_context.get("selected_product_ids", []),
                 "selected_order_ids": product_context.get("selected_order_ids", []),
                 "selected_return_ids": product_context.get("selected_return_ids", []),
+                "selected_payment_ids": product_context.get("selected_payment_ids", []),
             },
             "gemini_enabled": self.gemini.enabled,
             "gemini_model": self.gemini.model_name(use_dev_model=True),
@@ -498,8 +518,8 @@ class SupportPipeline:
                     session,
                     canonical,
                     candidate_limit=30,
-                    max_documents=3,
-                    max_sections=6,
+                    max_documents=2,
+                    max_sections=5,
                 )
             except HTTPException:
                 pipeline_errors.append("RETRIEVAL_UNAVAILABLE")
@@ -508,8 +528,8 @@ class SupportPipeline:
                 grouped = await self.retrieval.grouped_by_category(
                     session,
                     category,
-                    max_documents=3,
-                    max_sections=6,
+                    max_documents=2,
+                    max_sections=5,
                 )
             except HTTPException:
                 pipeline_errors.append("CATEGORY_RETRIEVAL_UNAVAILABLE")
@@ -592,7 +612,10 @@ class SupportPipeline:
         if invalid_citations or (cited_ids and not cited_ids.issubset(allowed_ids)):
             answer = ""
             debug_metadata["guard_reason"] = "invalid_citation"
-        if classification.expected_action == "ASK_CLARIFICATION":
+        has_answer_context = bool(
+            grouped or support_context.get("text") or product_context.get("text")
+        )
+        if classification.expected_action == "ASK_CLARIFICATION" and not has_answer_context:
             answer = (
                 "Sorununuzu doğru yönlendirebilmem için hangi sipariş, ödeme, "
                 "iade veya teslimat durumuyla ilgili olduğunu biraz daha açıklar mısınız?"
@@ -699,11 +722,18 @@ class SupportPipeline:
             last_order_id=product_context.get("primary_order", {}).get("id"),
             last_order_no=product_context.get("primary_order", {}).get("order_no", ""),
             last_return_id=product_context.get("primary_return", {}).get("id"),
+            last_cart_id=product_context.get("primary_cart", {}).get("id")
+            or frontend_context.get("current_cart_id"),
+            last_payment_id=product_context.get("primary_payment", {}).get("id")
+            or frontend_context.get("current_payment_id"),
             last_intent=product_context.get("route_mode", ""),
             last_action=(
                 "show_technical_details"
                 if product_context.get("primary_product")
                 else classification.expected_action
+            ),
+            last_suggested_action=(
+                "show_product_details" if product_context.get("primary_product") else ""
             ),
             last_mentioned_product_ids=product_context.get("selected_product_ids", []),
             last_mentioned_order_ids=product_context.get("selected_order_ids", []),
