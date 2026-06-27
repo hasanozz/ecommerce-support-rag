@@ -1,122 +1,917 @@
 [
   {
-    "query": "Kartımdan para çekildi ama siparişim oluşmadı",
-    "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
-    "expected_category": "ODEME"
+    "query": "Nasıl hesap oluşturabilirim?",
+    "expected_doc_id": "ACCOUNT_CREATE_001",
+    "expected_category": "HESAP_GUVENLIK"
   },
   {
-    "query": "Siparişimi nasıl iptal edebilirim?",
-    "expected_doc_id": "ORDER_CANCEL_001",
-    "expected_category": "SIPARIS"
+    "query": "Yeni üyelik nasıl açılır?",
+    "expected_doc_id": "ACCOUNT_CREATE_001",
+    "expected_category": "HESAP_GUVENLIK"
   },
   {
-    "query": "Kargom teslim edildi görünüyor ama bana ulaşmadı",
-    "expected_doc_id": "SHIPPING_MARKED_DELIVERED_NOT_RECEIVED_001",
-    "expected_category": "KARGO_TESLIMAT"
+    "query": "Hesap Doğrulama değil, Hesap Oluşturma konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_CREATE_001",
+    "expected_category": "HESAP_GUVENLIK"
   },
   {
-    "query": "İade talebi nasıl oluşturulur?",
-    "expected_doc_id": "RETURN_REQUEST_001",
+    "query": "Hesabımı nasıl doğrularım?",
+    "expected_doc_id": "ACCOUNT_VERIFY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Doğrulama e-postası gelmedi.",
+    "expected_doc_id": "ACCOUNT_VERIFY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesap Oluşturma değil, Hesap Doğrulama konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_VERIFY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabıma giriş yapamıyorum.",
+    "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şifrem doğru ama giriş yapamıyorum.",
+    "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şifre Sıfırlama değil, Giriş Yapamama konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_LOGIN_ISSUE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şifremi unuttum.",
+    "expected_doc_id": "PASSWORD_RESET_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şifre sıfırlama e-postası gelmedi.",
+    "expected_doc_id": "PASSWORD_RESET_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Giriş Yapamama değil, Şifre Sıfırlama konusunda destek istiyorum.",
+    "expected_doc_id": "PASSWORD_RESET_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "E-posta adresimi nasıl değiştiririm?",
+    "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Yeni e-posta adresim doğrulanmıyor.",
+    "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesap Doğrulama değil, E-posta Değiştirme konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_EMAIL_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Telefon numaramı nasıl değiştiririm?",
+    "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "SMS doğrulama kodu gelmedi.",
+    "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "E-posta Değiştirme değil, Telefon Numarası Değiştirme konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_PHONE_CHANGE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabımı nasıl silebilirim?",
+    "expected_doc_id": "ACCOUNT_DELETE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Üyeliğimi kapatmak istiyorum.",
+    "expected_doc_id": "ACCOUNT_DELETE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Bağlı Cihazlar ve Oturum Yönetimi değil, Hesap Silme konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_DELETE_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şüpheli giriş bildirimi aldım.",
+    "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabıma başka biri girmeye çalışıyor olabilir.",
+    "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Yetkisiz Sipariş / Ödeme Bildirimi değil, Şüpheli Giriş Bildirimi konusunda destek istiyorum.",
+    "expected_doc_id": "SUSPICIOUS_LOGIN_ALERT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "İki aşamalı doğrulamayı nasıl açarım?",
+    "expected_doc_id": "TWO_FACTOR_AUTH_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "SMS kodu gelmiyor.",
+    "expected_doc_id": "TWO_FACTOR_AUTH_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesap Doğrulama değil, İki Aşamalı Doğrulama konusunda destek istiyorum.",
+    "expected_doc_id": "TWO_FACTOR_AUTH_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Bağlı cihazlarımı nasıl görebilirim?",
+    "expected_doc_id": "SESSION_MANAGEMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Tanımadığım bir cihaz görünüyor.",
+    "expected_doc_id": "SESSION_MANAGEMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesap Silme değil, Bağlı Cihazlar ve Oturum Yönetimi konusunda destek istiyorum.",
+    "expected_doc_id": "SESSION_MANAGEMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabım neden askıya alındı?",
+    "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesabıma giriş yapamıyorum askıya alınmış olabilir mi?",
+    "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Giriş Yapamama değil, Hesap Askıya Alma konusunda destek istiyorum.",
+    "expected_doc_id": "ACCOUNT_SUSPENSION_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Verilerim güvende mi?",
+    "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Kart bilgilerim saklanıyor mu?",
+    "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Hesap Silme değil, Kişisel Veri Güvenliği konusunda destek istiyorum.",
+    "expected_doc_id": "PERSONAL_DATA_SECURITY_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Ben bu siparişi vermedim.",
+    "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Kartımdan bilgim dışında ödeme alınmış.",
+    "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Şüpheli Giriş Bildirimi değil, Yetkisiz Sipariş / Ödeme Bildirimi konusunda destek istiyorum.",
+    "expected_doc_id": "UNAUTHORIZED_ORDER_PAYMENT_001",
+    "expected_category": "HESAP_GUVENLIK"
+  },
+  {
+    "query": "Ürünü iade etmek için ne yapmalıyım?",
+    "expected_doc_id": "IADE_IADE_SARTLARI_001",
     "expected_category": "IADE"
   },
   {
-    "query": "Kupon kodum geçersiz hatası veriyor",
-    "expected_doc_id": "CAMPAIGN_POINT_COUPON_INVALID_001",
+    "query": "Hangi şartlarda ürün iade edilebilir?",
+    "expected_doc_id": "IADE_IADE_SARTLARI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ücret İadesi Süreci değil, İade Şartları konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_IADE_SARTLARI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade talebimi nasıl açarım?",
+    "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade talebi oluşturamıyorum.",
+    "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Sipariş İptali değil, İade Talebi Oluşturma konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_TALEBI_OLUSTURMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade kodumu nasıl alırım?",
+    "expected_doc_id": "IADE_KODU_ALMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade kodum görünmüyor.",
+    "expected_doc_id": "IADE_KODU_ALMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ücret İadesi Süreci değil, İade Kodu Alma konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_KODU_ALMA_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade kargomu nasıl göndereceğim?",
+    "expected_doc_id": "IADE_KARGO_SURECI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade paketimi nereye teslim etmeliyim?",
+    "expected_doc_id": "IADE_KARGO_SURECI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Teslimat Süreci değil, İade Kargo Süreci konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_KARGO_SURECI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade ürünüm ne zaman incelenir?",
+    "expected_doc_id": "IADE_URUN_INCELEME_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ürün inceleme sonucu ne olur?",
+    "expected_doc_id": "IADE_URUN_INCELEME_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Hasarlı Teslimat değil, İade Ürün İnceleme konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_URUN_INCELEME_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İadem neden reddedildi?",
+    "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade talebim kabul edilmedi.",
+    "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ücret İadesi Süreci değil, İade Reddi konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_REDDI_NEDENLERI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Kullanılmış ürünü iade edebilir miyim?",
+    "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ürünü test ettim iade etmek istiyorum.",
+    "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade Kargo Süreci değil, Kullanılmış Ürün İadesi konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_KULLANILMIS_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Hasarlı ürün teslim aldım.",
+    "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ürün kırık geldi.",
+    "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Hasarlı Teslimat değil, Hasarlı / Kusurlu Ürün İadesi konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_KUSURLU_HASARLI_URUN_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "İade sonrası ücret ne zaman yansır?",
+    "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Para iadem neden görünmüyor?",
+    "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Ücret İadesi Süreci değil, İade Sonrası Ücret Süreci konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_UCRETININ_HESABA_GECMESI_001",
+    "expected_category": "IADE"
+  },
+  {
+    "query": "Kampanya sepetime neden otomatik olarak eklenmedi?",
+    "expected_doc_id": "KAMPANYA_KULLANIMI_001",
     "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Hesabıma giriş yapamıyorum",
-    "expected_doc_id": "ACCOUNT_SECURITY_LOGIN_ISSUE_001",
-    "expected_category": "HESAP_GUVENLIK"
+    "query": "Bu kampanya hangi ürünlere uygulanıyor?",
+    "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Şifremi unuttum nasıl sıfırlarım?",
-    "expected_doc_id": "ACCOUNT_SECURITY_PASSWORD_RESET_001",
-    "expected_category": "HESAP_GUVENLIK"
+    "query": "Kupon kodu girmeden, sepetteki kampanyanın hangi ürünlere uygulandığını öğrenmek istiyorum.",
+    "expected_doc_id": "KAMPANYA_KULLANIMI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Ödeme başarısız oldu ne yapmalıyım?",
-    "expected_doc_id": "PAYMENT_FAILED_001",
-    "expected_category": "ODEME"
+    "query": "Kupon kodunu nasıl kullanırım?",
+    "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Ücret iadem ne zaman hesabıma geçer?",
-    "expected_doc_id": "PAYMENT_REFUND_001",
-    "expected_category": "ODEME"
+    "query": "Kupon kodu kabul edilmiyor.",
+    "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "İade kargo kodunu nereden alırım?",
-    "expected_doc_id": "RETURN_CODE_001",
-    "expected_category": "IADE"
+    "query": "Kupon Geçersiz Hatası değil, Kupon Kodu Kullanımı konusunda destek istiyorum.",
+    "expected_doc_id": "KUPON_KODU_KULLANIMI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Hasarlı ürün teslim aldım",
-    "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
-    "expected_category": "KARGO_TESLIMAT"
+    "query": "Kupon geçersiz diyor.",
+    "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Siparişim geç teslim edildi",
-    "expected_doc_id": "SHIPPING_LATE_DELIVERY_001",
-    "expected_category": "KARGO_TESLIMAT"
+    "query": "Kupon neden çalışmıyor?",
+    "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Siparişimde eksik ürün var",
-    "expected_doc_id": "ORDER_MISSING_ITEM_001",
-    "expected_category": "SIPARIS"
+    "query": "Minimum Sepet Tutarı Şartı değil, Kupon Geçersiz Hatası konusunda destek istiyorum.",
+    "expected_doc_id": "KUPON_GECERSIZ_HATASI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Yanlış ürün gönderildi",
-    "expected_doc_id": "ORDER_WRONG_ITEM_001",
-    "expected_category": "SIPARIS"
+    "query": "Sepetim yeterli değil mi?",
+    "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Taksitli ödeme yapmak istiyorum",
-    "expected_doc_id": "PAYMENT_INSTALLMENT_001",
-    "expected_category": "ODEME"
+    "query": "Minimum harcama tutarı nedir?",
+    "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kupon Geçersiz Hatası değil, Minimum Sepet Tutarı Şartı konusunda destek istiyorum.",
+    "expected_doc_id": "MINIMUM_SEPET_TUTARI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Puan nasıl kazanıyorum?",
+    "expected_doc_id": "PUAN_KAZANMA_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Siparişimden puan gelmedi.",
+    "expected_doc_id": "PUAN_KAZANMA_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Puan Kullanma değil, Puan Kazanma konusunda destek istiyorum.",
+    "expected_doc_id": "PUAN_KAZANMA_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
     "query": "Puanlarımı nasıl kullanırım?",
-    "expected_doc_id": "CAMPAIGN_POINT_USE_POINTS_001",
+    "expected_doc_id": "PUAN_KULLANMA_001",
     "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "İade sonrası puanlarım ne olur?",
-    "expected_doc_id": "CAMPAIGN_POINT_RETURN_POINTS_001",
+    "query": "Sepetimde puan kullanamıyorum.",
+    "expected_doc_id": "PUAN_KULLANMA_001",
     "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Telefon numaramı değiştirmek istiyorum",
-    "expected_doc_id": "ACCOUNT_SECURITY_PHONE_CHANGE_001",
-    "expected_category": "HESAP_GUVENLIK"
+    "query": "Puan Kazanma değil, Puan Kullanma konusunda destek istiyorum.",
+    "expected_doc_id": "PUAN_KULLANMA_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Hesabımı silmek istiyorum",
-    "expected_doc_id": "ACCOUNT_SECURITY_DELETE_001",
-    "expected_category": "HESAP_GUVENLIK"
+    "query": "İade sonrası puanlarım ne olacak?",
+    "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Siparişimin faturasını nereden görebilirim?",
-    "expected_doc_id": "ORDER_INVOICE_001",
-    "expected_category": "SIPARIS"
+    "query": "Kullanılan puanlar geri gelecek mi?",
+    "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+    "expected_category": "KAMPANYA_PUAN"
   },
   {
-    "query": "Kargo takip numaramı nereden öğrenirim?",
+    "query": "Ücret İadesi Süreci değil, İade Sonrası Puan Durumu konusunda destek istiyorum.",
+    "expected_doc_id": "IADE_SONRASI_PUAN_DURUMU_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Bu kampanya nasıl çalışıyor?",
+    "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kampanya neden bana uygulanmıyor?",
+    "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kampanya Kullanımı değil, Kampanya Koşulları konusunda destek istiyorum.",
+    "expected_doc_id": "KAMPANYA_KOSULLARI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Birden fazla kampanya kullanabilir miyim?",
+    "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kampanyalarım birlikte mi çalışıyor?",
+    "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kampanya Koşulları değil, Kampanyaların Birleştirilmesi konusunda destek istiyorum.",
+    "expected_doc_id": "KAMPANYALARIN_BIRLESTIRILMESI_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kuponum neden artık geçerli değil?",
+    "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Puanımın süresi doldu mu?",
+    "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kupon Geçersiz Hatası değil, Süresi Dolan Kupon / Puan konusunda destek istiyorum.",
+    "expected_doc_id": "SURESI_DOLAN_KUPON_PUAN_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Bu kampanya hangi kategoride geçerli?",
+    "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Ürün kategorim kampanyaya dahil mi?",
+    "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Kampanya Koşulları değil, Kategoriye Özel Kampanyalar konusunda destek istiyorum.",
+    "expected_doc_id": "KATEGORIYE_OZEL_KAMPANYALAR_001",
+    "expected_category": "KAMPANYA_PUAN"
+  },
+  {
+    "query": "Siparişim ne zaman teslim edilecek.",
+    "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Teslimat süreci nasıl işliyor.",
+    "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Takip İşlemi değil, Teslimat Süreci konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_DELIVERY_PROCESS_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Tahmini teslimat tarihim nedir.",
+    "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişim hangi gün gelir.",
+    "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Geç Teslimat değil, Tahmini Teslimat Tarihi konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_ESTIMATED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargomu nasıl takip edebilirim.",
     "expected_doc_id": "SHIPPING_TRACKING_001",
     "expected_category": "KARGO_TESLIMAT"
   },
   {
-    "query": "Çift çekim olmuş ne yapmalıyım?",
+    "query": "Takip numaram nerede.",
+    "expected_doc_id": "SHIPPING_TRACKING_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Sipariş Takibi değil, Kargo Takip İşlemi konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_TRACKING_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo firmasını değiştirebilir miyim.",
+    "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişim için farklı kargo seçebilir miyim.",
+    "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Adrese Yeniden Teslimat değil, Kargo Firması Seçimi / Değişikliği konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_CARRIER_CHANGE_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargom teslim edilemedi görünüyor.",
+    "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Teslimat başarısız olmuş.",
+    "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Kargonun Teslim Edilememesi konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_DELIVERY_FAILED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargom teslim edildi görünüyor ama bana ulaşmadı.",
+    "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Sistemde teslim edildi yazıyor fakat ürün yok.",
+    "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargonun Teslim Edilememesi değil, Kargo Teslim Edildi Görünüyor Ama Ulaşmadı konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_DELIVERED_NOT_RECEIVED_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Ürünüm hasarlı geldi.",
+    "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargodan çıkan ürün kırık.",
+    "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Hasarlı Teslimat konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_DAMAGED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargom gecikti.",
+    "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişim hala gelmedi.",
+    "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Geç Teslimat konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_DELAYED_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargomu şubeden teslim alabilir miyim.",
+    "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Ürünümü kargo şubesinden almak istiyorum.",
+    "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Adrese Yeniden Teslimat değil, Şubeden Teslim Alma konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_BRANCH_PICKUP_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargom tekrar adrese gelir mi.",
+    "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Yeniden teslimat talep etmek istiyorum.",
+    "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Firması Seçimi / Değişikliği değil, Adrese Yeniden Teslimat konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_ADDRESS_REDELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Siparişim neden iki kargo halinde geliyor.",
+    "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Ürünlerimin bir kısmı geldi diğerleri gelmedi.",
+    "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kargo Teslim Edildi Görünüyor Ama Ulaşmadı değil, Birden Fazla Kargo ile Teslimat konusunda destek istiyorum.",
+    "expected_doc_id": "SHIPPING_MULTI_PACKAGE_DELIVERY_001",
+    "expected_category": "KARGO_TESLIMAT"
+  },
+  {
+    "query": "Kartla ödeme yapamıyorum.",
+    "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kredi kartım neden kabul edilmiyor.",
+    "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ödeme Başarısız Hatası değil, Kartla Ödeme konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_CARD_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ödeme başarısız oldu.",
+    "expected_doc_id": "PAYMENT_FAILED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ödeme işlemi tamamlanamadı.",
+    "expected_doc_id": "PAYMENT_FAILED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Karttan Para Çekildi Ama Sipariş Oluşmadı değil, Ödeme Başarısız Hatası konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_FAILED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kartımdan para çekildi ama siparişim oluşmadı.",
+    "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ödeme yaptım fakat sipariş görünmüyor.",
+    "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Ödeme Başarısız Hatası değil, Karttan Para Çekildi Ama Sipariş Oluşmadı konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_CHARGED_ORDER_NOT_CREATED_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kartımdan iki kere para çekildi.",
     "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
     "expected_category": "ODEME"
   },
   {
-    "query": "Kampanya koşulları nelerdir?",
-    "expected_doc_id": "CAMPAIGN_POINT_CONDITIONS_001",
-    "expected_category": "KAMPANYA_PUAN"
+    "query": "Aynı sipariş için iki kez ödeme alınmış.",
+    "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+    "expected_category": "ODEME"
   },
   {
-    "query": "Şüpheli giriş bildirimi aldım",
-    "expected_doc_id": "ACCOUNT_SECURITY_SUSPICIOUS_LOGIN_001",
-    "expected_category": "HESAP_GUVENLIK"
+    "query": "Provizyon / Bekleyen İşlem değil, Çift Çekim Problemi konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_DOUBLE_CHARGE_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Taksitli ödeme yapabilir miyim.",
+    "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kaç taksit yapabiliyorum.",
+    "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kartla Ödeme değil, Taksitli Ödeme konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_INSTALLMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Para iadem ne zaman yatacak.",
+    "expected_doc_id": "PAYMENT_REFUND_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "İade ücretim hesabıma gelmedi.",
+    "expected_doc_id": "PAYMENT_REFUND_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "İade Sonrası Ücret Süreci değil, Ücret İadesi Süreci konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_REFUND_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Banka uygulamasında bekleyen işlem görünüyor.",
+    "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Provizyon mu gerçek çekim mi anlayamadım.",
+    "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Çift Çekim Problemi değil, Provizyon / Bekleyen İşlem konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_AUTHORIZATION_PENDING_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kuponlı ödeme yaptığımda tutardan ne düşülür.",
+    "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Puanlarla ödeme yaptığımda kaç para düşer.",
+    "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Kupon Geçersiz Hatası değil, Kupon / Puan Kullanılan Ödemeler konusunda destek istiyorum.",
+    "expected_doc_id": "PAYMENT_COUPON_POINT_PAYMENT_001",
+    "expected_category": "ODEME"
+  },
+  {
+    "query": "Siparişimi nasıl oluşturacağım?",
+    "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sepetime eklediğim ürünleri nasıl onaylarım?",
+    "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Adrese Yeniden Teslimat değil, Sipariş Oluşturma konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ORDER_CREATE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş durumumu nasıl takip edebilirim?",
+    "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişim neden beklemede gösteriliyor?",
+    "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Kargo Takip İşlemi değil, Sipariş Durumları konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ORDER_STATUS_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişimi nasıl iptal edebilirim?",
+    "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş kargoya verilmeden önce iptal edilebilir mi?",
+    "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "İade Talebi Oluşturma değil, Sipariş İptali konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ORDER_CANCEL_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş adresimi değiştirebilir miyim?",
+    "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Adres değişikliği seçeneğini nerede bulurum?",
+    "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Adrese Yeniden Teslimat değil, Sipariş Adres Değişikliği konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ADDRESS_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişimdeki ürünü nasıl değiştirebilirim?",
+    "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş adedini artırabilir miyim?",
+    "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Birden Fazla Kargo ile Teslimat değil, Sipariş İçeriği Değişikliği konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_CONTENT_CHANGE_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişimi nasıl takip edebilirim?",
+    "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş takip numaram nerede?",
+    "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Kargo Takip İşlemi değil, Sipariş Takibi konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ORDER_TRACKING_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişimde eksik ürün var.",
+    "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Pakette olması gereken ürünü bulamadım.",
+    "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Birden Fazla Kargo ile Teslimat değil, Eksik Ürün Teslimi konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_MISSING_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Sipariş ettiğim ürün farklı geldi.",
+    "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Teslim edilen ürün siparişimle eşleşmiyor.",
+    "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Hasarlı Teslimat değil, Yanlış Ürün Teslimi konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_WRONG_ITEM_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişim neden birden fazla paketle geliyor?",
+    "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Siparişimin bazı ürünleri daha sonra mı gelecek?",
+    "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+    "expected_category": "SIPARIS"
+  },
+  {
+    "query": "Birden Fazla Kargo ile Teslimat değil, Siparişin Bölünmesi konusunda destek istiyorum.",
+    "expected_doc_id": "SIPARIS_ORDER_SPLIT_001",
+    "expected_category": "SIPARIS"
   }
 ]

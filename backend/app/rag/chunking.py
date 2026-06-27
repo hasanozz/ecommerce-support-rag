@@ -284,7 +284,7 @@ def final_document_to_chunks(document: dict) -> list[dict]:
                     "subcategory": document["subcategory"],
                     "title": document["title"],
                     "section": section,
-                    "content": build_answer_section(document, section, part),
+                    "content": part,
                     "contextual_content": search_text,
                 }
             )
