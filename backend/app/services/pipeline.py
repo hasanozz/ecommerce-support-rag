@@ -11,10 +11,12 @@ from fastapi import HTTPException
 
 from ..config import Settings, get_settings
 from ..models import Chunk, Conversation, Document, Message, RagRun, User
+from ..schemas.context_resolver import ContextResolverOutput
 from .gemini import GeminiService, GeminiServiceError, guard_llm_output
 from .ai_contracts import ContextBuilder, PassthroughReranker
 from .classifier import ClassificationResult, ClassifierService
 from .confidence import composite_confidence, confidence_label
+from .context_resolver import ContextResolver
 from .demo_commerce import CustomerContextService
 from .product_context import ProductContextService
 from .privacy import mask_pii
@@ -23,6 +25,7 @@ from .similar import SimilarSolutionService
 
 
 ORDER_NO_PATTERN = re.compile(r"\bDMO-[A-Za-z0-9-]+\b", re.IGNORECASE)
+COUPON_CODE_PATTERN = re.compile(r"\b[A-ZÇĞİÖŞÜ0-9][A-ZÇĞİÖŞÜ0-9_-]{3,31}\b")
 CONTEXT_ORDER_PATTERN = re.compile(r"Sipariş\s+(DMO-[^:\s]+)", re.IGNORECASE)
 ORDINAL_REFERENCES = {
     1: ("1", "1.", "birinci", "ilk", "1. olan", "birinci olan", "ilk olan"),
@@ -68,6 +71,7 @@ class SupportPipeline:
         self.retrieval = RetrievalService()
         self.similar = SimilarSolutionService(settings=self.settings)
         self.classifier = ClassifierService(self.settings)
+        self.context_resolver = ContextResolver()
         self.customer_context = CustomerContextService()
         self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
@@ -138,6 +142,190 @@ class SupportPipeline:
         if any(re.search(rf"(?<!\w){re.escape(hint)}(?!\w)", normalized) for hint in FOLLOWUP_HINTS):
             return True
         return False
+
+    def _infer_context_intent(
+        self,
+        classification: ClassificationResult,
+        query: str,
+        *,
+        is_in_scope: bool,
+    ) -> str:
+        if classification.intent:
+            return classification.intent.strip().upper()
+        if classification.expected_action == "REJECT":
+            return "UNSAFE"
+        if not is_in_scope:
+            return "OUT_OF_DOMAIN"
+
+        normalized = re.sub(r"\s+", " ", query.casefold()).strip()
+        if "para çekildi" in normalized and (
+            "sipariş oluşmadı" in normalized or "siparişim oluşmadı" in normalized
+        ):
+            return "PAYMENT_CHARGED_ORDER_NOT_CREATED"
+        if "yorum" in normalized or "puan" in normalized:
+            return "PRODUCT_REVIEWS"
+        if "stok" in normalized or "mevcut mu" in normalized:
+            return "PRODUCT_STOCK"
+        if any(term in normalized for term in ("fiyat", "kaç tl", "kaç lira")):
+            return "PRODUCT_PRICE"
+        if any(term in normalized for term in ("kaç ml", "hacim", "kapasite", "özellik")):
+            return "PRODUCT_ATTRIBUTE"
+        if "iade" in normalized and any(
+            term in normalized for term in ("olur mu", "edilebilir", "uygun mu")
+        ):
+            return "PRODUCT_RETURN_ELIGIBILITY"
+        if "iade" in normalized and any(
+            term in normalized for term in ("oluştur", "başlat", "etmek istiyorum")
+        ):
+            return "RETURN_CREATE"
+        if "iptal" in normalized and "sipariş" in normalized:
+            return "ORDER_CANCEL"
+        if any(term in normalized for term in ("gecikti", "gecikme", "hareketi yok")):
+            return "ORDER_SHIPPING_DELAY"
+        if "teslim" in normalized and any(
+            term in normalized for term in ("almadım", "gelmedi", "ulaşmadı")
+        ):
+            return "DELIVERED_NOT_RECEIVED"
+        if "kupon" in normalized and any(
+            term in normalized for term in ("geçersiz", "çalışmıyor", "kullanamıyorum")
+        ):
+            return "COUPON_INVALID"
+        if "kupon" in normalized and any(
+            term in normalized for term in ("süresi dol", "expired", "sona er")
+        ):
+            return "COUPON_EXPIRED"
+        if "kampanya" in normalized:
+            return "CAMPAIGN_USAGE"
+        if "sipariş" in normalized and any(
+            term in normalized for term in ("nerede", "durum", "ne oldu")
+        ):
+            return "ORDER_STATUS"
+        if classification.expected_action == "ASK_CLARIFICATION":
+            return "UNCLEAR"
+        return "SUPPORT_POLICY_ONLY"
+
+    @staticmethod
+    def _explicit_product_reference(query: str, intent: str) -> str | None:
+        if not intent.startswith("PRODUCT_"):
+            return None
+        candidate = query.casefold()
+        removable_phrases = (
+            "kaç ml",
+            "stokta mı",
+            "mevcut mu",
+            "yorumları nasıl",
+            "yorumlar nasıl",
+            "fiyatı ne kadar",
+            "fiyatı nedir",
+            "iade olur mu",
+            "iade edilebilir mi",
+            "bu ürün",
+            "o ürün",
+        )
+        for phrase in removable_phrases:
+            candidate = candidate.replace(phrase, " ")
+        candidate = re.sub(r"[^\wçğıöşü]+", " ", candidate).strip()
+        if candidate in {"", "ürün", "bunun", "bunu", "kaç", "nasıl"}:
+            return None
+        return candidate
+
+    @staticmethod
+    def _explicit_order_product_reference(query: str, intent: str) -> str | None:
+        if intent not in {
+            "ORDER_STATUS",
+            "ORDER_CANCEL",
+            "ORDER_SHIPPING_DELAY",
+            "DELIVERED_NOT_RECEIVED",
+            "RETURN_CREATE",
+        }:
+            return None
+        candidate = query.casefold()
+        candidate = re.sub(
+            r"\b(siparişim|siparişimi|sipariş|nerede|durumu|iptal|etmek|istiyorum|"
+            r"gecikti|gecikme|teslim|edildi|edilmedi|almadım|gelmedi|iade|oluştur|başlat)\b",
+            " ",
+            candidate,
+        )
+        candidate = re.sub(r"[^\wçğıöşü]+", " ", candidate).strip()
+        return candidate or None
+
+    def _context_resolver_input(
+        self,
+        classification: ClassificationResult,
+        message: str,
+        *,
+        canonical_query: str,
+        is_in_scope: bool,
+        conversation_state: object | None,
+        frontend_context: dict,
+        followup_reference: dict,
+    ) -> dict:
+        entities = dict(classification.entities or {})
+        intent = self._infer_context_intent(
+            classification, canonical_query, is_in_scope=is_in_scope
+        )
+        if frontend_context.get("current_product_id"):
+            entities["product_id"] = frontend_context["current_product_id"]
+        if frontend_context.get("current_order_id"):
+            entities["order_id"] = frontend_context["current_order_id"]
+        if followup_reference.get("order_no"):
+            entities["order_no"] = followup_reference["order_no"]
+        if not entities.get("order_no"):
+            entities["order_no"] = self._extract_order_no(canonical_query)
+        if not entities.get("coupon_code"):
+            coupon_match = COUPON_CODE_PATTERN.search(message)
+            if coupon_match and "kupon" in message.casefold():
+                entities["coupon_code"] = coupon_match.group(0)
+        if not entities.get("product_id") and not entities.get("product_name"):
+            entities["product_name"] = self._explicit_product_reference(
+                canonical_query, intent
+            ) or self._explicit_order_product_reference(canonical_query, intent)
+
+        requested_info = classification.requested_info
+        if not requested_info and any(
+            term in canonical_query.casefold() for term in ("kaç ml", "hacim", "kapasite")
+        ):
+            requested_info = "capacity"
+        confidence = classification.confidence or 0.0
+        return {
+            "message": message,
+            "classifier_output": {
+                "domain": classification.domain,
+                "intent": intent,
+                "category": classification.category,
+                "subcategory": classification.subcategory,
+                "doc_id": classification.doc_id,
+                "entities": entities,
+                "requested_info": requested_info,
+                "confidence": confidence,
+            },
+            "conversation_state": {
+                "last_product_id": getattr(conversation_state, "last_product_id", None),
+                "last_order_id": getattr(conversation_state, "last_order_id", None),
+                "last_intent": getattr(conversation_state, "last_intent", None),
+                "last_action": getattr(conversation_state, "last_action", None),
+            },
+        }
+
+    @staticmethod
+    def _resolver_clarification_message(reason: str | None) -> str:
+        if reason in {"PRODUCT_CONTEXT_REQUIRED", "PRODUCT_NAME_COULD_NOT_BE_RESOLVED"}:
+            return "Hangi ürünü kastettiğinizi ürün adı veya ürün sayfası ile netleştirir misiniz?"
+        if reason in {"ORDER_CONTEXT_REQUIRED", "ORDER_REFERENCE_COULD_NOT_BE_RESOLVED"}:
+            return "Hangi siparişi kastettiğinizi sipariş numarasıyla netleştirir misiniz?"
+        if reason == "COUPON_CODE_REQUIRED":
+            return "Kontrol etmemi istediğiniz kupon kodunu paylaşır mısınız?"
+        return "Sorunuzu doğru yönlendirebilmem için hangi işlemle ilgili olduğunu netleştirir misiniz?"
+
+    @staticmethod
+    def _should_run_support_rag(
+        *, needs_support_rag: bool, support_in_scope: bool, route_mode: str
+    ) -> bool:
+        return needs_support_rag and support_in_scope and route_mode != "product_only"
+
+    @staticmethod
+    def _context_plan_metadata(context_plan: ContextResolverOutput) -> dict:
+        return context_plan.model_dump(mode="json")
 
     async def _last_customer_context(
         self, session: AsyncSession, conversation: Conversation
@@ -421,6 +609,29 @@ class SupportPipeline:
                 confidence=max(classification.confidence or 0, 0.75),
             )
 
+        resolver_scope = bool(rewrite.get("is_in_scope", True)) and (
+            classification.expected_action != "REJECT"
+        )
+        conversation_state = await self.product_context._load_state(
+            session, conversation
+        )
+        context_plan = self.context_resolver.resolve(
+            self._context_resolver_input(
+                classification,
+                masked_query,
+                canonical_query=canonical,
+                is_in_scope=resolver_scope,
+                conversation_state=conversation_state,
+                frontend_context=frontend_context,
+                followup_reference=followup_reference,
+            )
+        )
+        context_plan_metadata = self._context_plan_metadata(context_plan)
+        resolver_fetches_context = (
+            context_plan.next_step == "FETCH_CONTEXT"
+            and not context_plan.needs_clarification
+        )
+
         user_message = Message(
             conversation_id=conversation.id,
             role="USER",
@@ -431,25 +642,35 @@ class SupportPipeline:
             security_metadata={
                 "pii_masked": pii_findings,
                 "classification": classification.as_dict(),
+                "context_resolver": context_plan_metadata,
             },
         )
         session.add(user_message)
         await session.flush()
 
-        support_in_scope = bool(rewrite.get("is_in_scope", True)) and (
-            classification.expected_action != "REJECT"
-        )
-        product_context = await self.product_context.build(
-            session,
-            user,
-            category,
-            canonical,
-            conversation=conversation,
-            selected_order_no=followup_reference.get("order_no"),
-            frontend_context=frontend_context,
+        support_in_scope = resolver_scope and resolver_fetches_context
+        product_context = (
+            await self.product_context.build(
+                session,
+                user,
+                category,
+                canonical,
+                conversation=conversation,
+                selected_order_no=followup_reference.get("order_no"),
+                frontend_context=frontend_context,
+            )
+            if resolver_fetches_context
+            else {
+                "route_mode": "resolver_no_fetch",
+                "category": category,
+                "context_type": "clarification_needed",
+                "items": [],
+                "text": "",
+                "decision_hints": [],
+            }
         )
         route_mode = product_context.get("route_mode", "support_only")
-        product_in_scope = route_mode != "fallback_unclear"
+        product_in_scope = resolver_fetches_context and route_mode != "fallback_unclear"
         support_context = (
             await self.customer_context.build(
                 session,
@@ -461,9 +682,10 @@ class SupportPipeline:
             if support_in_scope and route_mode != "product_only"
             else {"category": category, "items": [], "text": ""}
         )
-        in_scope = support_in_scope or product_in_scope
+        in_scope = resolver_fetches_context and (support_in_scope or product_in_scope)
         debug_metadata = {
             "route_mode": route_mode,
+            "context_resolver": context_plan_metadata,
             "classification": {
                 "category": classification.category,
                 "subcategory": classification.subcategory,
@@ -527,7 +749,12 @@ class SupportPipeline:
             "customer_context_used": False,
         }
         grouped = []
-        if support_in_scope and route_mode != "product_only":
+        should_run_support_rag = self._should_run_support_rag(
+            needs_support_rag=context_plan.needs_support_rag,
+            support_in_scope=support_in_scope,
+            route_mode=route_mode,
+        )
+        if should_run_support_rag:
             try:
                 grouped = await self.retrieval.grouped_search(
                     session,
@@ -538,7 +765,7 @@ class SupportPipeline:
                 )
             except HTTPException:
                 pipeline_errors.append("RETRIEVAL_UNAVAILABLE")
-        if support_in_scope and route_mode != "product_only" and not grouped and support_context.get("text"):
+        if should_run_support_rag and not grouped and support_context.get("text"):
             try:
                 grouped = await self.retrieval.grouped_by_category(
                     session,
@@ -630,7 +857,25 @@ class SupportPipeline:
         has_answer_context = bool(
             grouped or support_context.get("text") or product_context.get("text")
         )
-        if classification.expected_action == "ASK_CLARIFICATION" and not has_answer_context:
+        if context_plan.next_step == "CLARIFY" or context_plan.needs_clarification:
+            answer = self._resolver_clarification_message(
+                context_plan.clarification_reason
+            )
+            debug_metadata["fallback_reason"] = (
+                context_plan.clarification_reason or "context_resolver_clarification"
+            )
+            debug_metadata["formatter_mode"] = "resolver_clarification"
+        elif context_plan.next_step == "FALLBACK":
+            if context_plan.fallback_reason == "UNCLEAR_INTENT":
+                answer = self._resolver_clarification_message(None)
+                debug_metadata["formatter_mode"] = "resolver_clarification"
+            else:
+                answer = "Bu asistan yalnızca e-ticaret müşteri destek konularını yanıtlar."
+                debug_metadata["formatter_mode"] = "out_of_scope_plain"
+            debug_metadata["fallback_reason"] = (
+                context_plan.fallback_reason or "context_resolver_fallback"
+            )
+        elif classification.expected_action == "ASK_CLARIFICATION" and not has_answer_context:
             answer = (
                 "Sorununuzu doğru yönlendirebilmem için hangi sipariş, ödeme, "
                 "iade veya teslimat durumuyla ilgili olduğunu biraz daha açıklar mısınız?"
@@ -792,7 +1037,10 @@ class SupportPipeline:
                 reranker_score=reranker_score,
                 classifier_confidence=classification.confidence,
                 composite_confidence=combined_score,
-                classification_result=classification.as_dict(),
+                classification_result={
+                    **classification.as_dict(),
+                    "context_resolver": context_plan_metadata,
+                },
             )
         )
         if conversation.title == "Yeni görüşme":
