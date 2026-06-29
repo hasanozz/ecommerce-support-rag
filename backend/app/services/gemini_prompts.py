@@ -260,7 +260,14 @@ cited_doc_ids kuralları:
 
 
 def _safe_resolved_entities(value: dict) -> dict:
-    allowed = {"product_id", "order_id", "coupon_id", "cart_id", "payment_id"}
+    allowed = {
+        "product_id",
+        "order_id",
+        "coupon_id",
+        "cart_id",
+        "payment_id",
+        "return_id",
+    }
     return {key: value.get(key) for key in allowed if value.get(key) is not None}
 
 

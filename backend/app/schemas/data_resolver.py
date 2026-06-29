@@ -94,6 +94,7 @@ class ResolvedDataEntities(BaseModel):
     coupon_id: int | None = None
     cart_id: int | None = None
     payment_id: int | None = None
+    return_id: int | None = None
 
 
 class MatchCandidate(BaseModel):

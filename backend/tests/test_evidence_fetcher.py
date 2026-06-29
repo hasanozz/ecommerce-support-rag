@@ -1,4 +1,5 @@
 from copy import deepcopy
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -9,6 +10,7 @@ from backend.app.services.evidence_fetcher import (
     EvidenceFetcher,
     EvidenceRecord,
     InMemoryEvidenceFetcherAdapter,
+    SqlAlchemyEvidenceFetcherAdapter,
 )
 
 
@@ -411,3 +413,195 @@ async def test_fetcher_uses_only_authoritative_resolved_entity_id():
 
     adapter.fetch.assert_awaited_once_with(EvidencePurpose.PRODUCT_STOCK, 77, 1)
     assert output.product_evidence[0].entity_id == 77
+
+
+@pytest.mark.asyncio
+async def test_sql_adapter_product_capacity_uses_exact_resolved_id():
+    product = SimpleNamespace(
+        id=15,
+        name="Çay Bardağı",
+        attributes={"hacim_ml": 120},
+        price=Decimal("49.90"),
+        currency="TRY",
+        stock=8,
+        returnable=True,
+        return_policy_note="",
+        category="Mutfak",
+    )
+    session = SimpleNamespace(scalar=AsyncMock(return_value=product))
+
+    output = await EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session)).fetch(
+        request("PRODUCT_CAPACITY", resolved={"product_id": 15})
+    )
+
+    assert output.product_evidence[0].entity_id == 15
+    assert output.product_evidence[0].data == {
+        "name": "Çay Bardağı",
+        "capacity_ml": 120,
+        "volume_ml": 120,
+    }
+    statement = str(session.scalar.await_args.args[0])
+    assert "demo_products.id" in statement
+    assert "demo_products.name" not in statement.partition("WHERE")[2]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("purpose", "expected_data"),
+    [
+        ("PRODUCT_PRICE", {"price": Decimal("99.90"), "currency": "TRY"}),
+        ("PRODUCT_STOCK", {"stock": 0, "availability": "OUT_OF_STOCK"}),
+    ],
+)
+async def test_sql_adapter_product_purpose_fields_are_minimal(
+    purpose, expected_data
+):
+    product = SimpleNamespace(
+        id=4,
+        name="Kupa",
+        attributes={},
+        price=Decimal("99.90"),
+        currency="TRY",
+        stock=0,
+        returnable=True,
+        return_policy_note="",
+        category="Mutfak",
+    )
+    session = SimpleNamespace(scalar=AsyncMock(return_value=product))
+
+    output = await EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session)).fetch(
+        request(purpose, resolved={"product_id": 4})
+    )
+
+    assert output.product_evidence[0].data == expected_data
+
+
+@pytest.mark.asyncio
+async def test_sql_adapter_missing_model_field_is_reported_without_invention():
+    product = SimpleNamespace(
+        id=5,
+        name="Bardak",
+        attributes={},
+        price=Decimal("25.00"),
+        currency="TRY",
+        stock=2,
+        returnable=True,
+        return_policy_note="",
+        category="Mutfak",
+    )
+    session = SimpleNamespace(scalar=AsyncMock(return_value=product))
+
+    output = await EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session)).fetch(
+        request("PRODUCT_CAPACITY", resolved={"product_id": 5})
+    )
+
+    assert output.product_evidence[0].data == {"name": "Bardak"}
+    assert output.missing_evidence[0].reason == "REQUIRED_FIELDS_MISSING"
+    assert output.warnings == ["EVIDENCE_FIELDS_MISSING:PRODUCT_CAPACITY"]
+
+
+@pytest.mark.asyncio
+async def test_sql_adapter_order_is_scoped_to_user_and_supports_shipping():
+    order = SimpleNamespace(
+        id=20,
+        order_no="DMO-1-020",
+        order_status="SHIPPED",
+        shipping_status="IN_TRANSIT",
+        payment_status="SUCCESS",
+        shipment=SimpleNamespace(
+            tracking_number="TRK-20",
+            estimated_delivery_at=None,
+            delay_reason="",
+        ),
+    )
+    session = SimpleNamespace(scalar=AsyncMock(return_value=order))
+    fetcher = EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session))
+
+    output = await fetcher.fetch(
+        request("ORDER_SHIPPING_STATUS", resolved={"order_id": 20})
+    )
+
+    assert output.order_evidence[0].data["tracking_number"] == "TRK-20"
+    statement = str(session.scalar.await_args.args[0])
+    assert "demo_orders.id" in statement
+    assert "demo_orders.user_id" in statement
+
+
+@pytest.mark.asyncio
+async def test_sql_adapter_other_users_order_returns_no_evidence():
+    session = SimpleNamespace(scalar=AsyncMock(return_value=None))
+
+    output = await EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session)).fetch(
+        request("ORDER_STATUS", resolved={"order_id": 77})
+    )
+
+    assert output.order_evidence == []
+    assert output.missing_evidence[0].reason == "EVIDENCE_NOT_FOUND"
+    assert "demo_orders.user_id" in str(session.scalar.await_args.args[0])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("purpose", "resolved", "row", "output_field", "scope_column"),
+    [
+        (
+            "PAYMENT_STATUS",
+            {"payment_id": 30},
+            SimpleNamespace(
+                id=30,
+                status="SUCCESS",
+                amount=Decimal("250.00"),
+                provider_reference="PAY-30",
+                order_id=None,
+                failure_reason="",
+            ),
+            "payment_evidence",
+            "demo_payment_attempts.user_id",
+        ),
+        (
+            "COUPON_STATUS",
+            {"coupon_id": 7},
+            SimpleNamespace(
+                id=7,
+                code="KUPON10",
+                status="VALID",
+                expires_at=None,
+                is_active=True,
+                discount_type="PERCENT",
+                discount_value=Decimal("10"),
+                min_cart_total=Decimal("100"),
+                allowed_category="",
+            ),
+            "coupon_evidence",
+            None,
+        ),
+        (
+            "CART_STATUS",
+            {"cart_id": 9},
+            SimpleNamespace(
+                id=9,
+                status="ACTIVE",
+                coupon_code="",
+                subtotal=Decimal("100"),
+                discount_total=Decimal("0"),
+                total=Decimal("100"),
+                items=[],
+            ),
+            "cart_evidence",
+            "demo_carts.user_id",
+        ),
+    ],
+)
+async def test_sql_adapter_reads_supported_entities_by_id(
+    purpose, resolved, row, output_field, scope_column
+):
+    session = SimpleNamespace(scalar=AsyncMock(return_value=row))
+
+    output = await EvidenceFetcher(SqlAlchemyEvidenceFetcherAdapter(session)).fetch(
+        request(purpose, resolved=resolved)
+    )
+
+    assert len(getattr(output, output_field)) == 1
+    statement = str(session.scalar.await_args.args[0])
+    if scope_column:
+        assert scope_column in statement

@@ -27,6 +27,7 @@ from backend.app.schemas.evidence_fetcher import (
 )
 from backend.app.services.classifier import ClassificationResult
 from backend.app.services.pipeline import SupportPipeline
+from backend.app.services.evidence_fetcher import SqlAlchemyEvidenceFetcherAdapter
 
 
 class ResultRows:
@@ -61,6 +62,16 @@ class FakeSession:
 
     async def refresh(self, item):
         del item
+
+
+def test_default_pipeline_has_read_only_sql_evidence_fetcher():
+    pipeline = SupportPipeline()
+
+    assert pipeline.evidence_fetcher is not None
+    assert isinstance(
+        pipeline.evidence_fetcher.adapter, SqlAlchemyEvidenceFetcherAdapter
+    )
+    assert pipeline.evidence_fetcher.adapter.session is None
 
 
 def context_plan(

@@ -25,7 +25,7 @@ from .classifier import ClassificationResult, ClassifierService
 from .confidence import composite_confidence, confidence_label
 from .context_resolver import ContextResolver
 from .data_resolver import DataResolver, SqlAlchemyDataResolverAdapter
-from .evidence_fetcher import EvidenceFetcher
+from .evidence_fetcher import EvidenceFetcher, SqlAlchemyEvidenceFetcherAdapter
 from .demo_commerce import CustomerContextService
 from .product_context import ProductContextService
 from .privacy import mask_pii
@@ -82,7 +82,9 @@ class SupportPipeline:
         self.classifier = ClassifierService(self.settings)
         self.context_resolver = ContextResolver()
         self.data_resolver: DataResolver | None = None
-        self.evidence_fetcher: EvidenceFetcher | None = None
+        self.evidence_fetcher: EvidenceFetcher | None = EvidenceFetcher(
+            SqlAlchemyEvidenceFetcherAdapter()
+        )
         self.customer_context = CustomerContextService()
         self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
@@ -794,7 +796,13 @@ class SupportPipeline:
         evidence_output = EvidenceFetcherOutput()
         if pipeline_fetches_context and self.evidence_fetcher is not None:
             try:
-                evidence_output = await self.evidence_fetcher.fetch(
+                evidence_fetcher = self.evidence_fetcher
+                adapter = getattr(evidence_fetcher, "adapter", None)
+                if isinstance(adapter, SqlAlchemyEvidenceFetcherAdapter):
+                    evidence_fetcher = EvidenceFetcher(
+                        adapter.bind(session)
+                    )
+                evidence_output = await evidence_fetcher.fetch(
                     {
                         "user_id": user.id,
                         "context_plan": context_plan.model_dump(mode="json"),
