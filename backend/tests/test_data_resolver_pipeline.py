@@ -407,3 +407,30 @@ async def test_explicit_entity_and_old_state_are_passed_without_state_override()
     assert resolver_payload["context_plan"]["resolved_entities"]["product_name"] == "new product"
     assert resolver_payload["conversation_state"]["last_product_id"] == 99
     pipeline.product_context.build.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_evidence_fetcher_error_is_non_fatal_and_recorded_safely():
+    resolution = data_result(
+        DataResolutionStatus.RESOLVED,
+        result=entity_result(
+            EntityType.PRODUCT,
+            DataResolutionStatus.RESOLVED,
+            resolved_id=15,
+        ),
+        resolved={"product_id": 15},
+    )
+    pipeline = configured_pipeline(context_plan(), resolution)
+    pipeline.evidence_fetcher = SimpleNamespace(
+        fetch=AsyncMock(
+            side_effect=RuntimeError("database password must not be exposed")
+        )
+    )
+
+    assistant, *_ = await run_pipeline(pipeline)
+
+    assert assistant.safe_content == "resolved answer"
+    pipeline.gemini.answer.assert_awaited_once()
+    warnings = assistant.security_metadata["debug"]["warnings"]
+    assert "EVIDENCE_FETCHER_ERROR:RuntimeError" in warnings
+    assert "database password" not in str(assistant.security_metadata)

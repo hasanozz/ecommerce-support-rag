@@ -1,4 +1,6 @@
 from copy import deepcopy
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -10,9 +12,9 @@ from backend.app.services.evidence_fetcher import (
 )
 
 
-def context_plan():
+def context_plan(entities=None):
     return {
-        "resolved_entities": {},
+        "resolved_entities": entities or {},
         "data_sources": [],
         "fields": [],
         "needs_support_rag": False,
@@ -40,10 +42,10 @@ def data_resolution(**resolved_entities):
     }
 
 
-def request(purpose, *, resolved=None, fields_hint=None):
+def request(purpose, *, resolved=None, fields_hint=None, plan_entities=None):
     return {
         "user_id": 1,
-        "context_plan": context_plan(),
+        "context_plan": context_plan(plan_entities),
         "data_resolution": data_resolution(**(resolved or {})),
         "required_contexts": [
             {
@@ -339,3 +341,73 @@ async def test_other_users_evidence_is_not_returned():
     assert output.order_evidence == []
     assert output.missing_evidence[0].reason == "EVIDENCE_NOT_FOUND"
 
+
+@pytest.mark.asyncio
+async def test_product_name_never_triggers_entity_resolution():
+    adapter = SimpleNamespace(fetch=AsyncMock())
+
+    output = await EvidenceFetcher(adapter).fetch(
+        request(
+            "PRODUCT_CAPACITY",
+            plan_entities={"product_name": "Çay Bardağı"},
+        )
+    )
+
+    adapter.fetch.assert_not_awaited()
+    assert output.product_evidence == []
+    assert output.missing_evidence[0].reason == "PRODUCT_ID_MISSING"
+
+
+@pytest.mark.asyncio
+async def test_order_number_never_triggers_entity_resolution():
+    adapter = SimpleNamespace(fetch=AsyncMock())
+
+    output = await EvidenceFetcher(adapter).fetch(
+        request(
+            "ORDER_STATUS",
+            plan_entities={"order_no": "DMO-1-001"},
+        )
+    )
+
+    adapter.fetch.assert_not_awaited()
+    assert output.order_evidence == []
+    assert output.missing_evidence[0].reason == "ORDER_ID_MISSING"
+
+
+@pytest.mark.asyncio
+async def test_coupon_code_never_triggers_entity_resolution():
+    adapter = SimpleNamespace(fetch=AsyncMock())
+
+    output = await EvidenceFetcher(adapter).fetch(
+        request(
+            "COUPON_STATUS",
+            plan_entities={"coupon_code": "KUPON10"},
+        )
+    )
+
+    adapter.fetch.assert_not_awaited()
+    assert output.coupon_evidence == []
+    assert output.missing_evidence[0].reason == "COUPON_ID_MISSING"
+
+
+@pytest.mark.asyncio
+async def test_fetcher_uses_only_authoritative_resolved_entity_id():
+    evidence_record = record(
+        EvidencePurpose.PRODUCT_STOCK,
+        "PRODUCT",
+        77,
+        "PRODUCT_CATALOG",
+        {"stock": 1, "availability": "LOW_STOCK"},
+    )
+    adapter = SimpleNamespace(fetch=AsyncMock(return_value=evidence_record))
+
+    output = await EvidenceFetcher(adapter).fetch(
+        request(
+            "PRODUCT_STOCK",
+            resolved={"product_id": 77},
+            plan_entities={"product_id": 99, "product_name": "Başka Ürün"},
+        )
+    )
+
+    adapter.fetch.assert_awaited_once_with(EvidencePurpose.PRODUCT_STOCK, 77, 1)
+    assert output.product_evidence[0].entity_id == 77

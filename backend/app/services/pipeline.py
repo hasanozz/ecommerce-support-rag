@@ -18,12 +18,14 @@ from ..schemas.data_resolver import (
     EntityType,
     ResolutionNextStep,
 )
+from ..schemas.evidence_fetcher import EvidenceFetcherOutput
 from .gemini import GeminiService, GeminiServiceError, guard_llm_output
 from .ai_contracts import ContextBuilder, PassthroughReranker
 from .classifier import ClassificationResult, ClassifierService
 from .confidence import composite_confidence, confidence_label
 from .context_resolver import ContextResolver
 from .data_resolver import DataResolver, SqlAlchemyDataResolverAdapter
+from .evidence_fetcher import EvidenceFetcher
 from .demo_commerce import CustomerContextService
 from .product_context import ProductContextService
 from .privacy import mask_pii
@@ -80,6 +82,7 @@ class SupportPipeline:
         self.classifier = ClassifierService(self.settings)
         self.context_resolver = ContextResolver()
         self.data_resolver: DataResolver | None = None
+        self.evidence_fetcher: EvidenceFetcher | None = None
         self.customer_context = CustomerContextService()
         self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
@@ -420,6 +423,50 @@ class SupportPipeline:
             warnings=["NOT_CALLED_CONTEXT_PLAN_TERMINAL"],
         )
 
+    @staticmethod
+    def _evidence_required_contexts(context_plan: ContextResolverOutput) -> list[dict]:
+        fields = set(context_plan.fields)
+        sources = set(context_plan.data_sources)
+        purposes: list[str] = []
+        if fields & {"capacity_ml", "volume_ml"}:
+            purposes.append("PRODUCT_CAPACITY")
+        if fields & {"price", "discounted_price", "currency"}:
+            purposes.append("PRODUCT_PRICE")
+        if fields & {"stock", "availability"}:
+            purposes.append("PRODUCT_STOCK")
+        if fields & {"rating_average", "review_count", "reviews"}:
+            purposes.append("PRODUCT_REVIEWS")
+        if fields & {"returnable", "return_policy_note"}:
+            purposes.append("PRODUCT_RETURN_ELIGIBILITY")
+        if "cancel_eligibility" in fields:
+            purposes.append("ORDER_CANCEL_ELIGIBILITY")
+        elif fields & {
+            "estimated_delivery_at",
+            "delay_reason",
+            "tracking_number",
+            "delivered_at",
+        }:
+            purposes.append("ORDER_SHIPPING_STATUS")
+        elif fields & {"order_status", "shipping_status"}:
+            purposes.append("ORDER_STATUS")
+        if "payment_db" in sources:
+            purposes.append(
+                "PAYMENT_WITHOUT_ORDER"
+                if "provider_reference" in fields
+                else "PAYMENT_STATUS"
+            )
+        if "coupon_db" in sources:
+            purposes.append(
+                "COUPON_ELIGIBILITY"
+                if fields & {"min_cart_total", "allowed_category", "cart_total"}
+                else "COUPON_STATUS"
+            )
+        if "cart_db" in sources and "coupon_db" not in sources:
+            purposes.append("CART_STATUS")
+        if "return_db" in sources:
+            purposes.append("RETURN_STATUS")
+        return [{"purpose": purpose} for purpose in dict.fromkeys(purposes)]
+
     async def _last_customer_context(
         self, session: AsyncSession, conversation: Conversation
     ) -> dict:
@@ -744,6 +791,26 @@ class SupportPipeline:
         data_resolution_blocks_context = (
             resolver_fetches_context and not data_allows_context
         )
+        evidence_output = EvidenceFetcherOutput()
+        if pipeline_fetches_context and self.evidence_fetcher is not None:
+            try:
+                evidence_output = await self.evidence_fetcher.fetch(
+                    {
+                        "user_id": user.id,
+                        "context_plan": context_plan.model_dump(mode="json"),
+                        "data_resolution": data_resolution.model_dump(mode="json"),
+                        "required_contexts": self._evidence_required_contexts(
+                            context_plan
+                        ),
+                    }
+                )
+            except Exception as exc:
+                safe_error_summary = type(exc).__name__
+                evidence_output.warnings.append(
+                    f"EVIDENCE_FETCHER_ERROR:{safe_error_summary}"
+                )
+                pipeline_errors.append("EVIDENCE_FETCHER_ERROR")
+        evidence_metadata = evidence_output.model_dump(mode="json")
         effective_frontend_context = dict(frontend_context)
         resolved_data_entities = data_resolution.resolved_entities
         if resolved_data_entities.product_id is not None:
@@ -783,6 +850,7 @@ class SupportPipeline:
                 "classification": classification.as_dict(),
                 "context_resolver": context_plan_metadata,
                 "data_resolver": data_resolution_metadata,
+                "evidence_fetcher": evidence_metadata,
             },
         )
         session.add(user_message)
@@ -836,6 +904,8 @@ class SupportPipeline:
             "route_mode": route_mode,
             "context_resolver": context_plan_metadata,
             "data_resolver": data_resolution_metadata,
+            "evidence_fetcher": evidence_metadata,
+            "warnings": list(evidence_output.warnings),
             "classification": {
                 "category": classification.category,
                 "subcategory": classification.subcategory,
@@ -1197,6 +1267,7 @@ class SupportPipeline:
                     **classification.as_dict(),
                     "context_resolver": context_plan_metadata,
                     "data_resolver": data_resolution_metadata,
+                    "evidence_fetcher": evidence_metadata,
                 },
             )
         )
