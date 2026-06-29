@@ -486,7 +486,38 @@ function conversationStatusLabel(status) {
 }
 
 function statusLabel(status) {
-  return ({ OPEN: "Gönderildi", IN_REVIEW: "İnceleniyor", RESOLVED: "Çözüldü" })[status] || status;
+  return ({ OPEN: "Gönderildi", PENDING: "Beklemede", IN_REVIEW: "İncelemede", RESOLVED: "Çözüldü" })[status] || status;
+}
+
+function ticketStatusClass(status) {
+  return String(status || "OPEN").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+}
+
+function userTicketCard(item) {
+  const createdAt = new Date(item.created_at || item.updated_at).toLocaleString("tr-TR");
+  const sourceText = item.source_message_id
+    ? "Copilot yanıtı sonrası destek talebi oluşturuldu."
+    : "Destek akışından oluşturuldu.";
+  return `<article class="support-ticket-card">
+    <div class="support-ticket-topline">
+      <span class="ticket-number">Talep #${item.id}</span>
+      <span class="status-chip status-${ticketStatusClass(item.status)}">${esc(statusLabel(item.status))}</span>
+      <time>${createdAt}</time>
+    </div>
+    <div class="support-ticket-title">
+      <span class="support-ticket-category">${esc(item.category || "GENEL")}</span>
+      <h3>${esc(item.department || "Destek talebi")}</h3>
+    </div>
+    <div class="ticket-note user-ticket-note">
+      <small>Kullanıcı açıklaması</small>
+      <p>${esc(item.user_note || "Kullanıcı açıklama eklememiş.")}</p>
+    </div>
+    ${item.admin_note ? `<div class="ticket-note admin-note"><small>Destek ekibi notu</small><p>${esc(item.admin_note)}</p></div>` : ""}
+    <div class="support-ticket-context">
+      ${icons.bot}
+      <span>${esc(sourceText)}</span>
+    </div>
+  </article>`;
 }
 
 function demoStatusLabel(status) {
@@ -536,10 +567,18 @@ function refundStatusLabel(status) {
 function returnRequestLabel(status) {
   return ({
     CREATED: "İade talebi oluşturuldu",
+    RETURN_CODE_CREATED: "İade kodu oluşturuldu",
     UNDER_REVIEW: "İade kodu oluşturuldu",
     APPROVED: "İade onaylandı",
     REJECTED: "İade reddedildi"
   })[status] || "İade talebi";
+}
+
+function statusBadges(labels, limit = 3) {
+  const unique = [...new Set(labels.filter(Boolean))];
+  const visible = unique.slice(0, limit);
+  const extra = unique.length - visible.length;
+  return `${visible.map(label => `<span class="status-chip">${esc(label)}</span>`).join("")}${extra > 0 ? `<span class="status-chip">+${extra} durum</span>` : ""}`;
 }
 
 function money(value) {
@@ -762,6 +801,7 @@ function supportPageShell({
   empty = "",
   note = "",
   className = "",
+  metaBadge = "Copilot bağlamı aktif",
   metaTitle = "Kurumsal Destek Akışı",
   metaDescription = "Bu sayfadaki kayıtlar Copilot tarafından müşteri bağlamı olarak kullanılabilir.",
   secondaryAction = { page: "shop", label: "Mağazaya Git", icon: icons.box }
@@ -777,7 +817,7 @@ function supportPageShell({
         </div>
         <div class="support-page-hero-meta">
           <div class="support-page-meta-copy">
-            <span class="ai-pill"><span class="online"></span>Copilot bağlamı aktif</span>
+            <span class="ai-pill"><span class="online"></span>${esc(metaBadge)}</span>
             <strong>${esc(metaTitle)}</strong>
             <p>${esc(metaDescription)}</p>
           </div>
@@ -796,7 +836,46 @@ function supportPageShell({
 
 function ticketsPage(admin = false) {
   const items = admin ? state.adminTickets : state.tickets;
-  return `${topbar(admin ? "Admin destek yönetimi" : "Destek taleplerim")}
+  if (!admin) {
+    const activeCount = items.filter(item => ["OPEN", "PENDING", "IN_REVIEW"].includes(item.status)).length;
+    const copilotCount = items.filter(item => item.source_message_id).length;
+    const summaries = [
+      supportSummaryCard(icons.ticket, "Toplam Talep", `${items.length} kayıt`),
+      supportSummaryCard(icons.clock, "Açık / Bekleyen", `${activeCount} kayıt`),
+      supportSummaryCard(icons.bot, "Copilot Kaynaklı", `${copilotCount} kayıt`)
+    ];
+    const body = items.length ? `
+      <section class="support-main card">
+        <div class="section-head"><div><h3>Destek Talebi Kayıtları</h3><small>Bu talepler Copilot’un çözemediği veya destek ekibine yönlendirdiği konular için oluşturulur.</small></div><span>${items.length} kayıt</span></div>
+        <div class="support-ticket-grid">
+          ${items.map(userTicketCard).join("")}
+        </div>
+      </section>` : "";
+    const empty = items.length ? "" : `
+      <section class="support-empty card">
+        <div class="support-empty-icon">${icons.ticket}</div>
+        <div class="support-empty-copy">
+          <h3>Henüz destek talebiniz yok.</h3>
+          <p>Copilot’un çözemediği durumlarda destek talebi oluşturabilir veya siz destek akışından talep açabilirsiniz.</p>
+        </div>
+        <div class="support-empty-actions">
+          <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot’u aç</button>
+        </div>
+      </section>`;
+    return supportPageShell({
+      title: "Destek Taleplerim",
+      description: "Copilot tarafından açılan veya kullanıcı tarafından oluşturulan destek taleplerini buradan takip edebilirsiniz.",
+      summaries,
+      body,
+      empty,
+      className: "tickets-support-page",
+      metaBadge: "Talep takibi aktif",
+      metaTitle: "Destek Akışı",
+      metaDescription: "Copilot gerekli durumlarda destek talebi oluşturabilir. Açılan talepler burada takip edilir.",
+      secondaryAction: { page: "scenarios", label: "Senaryolar", icon: icons.star }
+    });
+  }
+  return `${topbar(admin ? "Admin Destek Yönetimi" : "Destek taleplerim")}
     <section class="record-grid">${items.length ? items.map(item => `<article class="record-card ticket-card">
       <div class="ticket-card-header"><div><span class="ticket-number">Talep #${item.id}</span>
       <strong>${esc(item.department)}</strong></div>
@@ -1193,24 +1272,28 @@ function shopPage() {
 function favoritesPage() {
   const summaries = [
     supportSummaryCard(icons.heart, "Favori Ürünler", `${state.favorites.length} kayıt`),
-    supportSummaryCard(icons.bot, "Copilot Bağlamı", "Ürün inceleme ve karşılaştırma için kullanılabilir"),
-    supportSummaryCard(icons.search, "Hızlı Erişim", "Detay ve fiyat bilgisine tek tıkla geçin")
+    supportSummaryCard(icons.bot, "Copilot Bağlamı", "Karşılaştırma ve destek"),
+    supportSummaryCard(icons.search, "Hızlı Erişim", "Detayları tek tıkla açın")
   ];
   const body = state.favorites.length ? `
     <section class="support-main card">
-      <div class="section-head"><div><h3>Favori ürünler</h3><small>İnceleyin, karşılaştırın veya detay açın</small></div><span>${state.favorites.length} kayıt</span></div>
-      <div class="record-grid support-record-grid">
+      <div class="section-head"><div><h3>Favori ürünler</h3><small>Favori ürünleriniz ürün karşılaştırma ve satın alma destek sorularında Copilot’a bağlam sağlar.</small></div><span>${state.favorites.length} kayıt</span></div>
+      <div class="favorites-product-grid">
         ${state.favorites.map(item => `
           <article class="record-card favorite-card" data-product-open="${item.product.id}">
-            <div class="ticket-card-header">
+            <div class="favorite-card-header">
               <div>
-                <span class="ticket-number">${esc(item.product.sku)}</span>
+                <span class="favorite-category">${esc(productBadge(item.product.category))}${item.product.brand ? ` · ${esc(item.product.brand)}` : ""}</span>
                 <strong>${esc(item.product.name)}</strong>
               </div>
-              <button class="icon-danger" data-remove-favorite="${item.product.id}" aria-label="Favoriden çıkar">${icons.heart}</button>
+              <button class="favorite-remove-button" data-remove-favorite="${item.product.id}" aria-label="Favoriden çıkar" title="Favoriden çıkar">${icons.heart}</button>
             </div>
-            <p>${esc(productBadge(item.product.category))} · ${money(item.product.price)} · ${esc(productRatingLabel(item.product))}</p>
-            <small>${esc(item.product.description || "")}</small>
+            <div class="favorite-card-meta">
+              <strong>${money(item.product.price)}</strong>
+              <span>${esc(productRatingLabel(item.product))}</span>
+            </div>
+            <p>${esc(item.product.description || "")}</p>
+            <button class="favorite-detail-button" data-product-open="${item.product.id}">${icons.search} Detayı aç</button>
           </article>
         `).join("")}
       </div>
@@ -1219,30 +1302,24 @@ function favoritesPage() {
     <section class="support-empty card">
       <div class="support-empty-icon">${icons.heart}</div>
       <div class="support-empty-copy">
-        <h3>Henüz favori ürününüz yok</h3>
-        <p>Ürünleri favorilere ekleyerek daha sonra hızlıca erişebilirsiniz. Bu alan, demo inceleme ve karşılaştırma akışında bağlam sağlar.</p>
+        <h3>Henüz favori ürününüz yok.</h3>
+        <p>Mağazadan ürünleri favorilere ekleyerek burada görüntüleyebilirsiniz.</p>
       </div>
       <div class="support-empty-actions">
         <button class="primary-button" data-page="shop">${icons.box} Mağazaya git</button>
-        <button data-page="scenarios">${icons.star} Senaryolar</button>
       </div>
     </section>`;
-  const cta = `
-    <div class="support-cta-copy">
-      <strong>Copilot bu listeyi ürün tercihi bağlamı olarak kullanabilir.</strong>
-      <p>Favoriler üzerinden ürün soruları, özellik karşılaştırmaları ve satın alma yönlendirmesi başlatabilirsiniz.</p>
-    </div>
-    <div class="support-cta-actions">
-      <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
-      <button data-page="shop">${icons.box} Mağazaya git</button>
-    </div>`;
   return supportPageShell({
     title: "Favorilerim",
-    description: "Favorilerinizdeki ürünleri inceleyin, kaldırın veya detayını açın.",
+    description: "Favori ürünlerinizi inceleyin, karşılaştırın veya Copilot’a ürün tercihi bağlamı olarak kullanın.",
     summaries,
     body,
     empty,
-    cta
+    className: "favorites-support-page",
+    metaBadge: "Copilot bağlamı aktif",
+    metaTitle: "Favori Bağlamı",
+    metaDescription: "Favori ürünleriniz ürün karşılaştırma, satın alma yönlendirmesi ve destek soruları için Copilot tarafından bağlam olarak kullanılabilir.",
+    secondaryAction: { page: "shop", label: "Mağazaya git", icon: icons.box }
   });
 }
 
@@ -1381,16 +1458,16 @@ function scenarioManagementCard(item) {
   const prepared = scenarioPrepared(item.key);
   return `<article class="scenario-management-card">
     <div class="scenario-card-head">
-      <span class="scenario-icon">${item.icon}</span>
       <span class="scenario-area">${esc(item.area)}</span>
+      <span class="scenario-status ${prepared ? "ready" : ""}">${prepared ? "Hazırlandı" : "Hazır değil"}</span>
     </div>
     <div class="scenario-card-copy">
       <h3>${esc(item.name)}</h3>
       <p>${esc(item.description)}</p>
     </div>
     <div class="scenario-card-meta">
-      <span class="scenario-status ${prepared ? "ready" : ""}">${prepared ? "Hazırlandı" : "Hazır değil"}</span>
-      <small>${esc(item.area)} alanını etkiler</small>
+      <span class="scenario-icon">${item.icon}</span>
+      <small>Etkilenen alan: <strong>${esc(item.area)}</strong></small>
     </div>
     <div class="scenario-actions">
       <button class="scenario-primary" data-scenario-prepare="${esc(item.key)}">${icons.box} Senaryoyu Hazırla</button>
@@ -1401,33 +1478,28 @@ function scenarioManagementCard(item) {
 
 function scenariosPage() {
   const summaries = [
-    supportSummaryCard(icons.star, "Demo Hazırlığı", "6 kontrollü senaryo"),
-    supportSummaryCard(icons.bot, "Manuel Copilot", "Otomatik soru gönderilmez"),
-    supportSummaryCard(icons.search, "Temiz State", "Senaryo bazlı temizleme")
+    supportSummaryCard(icons.star, "Demo Hazırlığı", "6 senaryo"),
+    supportSummaryCard(icons.bot, "Manuel Soru", "Soruyu siz yazarsınız"),
+    supportSummaryCard(icons.search, "Senaryo Sıfırlama", "Senaryo bazlı temizleme")
   ];
   const body = `
     <section class="scenario-info-box">
       ${icons.shield}
-      <p>Bu sayfadaki butonlar yalnızca demo verisini hazırlar. Copilot’a otomatik soru gönderilmez. Senaryo hazırlandıktan sonra Copilot’a kendi ifadenizle soru sorarak modeli test edebilirsiniz.</p>
+      <p>Bu sayfadaki butonlar yalnızca demo verisini hazırlar. Copilot’a otomatik soru gönderilmez.</p>
     </section>
     <section class="scenario-management-grid">
       ${DEMO_SCENARIOS.map(scenarioManagementCard).join("")}
     </section>`;
-  const cta = `
-    <div class="support-cta-copy">
-      <strong>Senaryoyu hazırladıktan sonra Copilot’a kendi cümlenizle sorun.</strong>
-      <p>Hazırlanan demo verisi sipariş, ödeme, iade, kargo veya kupon bağlamı olarak değerlendirilir.</p>
-    </div>
-    <div class="support-cta-actions">
-      <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
-      <button data-page="shop">${icons.box} Mağazaya git</button>
-    </div>`;
   return supportPageShell({
     title: "Demo Senaryoları",
-    description: "Sunum sırasında test etmek istediğiniz müşteri destek durumlarını buradan hazırlayabilir veya temizleyebilirsiniz. Senaryo hazırlandıktan sonra Copilot’a kendi cümlenizle soru sorabilirsiniz.",
+    description: "Sunumda test edeceğiniz destek durumlarını hazırlayın, ardından Copilot’a kendi cümlenizle sorun.",
     summaries,
     body,
-    cta
+    className: "scenarios-support-page",
+    metaBadge: "Demo akışı hazır",
+    metaTitle: "Senaryo Bağlamı",
+    metaDescription: "Hazırlanan senaryolar Copilot için destek bağlamı oluşturur. Senaryoyu hazırladıktan sonra soruyu manuel olarak yazabilirsiniz.",
+    secondaryAction: { page: "shop", label: "Mağazaya git", icon: icons.box }
   });
 }
 
@@ -1576,9 +1648,9 @@ function demoOrdersPage(admin = false) {
       <div class="section-head"><h3>İade/Ödeme İadesi</h3><span>${state.adminReturns.length} kayıt</span></div>
       <p class="admin-section-note">Bu veriler Copilot’un ödeme, kupon ve iade sorularına bağlam sağlar.</p>
       <div class="admin-compact-grid">${state.adminReturns.map(item => `<article class="admin-compact-card">
-        <div><strong>${esc(item.return_code || item.order_id)}</strong><span class="status-chip">${esc(item.return_status)}</span></div>
+        <div><strong>${esc(item.return_code || item.order_id)}</strong><span class="status-chip">${esc(returnStatusLabel(item.return_status))}</span></div>
         <p>${esc(item.return_reason || "İade nedeni yok.")}</p>
-        <small>${esc(item.refund_status)}${item.refund ? ` · ${money(item.refund.refund_amount)}` : ""}</small>
+        <small>${esc(refundStatusLabel(item.refund_status))}${item.refund ? ` · ${money(item.refund.refund_amount)}` : ""}</small>
       </article>`).join("") || `<div class="empty-state">İade kaydı yok.</div>`}</div>
     </article>`;
   const financeBody = `<div class="admin-two-column">
@@ -1598,16 +1670,17 @@ function demoOrdersPage(admin = false) {
       <div class="finance-context-grid">
         <div><strong>Cüzdan</strong>${state.adminWallets.map(wallet => `<p>${wallet.user_id}: ${money(wallet.balance)} · ${esc(wallet.status)}</p>`).join("") || "<p>Cüzdan kaydı yok.</p>"}</div>
         <div><strong>Kartlar</strong>${state.adminCards.map(card => `<p>${card.user_id}: ${esc(card.card_brand)} ****${esc(card.last4)} ${card.is_default ? "(varsayılan)" : ""}</p>`).join("") || "<p>Kart kaydı yok.</p>"}</div>
-        <div><strong>Güvenlik</strong>${state.adminSecurityProfiles.map(profile => `<p>${profile.user_id}: ${esc(profile.security_status)} · ${esc(profile.risk_note || "")}</p>`).join("") || "<p>Güvenlik kaydı yok.</p>"}</div>
+        <div><strong>Güvenlik</strong>${state.adminSecurityProfiles.map(profile => `<p>${profile.user_id}: ${esc(demoStatusLabel(profile.security_status))} · ${esc(profile.risk_note || "")}</p>`).join("") || "<p>Güvenlik kaydı yok.</p>"}</div>
       </div>
     </article>
   </div>`;
+  const adminReturnCount = state.adminReturns.length || state.adminDemoOrders.filter(item => item.return_request).length;
   return `${topbar("Demo Yönetim Paneli", "Ürün, sipariş, iade, kupon ve müşteri bağlamı verilerini demo amaçlı yönetin.")}
     <section class="admin-overview">
       <article class="card metric-card"><span>Ürün</span><strong>${state.adminProducts.length}</strong><small>Katalog Verisi</small></article>
       <article class="card metric-card"><span>Yorum</span><strong>${state.adminReviews.length}</strong><small>Ürün Feedbackleri</small></article>
       <article class="card metric-card"><span>Sipariş</span><strong>${state.adminDemoOrders.length}</strong><small>Demo Akışları</small></article>
-      <article class="card metric-card"><span>İade</span><strong>${state.adminReturns.length}</strong><small>İade Ve Ödeme</small></article>
+      <article class="card metric-card"><span>İade</span><strong>${adminReturnCount}</strong><small>İade Ve Ödeme</small></article>
     </section>
     <nav class="admin-section-nav" aria-label="Yönetim paneli bölümleri">
       <a href="#products-reviews">Ürün & Yorum</a>
@@ -1616,7 +1689,7 @@ function demoOrdersPage(admin = false) {
       <a href="#human-judge">Human-as-a-Judge</a>
     </nav>
     ${adminSection("products-reviews", "Ürün Ve Yorum Yönetimi", "Ürün kataloğu ile ürün yorumlarını ayrı ve kompakt bir alanda izleyin.", `${state.adminProducts.length} ürün / ${state.adminReviews.length} yorum`, productsBody)}
-    ${adminSection("orders-returns", "Sipariş Ve İade Yönetimi", "Demo siparişleri, iade durumlarını ve Copilot bağlamını yönetin.", `${state.adminDemoOrders.length} sipariş`, ordersBody)}
+    ${adminSection("orders-returns", "Sipariş Ve İade Yönetimi", "Demo siparişleri, iade durumlarını ve Copilot bağlamını yönetin.", `${state.adminDemoOrders.length} sipariş / ${adminReturnCount} iade`, ordersBody)}
     ${adminSection("coupons-finance", "Kupon Ve Ödeme Bağlamı", "Kupon, cüzdan, kart ve güvenlik kayıtlarını destek bağlamı olarak izleyin.", `${state.adminCoupons.length} kupon`, financeBody)}
     ${adminHumanJudgeSection()}`;
 }
@@ -1631,9 +1704,7 @@ function orderCards(items, admin = false) {
       </div>
     </div>
     <div class="status-row admin-status-row">
-      <span class="status-chip">${esc(demoStatusLabel(item.order_status))}</span>
-      <span class="status-chip">${esc(demoStatusLabel(item.payment_status))}</span>
-      <span class="status-chip">${esc(demoStatusLabel(item.shipping_status))}</span>
+      ${statusBadges([demoStatusLabel(item.order_status), demoStatusLabel(item.payment_status), demoStatusLabel(item.shipping_status)])}
     </div>
     <div class="order-details">
       <div><small>Toplam</small><strong>${money(item.total)}</strong></div>
@@ -1644,7 +1715,7 @@ function orderCards(items, admin = false) {
       <p>${item.shipment.tracking_number ? `Takip: ${esc(item.shipment.tracking_number)}` : "Takip numarası henüz yok."}</p>
       ${item.shipment.delay_reason || item.shipment.admin_note ? `<p>${esc(shortText(item.shipment.delay_reason || item.shipment.admin_note, 120))}</p>` : ""}</div>` : ""}
     ${item.return_request ? `<div class="shipment-box compact-context"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
-      <p>${esc(item.return_request.return_status)} · ${esc(item.return_request.refund_status)}</p>
+      <p>${esc(returnRequestLabel(item.return_request.return_request || item.return_request.return_status))} · ${esc(refundStatusLabel(item.return_request.refund_status))}</p>
       <p>${esc(shortText(item.return_request.return_reason || "", 110))}</p>
       <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button></div>` : ""}
     <div class="order-flow-actions admin-order-actions">
@@ -1993,7 +2064,10 @@ function bind() {
     localStorage.setItem("destekai-theme", state.theme); render();
   });
   document.querySelectorAll("[data-product-open]").forEach(node =>
-    node.addEventListener("click", () => openProductDetail(node.dataset.productOpen)));
+    node.addEventListener("click", event => {
+      if (node.tagName === "BUTTON") event.stopPropagation();
+      openProductDetail(node.dataset.productOpen);
+    }));
   document.querySelectorAll("[data-action='toggle-copilot']").forEach(node =>
     node.addEventListener("click", () => {
       state.copilotOpen = !state.copilotOpen;
@@ -2027,7 +2101,10 @@ function bind() {
       render();
     }));
   document.querySelectorAll("[data-remove-favorite]").forEach(node =>
-    node.addEventListener("click", () => removeFavorite(node.dataset.removeFavorite)));
+    node.addEventListener("click", event => {
+      event.stopPropagation();
+      removeFavorite(node.dataset.removeFavorite);
+    }));
   document.querySelectorAll("[data-review-form]").forEach(node =>
     node.addEventListener("submit", event => {
       event.preventDefault();
