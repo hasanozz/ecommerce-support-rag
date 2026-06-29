@@ -63,6 +63,7 @@ class DataResolverConversationState(BaseModel):
     last_cart_id: int | None = Field(default=None, ge=1)
     last_payment_id: int | None = Field(default=None, ge=1)
     last_intent: str | None = None
+    last_action: str | None = None
 
 
 class DataResolverFrontendContext(BaseModel):
@@ -134,4 +135,3 @@ class DataResolverOutput(BaseModel):
     evidence_refs: list[EvidenceReference] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     next_step: ResolutionNextStep
-

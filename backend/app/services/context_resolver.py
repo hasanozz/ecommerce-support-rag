@@ -184,8 +184,8 @@ class ContextResolver:
             if resolved.product_id is not None:
                 return None
             if resolved.product_name:
-                # TODO(integration): resolve this exact name through an injected lookup.
-                return "PRODUCT_NAME_COULD_NOT_BE_RESOLVED"
+                # Data Resolver owns product_name -> product_id resolution.
+                return None
             if state.last_product_id is not None:
                 resolved.product_id = state.last_product_id
                 warnings.append(USED_CONVERSATION_STATE)
@@ -195,7 +195,10 @@ class ContextResolver:
         if entity_kind == "order":
             if resolved.order_id is not None:
                 return None
-            if resolved.order_no or resolved.product_name:
+            if resolved.order_no:
+                # Data Resolver owns order_no -> order_id resolution.
+                return None
+            if resolved.product_name:
                 # A product mention is not proof that any particular order is intended.
                 return "ORDER_REFERENCE_COULD_NOT_BE_RESOLVED"
             if state.last_order_id is not None:

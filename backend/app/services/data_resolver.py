@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Protocol
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..models import DemoCart, DemoCoupon, DemoOrder, DemoPaymentAttempt, DemoProduct
+
 from ..schemas.data_resolver import (
     DataResolutionStatus,
     DataResolverInput,
@@ -116,6 +121,110 @@ class InMemoryDataResolverAdapter:
             for record in self._visible_records(EntityType.PRODUCT, user_id)
         ]
         return sorted(matches, key=lambda item: (-item.confidence, item.record.record_id))
+
+
+class SqlAlchemyDataResolverAdapter:
+    """Minimal read-only adapter over the existing demo commerce models."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def get_by_id(
+        self, entity_type: EntityType, record_id: int, user_id: int
+    ) -> ResolverRecord | None:
+        model = self._model(entity_type)
+        statement = select(model).where(model.id == record_id)
+        if entity_type == EntityType.PRODUCT:
+            statement = statement.where(DemoProduct.is_active.is_(True))
+        elif entity_type in {EntityType.ORDER, EntityType.CART, EntityType.PAYMENT}:
+            statement = statement.where(model.user_id == user_id)
+        row = await self.session.scalar(statement)
+        return self._record(entity_type, row) if row is not None else None
+
+    async def find_exact(
+        self, entity_type: EntityType, value: str, user_id: int
+    ) -> list[ResolverRecord]:
+        normalized = _normalize(value)
+        if entity_type == EntityType.PRODUCT:
+            rows = (
+                await self.session.scalars(
+                    select(DemoProduct).where(DemoProduct.is_active.is_(True))
+                )
+            ).all()
+            return [
+                self._record(entity_type, row)
+                for row in rows
+                if _normalize(row.name) == normalized
+            ]
+        if entity_type == EntityType.ORDER:
+            rows = (
+                await self.session.scalars(
+                    select(DemoOrder).where(
+                        DemoOrder.user_id == user_id,
+                        DemoOrder.order_no == value.strip().upper(),
+                    )
+                )
+            ).all()
+            return [self._record(entity_type, row) for row in rows]
+        if entity_type == EntityType.COUPON:
+            rows = (
+                await self.session.scalars(
+                    select(DemoCoupon).where(
+                        DemoCoupon.code == value.strip().upper()
+                    )
+                )
+            ).all()
+            return [self._record(entity_type, row) for row in rows]
+        return []
+
+    async def find_product_candidates(
+        self, name: str, user_id: int
+    ) -> list[ResolverMatch]:
+        del user_id
+        normalized = _normalize(name)
+        rows = (
+            await self.session.scalars(
+                select(DemoProduct).where(DemoProduct.is_active.is_(True))
+            )
+        ).all()
+        matches = [
+            ResolverMatch(
+                record=self._record(EntityType.PRODUCT, row),
+                confidence=SequenceMatcher(
+                    None, normalized, _normalize(row.name)
+                ).ratio(),
+                match_type=MatchType.FUZZY_NAME,
+            )
+            for row in rows
+        ]
+        return sorted(matches, key=lambda item: (-item.confidence, item.record.record_id))
+
+    @staticmethod
+    def _model(entity_type: EntityType):
+        return {
+            EntityType.PRODUCT: DemoProduct,
+            EntityType.ORDER: DemoOrder,
+            EntityType.COUPON: DemoCoupon,
+            EntityType.CART: DemoCart,
+            EntityType.PAYMENT: DemoPaymentAttempt,
+        }[entity_type]
+
+    @staticmethod
+    def _record(entity_type: EntityType, row: object) -> ResolverRecord:
+        display_value = {
+            EntityType.PRODUCT: getattr(row, "name"),
+            EntityType.ORDER: getattr(row, "order_no"),
+            EntityType.COUPON: getattr(row, "code"),
+            EntityType.CART: f"Cart {getattr(row, 'id')}",
+            EntityType.PAYMENT: getattr(row, "provider_reference"),
+        }[entity_type]
+        return ResolverRecord(
+            entity_type=entity_type,
+            record_id=getattr(row, "id"),
+            display_label=str(display_value),
+            lookup_value=str(display_value),
+            owner_user_id=getattr(row, "user_id", None),
+        )
 
 
 class DataResolver:

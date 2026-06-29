@@ -345,6 +345,7 @@ class CustomerContextService:
         category: str,
         canonical_query: str,
         selected_order_no: str | None = None,
+        selected_order_id: int | None = None,
     ) -> dict:
         commerce = DemoCommerceService()
         await commerce.ensure_seed_data(session)
@@ -366,7 +367,9 @@ class CustomerContextService:
             .where(DemoOrder.user_id == user.id)
             .order_by(DemoOrder.updated_at.desc())
         )
-        if selected_order_no:
+        if selected_order_id is not None:
+            order_query = order_query.where(DemoOrder.id == selected_order_id)
+        elif selected_order_no:
             order_query = order_query.where(DemoOrder.order_no == selected_order_no)
         else:
             order_query = order_query.limit(3)

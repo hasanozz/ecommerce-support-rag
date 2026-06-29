@@ -42,7 +42,8 @@ def test_product_capacity_plans_only_product_fields_without_rag():
     assert result.fields == ["capacity_ml", "volume_ml", "description"]
     assert result.needs_support_rag is False
     assert result.resolved_entities.product_name == "çay bardağı"
-    assert result.needs_clarification is True
+    assert result.needs_clarification is False
+    assert result.next_step == "FETCH_CONTEXT"
 
 
 def test_product_stock_uses_last_product():
@@ -187,7 +188,7 @@ def test_followup_records_conversation_state_usage_warning():
     assert USED_CONVERSATION_STATE in result.warnings
 
 
-def test_explicit_unresolved_order_never_uses_last_order_as_fallback():
+def test_explicit_order_reference_is_delegated_without_using_last_order():
     result = ContextResolver().resolve(
         resolver_input(
             "DMO-BILINMEYEN siparişim nerede?",
@@ -199,6 +200,6 @@ def test_explicit_unresolved_order_never_uses_last_order_as_fallback():
 
     assert result.resolved_entities.order_id is None
     assert result.resolved_entities.order_no == "DMO-BILINMEYEN"
-    assert result.needs_clarification is True
+    assert result.needs_clarification is False
+    assert result.next_step == "FETCH_CONTEXT"
     assert USED_CONVERSATION_STATE not in result.warnings
-

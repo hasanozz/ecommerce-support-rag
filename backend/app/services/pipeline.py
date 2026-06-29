@@ -12,11 +12,18 @@ from fastapi import HTTPException
 from ..config import Settings, get_settings
 from ..models import Chunk, Conversation, Document, Message, RagRun, User
 from ..schemas.context_resolver import ContextResolverOutput
+from ..schemas.data_resolver import (
+    DataResolutionStatus,
+    DataResolverOutput,
+    EntityType,
+    ResolutionNextStep,
+)
 from .gemini import GeminiService, GeminiServiceError, guard_llm_output
 from .ai_contracts import ContextBuilder, PassthroughReranker
 from .classifier import ClassificationResult, ClassifierService
 from .confidence import composite_confidence, confidence_label
 from .context_resolver import ContextResolver
+from .data_resolver import DataResolver, SqlAlchemyDataResolverAdapter
 from .demo_commerce import CustomerContextService
 from .product_context import ProductContextService
 from .privacy import mask_pii
@@ -72,6 +79,7 @@ class SupportPipeline:
         self.similar = SimilarSolutionService(settings=self.settings)
         self.classifier = ClassifierService(self.settings)
         self.context_resolver = ContextResolver()
+        self.data_resolver: DataResolver | None = None
         self.customer_context = CustomerContextService()
         self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
@@ -326,6 +334,91 @@ class SupportPipeline:
     @staticmethod
     def _context_plan_metadata(context_plan: ContextResolverOutput) -> dict:
         return context_plan.model_dump(mode="json")
+
+    @staticmethod
+    def _data_resolver_input(
+        *,
+        user_id: int,
+        message: str,
+        context_plan: ContextResolverOutput,
+        conversation_state: object | None,
+        frontend_context: dict,
+    ) -> dict:
+        return {
+            "user_id": user_id,
+            "message": message,
+            "context_plan": context_plan.model_dump(mode="json"),
+            "conversation_state": {
+                "last_product_id": getattr(conversation_state, "last_product_id", None),
+                "last_order_id": getattr(conversation_state, "last_order_id", None),
+                "last_cart_id": getattr(conversation_state, "last_cart_id", None),
+                "last_payment_id": getattr(conversation_state, "last_payment_id", None),
+                "last_intent": getattr(conversation_state, "last_intent", None),
+                "last_action": getattr(conversation_state, "last_action", None),
+            },
+            "frontend_context": {
+                key: frontend_context[key]
+                for key in (
+                    "current_product_id",
+                    "current_order_id",
+                    "current_cart_id",
+                    "current_payment_id",
+                    "page_context",
+                )
+                if frontend_context.get(key) is not None
+            },
+        }
+
+    @staticmethod
+    def _data_resolution_allows_context(result: DataResolverOutput) -> bool:
+        if result.status in {DataResolutionStatus.RESOLVED, DataResolutionStatus.SKIP}:
+            return True
+        return (
+            result.status == DataResolutionStatus.PARTIALLY_RESOLVED
+            and not result.missing_entities
+            and not result.ambiguous_entities
+            and not result.unfulfilled_contexts
+        )
+
+    @staticmethod
+    def _data_resolution_clarification_message(result: DataResolverOutput) -> str:
+        if result.status == DataResolutionStatus.AMBIGUOUS:
+            return "Birden fazla olası kayıt buldum. Hangisini kastettiğinizi netleştirir misiniz?"
+        entity_types = {
+            item.entity_type
+            for item in result.entity_results
+            if item.status
+            in {
+                DataResolutionStatus.NO_MATCH,
+                DataResolutionStatus.NEEDS_CLARIFICATION,
+            }
+        } | set(result.missing_entities)
+        if EntityType.PRODUCT in entity_types:
+            return "Bahsettiğiniz ürünü bulamadım. Ürün adını biraz daha net yazar mısınız?"
+        if EntityType.ORDER in entity_types:
+            return "Bahsettiğiniz siparişi bulamadım. Sipariş numarasını paylaşır mısınız?"
+        if EntityType.COUPON in entity_types:
+            return "Bu kupon kodunu bulamadım. Kupon kodunu kontrol edip tekrar yazar mısınız?"
+        return "İlgili kaydı doğrulayamadım. Hangi kayıt için işlem yapmak istediğinizi netleştirir misiniz?"
+
+    @staticmethod
+    def _resolved_order_no(result: DataResolverOutput) -> str | None:
+        for item in result.entity_results:
+            if (
+                item.entity_type == EntityType.ORDER
+                and item.status == DataResolutionStatus.RESOLVED
+                and item.input_reference.type == "ORDER_NO"
+            ):
+                return str(item.input_reference.value)
+        return None
+
+    @staticmethod
+    def _skipped_data_resolution() -> DataResolverOutput:
+        return DataResolverOutput(
+            status=DataResolutionStatus.SKIP,
+            next_step=ResolutionNextStep.SKIP,
+            warnings=["NOT_CALLED_CONTEXT_PLAN_TERMINAL"],
+        )
 
     async def _last_customer_context(
         self, session: AsyncSession, conversation: Conversation
@@ -631,6 +724,52 @@ class SupportPipeline:
             context_plan.next_step == "FETCH_CONTEXT"
             and not context_plan.needs_clarification
         )
+        data_resolution = self._skipped_data_resolution()
+        if resolver_fetches_context:
+            data_resolver = self.data_resolver or DataResolver(
+                SqlAlchemyDataResolverAdapter(session)
+            )
+            data_resolution = await data_resolver.resolve(
+                self._data_resolver_input(
+                    user_id=user.id,
+                    message=masked_query,
+                    context_plan=context_plan,
+                    conversation_state=conversation_state,
+                    frontend_context=frontend_context,
+                )
+            )
+        data_resolution_metadata = data_resolution.model_dump(mode="json")
+        data_allows_context = self._data_resolution_allows_context(data_resolution)
+        pipeline_fetches_context = resolver_fetches_context and data_allows_context
+        data_resolution_blocks_context = (
+            resolver_fetches_context and not data_allows_context
+        )
+        effective_frontend_context = dict(frontend_context)
+        resolved_data_entities = data_resolution.resolved_entities
+        if resolved_data_entities.product_id is not None:
+            effective_frontend_context["current_product_id"] = (
+                resolved_data_entities.product_id
+            )
+        if resolved_data_entities.order_id is not None:
+            effective_frontend_context["current_order_id"] = (
+                resolved_data_entities.order_id
+            )
+        if resolved_data_entities.cart_id is not None:
+            effective_frontend_context["current_cart_id"] = resolved_data_entities.cart_id
+        if resolved_data_entities.payment_id is not None:
+            effective_frontend_context["current_payment_id"] = (
+                resolved_data_entities.payment_id
+            )
+        selected_order_no = self._resolved_order_no(data_resolution) or (
+            followup_reference.get("order_no")
+        )
+        explicit_coupon_resolution = (
+            context_plan.resolved_entities.coupon_code is not None
+            and resolved_data_entities.coupon_id is not None
+        )
+        legacy_context_allowed = (
+            pipeline_fetches_context and not explicit_coupon_resolution
+        )
 
         user_message = Message(
             conversation_id=conversation.id,
@@ -643,12 +782,13 @@ class SupportPipeline:
                 "pii_masked": pii_findings,
                 "classification": classification.as_dict(),
                 "context_resolver": context_plan_metadata,
+                "data_resolver": data_resolution_metadata,
             },
         )
         session.add(user_message)
         await session.flush()
 
-        support_in_scope = resolver_scope and resolver_fetches_context
+        support_in_scope = resolver_scope and pipeline_fetches_context
         product_context = (
             await self.product_context.build(
                 session,
@@ -656,12 +796,16 @@ class SupportPipeline:
                 category,
                 canonical,
                 conversation=conversation,
-                selected_order_no=followup_reference.get("order_no"),
-                frontend_context=frontend_context,
+                selected_order_no=selected_order_no,
+                frontend_context=effective_frontend_context,
             )
-            if resolver_fetches_context
+            if legacy_context_allowed
             else {
-                "route_mode": "resolver_no_fetch",
+                "route_mode": (
+                    "data_resolver_coupon_only"
+                    if explicit_coupon_resolution
+                    else "resolver_no_fetch"
+                ),
                 "category": category,
                 "context_type": "clarification_needed",
                 "items": [],
@@ -670,22 +814,28 @@ class SupportPipeline:
             }
         )
         route_mode = product_context.get("route_mode", "support_only")
-        product_in_scope = resolver_fetches_context and route_mode != "fallback_unclear"
+        product_in_scope = (
+            pipeline_fetches_context and route_mode != "fallback_unclear"
+        )
         support_context = (
             await self.customer_context.build(
                 session,
                 user,
                 category,
                 canonical,
-                selected_order_no=followup_reference.get("order_no"),
+                selected_order_no=selected_order_no,
+                selected_order_id=resolved_data_entities.order_id,
             )
-            if support_in_scope and route_mode != "product_only"
+            if legacy_context_allowed
+            and support_in_scope
+            and route_mode != "product_only"
             else {"category": category, "items": [], "text": ""}
         )
-        in_scope = resolver_fetches_context and (support_in_scope or product_in_scope)
+        in_scope = pipeline_fetches_context and (support_in_scope or product_in_scope)
         debug_metadata = {
             "route_mode": route_mode,
             "context_resolver": context_plan_metadata,
+            "data_resolver": data_resolution_metadata,
             "classification": {
                 "category": classification.category,
                 "subcategory": classification.subcategory,
@@ -857,7 +1007,13 @@ class SupportPipeline:
         has_answer_context = bool(
             grouped or support_context.get("text") or product_context.get("text")
         )
-        if context_plan.next_step == "CLARIFY" or context_plan.needs_clarification:
+        if data_resolution_blocks_context:
+            answer = self._data_resolution_clarification_message(data_resolution)
+            debug_metadata["fallback_reason"] = (
+                f"data_resolver_{data_resolution.status.value.casefold()}"
+            )
+            debug_metadata["formatter_mode"] = "data_resolver_clarification"
+        elif context_plan.next_step == "CLARIFY" or context_plan.needs_clarification:
             answer = self._resolver_clarification_message(
                 context_plan.clarification_reason
             )
@@ -1040,6 +1196,7 @@ class SupportPipeline:
                 classification_result={
                     **classification.as_dict(),
                     "context_resolver": context_plan_metadata,
+                    "data_resolver": data_resolution_metadata,
                 },
             )
         )

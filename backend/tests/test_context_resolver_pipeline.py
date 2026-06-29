@@ -163,7 +163,7 @@ def test_pipeline_explicit_product_never_falls_back_to_old_product_state():
 
     assert plan.resolved_entities.product_id is None
     assert plan.resolved_entities.product_name == "çay bardağı"
-    assert plan.next_step == "CLARIFY"
+    assert plan.next_step == "FETCH_CONTEXT"
     assert USED_CONVERSATION_STATE not in plan.warnings
 
 
