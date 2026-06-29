@@ -447,6 +447,7 @@ class SupportPipeline:
             conversation=conversation,
             selected_order_no=followup_reference.get("order_no"),
             frontend_context=frontend_context,
+            original_query=safe_query,
         )
         route_mode = product_context.get("route_mode", "support_only")
         product_in_scope = route_mode != "fallback_unclear"
@@ -656,6 +657,26 @@ class SupportPipeline:
             debug_metadata["formatter_mode"] = "fallback_natural"
         else:
             debug_metadata["formatter_mode"] = "gemini_natural"
+        payment_items = [str(item) for item in product_context.get("payment_items", [])]
+        no_order_payment_item = next(
+            (
+                item
+                for item in payment_items
+                if "CAPTURED_NO_ORDER" in item and "siparişe bağlı değil" in item
+            ),
+            "",
+        )
+        if no_order_payment_item:
+            payment_summary = self._format_customer_context_item(
+                no_order_payment_item
+            )
+            answer = (
+                f"{payment_summary} Bu durumda ödeme başarılı alınmış görünüyor ancak "
+                "sipariş kaydı oluşmamış. Tekrar ödeme denemeden önce ödeme/sipariş "
+                "eşleştirmesi için destek kaydı açılması veya ödeme incelemesi "
+                "başlatılması gerekir."
+            )
+            debug_metadata["formatter_mode"] = "payment_no_order_context"
         answer, output_pii = mask_pii(answer)
 
         top_score = grouped[0].best_score if grouped else 0.0

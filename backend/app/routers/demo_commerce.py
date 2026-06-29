@@ -51,6 +51,7 @@ from ..schemas.demo_commerce import (
     DemoResetResponse,
     DemoReturnRequestResponse,
     DemoRefundResponse,
+    DemoScenarioResponse,
     DemoSavedCardResponse,
     DemoShipmentResponse,
     DemoSecurityProfileResponse,
@@ -58,6 +59,7 @@ from ..schemas.demo_commerce import (
 )
 from ..services.auth import get_current_user, require_admin
 from ..services.demo_commerce import DemoCommerceService
+from ..services.demo_seed import DemoSeedService
 
 
 router = APIRouter(prefix="/api", tags=["demo-commerce"])
@@ -227,10 +229,16 @@ def return_request_response(
 ) -> DemoReturnRequestResponse | None:
     if return_request is None:
         return None
+    product_name = ""
+    if return_request.order and return_request.order.items:
+        product_name = ", ".join(
+            item.product_name for item in return_request.order.items[:2] if item.product_name
+        )
     return DemoReturnRequestResponse(
         id=return_request.id,
         order_id=return_request.order_id,
         order_no=return_request.order.order_no if return_request.order else "",
+        product_name=product_name,
         user_id=return_request.user_id,
         return_request=return_request.return_request,
         return_code=return_request.return_code,
@@ -714,7 +722,7 @@ async def user_returns(
             select(DemoReturnRequest)
             .options(
                 selectinload(DemoReturnRequest.refund),
-                selectinload(DemoReturnRequest.order),
+                selectinload(DemoReturnRequest.order).selectinload(DemoOrder.items),
             )
             .where(DemoReturnRequest.user_id == user.id)
             .order_by(DemoReturnRequest.updated_at.desc())
@@ -782,6 +790,47 @@ async def reset_demo(
     summary = await DemoCommerceService().reset_user_demo(session, user)
     await session.commit()
     return DemoResetResponse(status="Demo veri hazırlandı.", **summary)
+
+
+@router.post("/demo/scenarios/{scenario_key}/prepare", response_model=DemoScenarioResponse)
+async def prepare_demo_scenario(
+    scenario_key: str,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DemoScenarioResponse:
+    try:
+        result = await DemoSeedService().prepare_demo_scenario(
+            session, user, scenario_key
+        )
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    await session.commit()
+    return DemoScenarioResponse(**result)
+
+
+@router.get("/demo/scenarios", response_model=list[DemoScenarioResponse])
+async def demo_scenarios(
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[DemoScenarioResponse]:
+    rows = await DemoSeedService().demo_scenario_statuses(session, user)
+    return [DemoScenarioResponse(**item) for item in rows]
+
+
+@router.post("/demo/scenarios/{scenario_key}/clear", response_model=DemoScenarioResponse)
+async def clear_demo_scenario(
+    scenario_key: str,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DemoScenarioResponse:
+    try:
+        result = await DemoSeedService().clear_demo_scenario(
+            session, user, scenario_key
+        )
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    await session.commit()
+    return DemoScenarioResponse(**result)
 
 
 @router.get("/admin/demo/products", response_model=list[AdminDemoProductResponse])

@@ -339,6 +339,11 @@ class ProductContextService:
             return "review_favorite_mixed" if has_support else "product_only"
         if "kupon" in query or "sepet" in query or "kampanya" in query:
             return "cart_coupon_mixed"
+        if (
+            ("siparis" in query or "sipariş" in query)
+            and any(term in query for term in ("olusmad", "oluşmad", "gorunm", "görünm", "yok"))
+        ):
+            return "payment_account_mixed"
         if "kart" in query or "cüzdan" in query or "wallet" in query or "bakiye" in query:
             return "product_support_mixed" if has_product else "payment_account_mixed"
         if ("iade" in query or "return" in query or "refund" in query) and "kod" in query:
@@ -761,14 +766,40 @@ class ProductContextService:
         session: AsyncSession,
         user: User,
         selected_payment_id: int | None = None,
+        canonical_query: str = "",
     ) -> DemoPaymentAttempt | None:
-        if selected_payment_id is None:
+        if selected_payment_id is not None:
+            return await session.scalar(
+                select(DemoPaymentAttempt).where(
+                    DemoPaymentAttempt.user_id == user.id,
+                    DemoPaymentAttempt.id == selected_payment_id,
+                )
+            )
+        query = _normalize(canonical_query)
+        no_order_payment = (
+            ("siparis" in query or "sipariş" in query)
+            and any(term in query for term in ("olusmad", "oluşmad", "gorunm", "görünm", "yok"))
+        ) or any(
+            term in query
+            for term in (
+                "para cekil",
+                "para cekildi",
+                "kartımdan cekil",
+                "kartimdan cekil",
+                "odeme al",
+                "ödeme al",
+            )
+        )
+        if not no_order_payment:
             return None
         return await session.scalar(
-            select(DemoPaymentAttempt).where(
+            select(DemoPaymentAttempt)
+            .where(
                 DemoPaymentAttempt.user_id == user.id,
-                DemoPaymentAttempt.id == selected_payment_id,
+                DemoPaymentAttempt.status == "CAPTURED_NO_ORDER",
             )
+            .order_by(DemoPaymentAttempt.created_at.desc())
+            .limit(1)
         )
 
     async def build(
@@ -781,8 +812,10 @@ class ProductContextService:
         conversation: Conversation | None = None,
         selected_order_no: str | None = None,
         frontend_context: dict | None = None,
+        original_query: str | None = None,
     ) -> dict:
         state = await self._load_state(session, conversation)
+        context_query = f"{canonical_query} {original_query or ''}".strip()
         frontend_context = frontend_context or {}
         current_product_id = _positive_int(frontend_context.get("current_product_id"))
         current_order_id = _positive_int(frontend_context.get("current_order_id"))
@@ -790,8 +823,8 @@ class ProductContextService:
         current_return_id = _positive_int(frontend_context.get("current_return_id"))
         current_payment_id = _positive_int(frontend_context.get("current_payment_id"))
         page_context = str(frontend_context.get("page_context") or "").strip()
-        route_mode = self._detect_route_mode(category, canonical_query)
-        is_followup = self._looks_like_followup(canonical_query)
+        route_mode = self._detect_route_mode(category, context_query)
+        is_followup = self._looks_like_followup(context_query)
         if page_context == "product" and current_product_id and route_mode in {
             "fallback_unclear",
             "support_only",
@@ -841,7 +874,7 @@ class ProductContextService:
         top_candidates: list[dict] = []
 
         if route_mode in product_context_modes:
-            selected_products = await self._selected_products(session, user, canonical_query)
+            selected_products = await self._selected_products(session, user, context_query)
             match_result = self._last_product_match
             product_match_reason = match_result.reason
             product_match_score = match_result.score
@@ -851,7 +884,7 @@ class ProductContextService:
                 product_match_reason = match_result.reason
             elif selected_product_id is not None and not explicit_product_mention:
                 selected_products = await self._selected_products(
-                    session, user, canonical_query, selected_product_id=selected_product_id
+                    session, user, context_query, selected_product_id=selected_product_id
                 )
                 if selected_products:
                     match_result = self._last_product_match
@@ -877,7 +910,7 @@ class ProductContextService:
                 selected_orders = await self._selected_orders(
                     session,
                     user,
-                    canonical_query,
+                    context_query,
                     selected_order_no=selected_order_no,
                     selected_order_id=selected_order_id,
                 )
@@ -919,7 +952,7 @@ class ProductContextService:
                     )
                 ).all()
             selected_payment = await self._selected_payment(
-                session, user, selected_payment_id
+                session, user, selected_payment_id, context_query
             )
         if route_mode == "payment_account_mixed":
             wallet = await session.scalar(
@@ -938,7 +971,13 @@ class ProductContextService:
                     )
                 )
             ).all()
-            selected_payment = await self._selected_payment(session, user, selected_payment_id)
+            selected_payment = await self._selected_payment(
+                session, user, selected_payment_id, context_query
+            )
+        if selected_payment is None:
+            selected_payment = await self._selected_payment(
+                session, user, selected_payment_id, context_query
+            )
         if category == "HESAP_GUVENLIK" or "güvenlik" in _normalize(canonical_query):
             security = await session.scalar(
                 select(DemoUserSecurityProfile).where(
@@ -974,8 +1013,8 @@ class ProductContextService:
                 else "siparişe bağlı değil"
             )
             payment_lines.append(
-                f"Ödeme {selected_payment.provider_reference}: durum={selected_payment.status}; "
-                f"tutar={selected_payment.amount}; {linked}; sebep={selected_payment.failure_reason or '-'}"
+                f"Ödeme kaydı {selected_payment.provider_reference}: durum={selected_payment.status}; "
+                f"tutar={selected_payment.amount}; bağlantı={linked}; açıklama={selected_payment.failure_reason or '-'}"
             )
 
         decision_hints: list[str] = []
@@ -1011,6 +1050,10 @@ class ProductContextService:
         if saved_cards:
             decision_hints.append(
                 f"Kayıtlı kart sayısı: {len(saved_cards)}; varsayılan kart var={any(card.is_default for card in saved_cards)}."
+            )
+        if selected_payment and selected_payment.status == "CAPTURED_NO_ORDER":
+            decision_hints.append(
+                "Bu ödeme başarılı alınmış görünüyor ancak sipariş kaydıyla eşleşmiyor; kullanıcıya tekrar ödeme denetmek yerine destek/ödeme incelemesi öner."
             )
 
         text_parts = []
@@ -1054,7 +1097,7 @@ class ProductContextService:
                 if route_mode in {"fallback_unclear", "product_only"} and not selected_products
                 else "intent"
             ),
-            "items": product_lines + order_lines + return_lines,
+            "items": product_lines + order_lines + return_lines + payment_lines,
             "payment_items": payment_lines,
             "text": "\n".join(part for part in text_parts if part.strip()),
             "decision_hints": decision_hints,

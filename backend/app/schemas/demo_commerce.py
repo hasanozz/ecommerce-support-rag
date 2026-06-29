@@ -160,6 +160,7 @@ class DemoReturnRequestResponse(BaseModel):
     id: int
     order_id: int
     order_no: str = ""
+    product_name: str = ""
     user_id: int
     return_request: str
     return_code: str
@@ -195,6 +196,12 @@ class DemoResetResponse(BaseModel):
     products: int
     coupons: int
     orders: int
+
+
+class DemoScenarioResponse(BaseModel):
+    key: str
+    status: str
+    prepared: bool
 
 
 class DemoWalletResponse(BaseModel):

@@ -24,6 +24,7 @@ class MessageCreate(BaseModel):
         "orders",
         "returns",
         "favorites",
+        "scenarios",
         "tickets",
         "history",
         "admin",

@@ -19,12 +19,16 @@ const state = {
   adminWallets: [],
   adminCards: [],
   adminSecurityProfiles: [],
+  scenarioStatuses: [],
   cart: null,
   demoOrders: [],
   adminDemoOrders: [],
   adminCoupons: [],
   adminProducts: [],
   adminReviews: [],
+  adminFeedbackAnalytics: null,
+  adminFeedbackLoading: false,
+  adminFeedbackError: "",
   messages: [],
   loading: true,
   error: "",
@@ -68,6 +72,51 @@ const icons = {
   moon: `<svg viewBox="0 0 24 24"><path d="M21 14.6A8.5 8.5 0 0 1 9.4 3a7 7 0 1 0 11.6 11.6Z"/></svg>`,
   sun: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
 };
+
+const DEMO_SCENARIOS = [
+  {
+    key: "payment-captured-no-order",
+    name: "Ödeme alındı ama sipariş oluşmadı",
+    description: "Başarılı ödeme kaydı var, ancak bağlı sipariş kaydı yok.",
+    area: "Ödeme",
+    icon: icons.ticket
+  },
+  {
+    key: "order-not-shipped",
+    name: "Hazırlanan sipariş kargoya verilmedi",
+    description: "Ödemesi tamamlanmış sipariş hazırlıkta bekliyor.",
+    area: "Kargo",
+    icon: icons.box
+  },
+  {
+    key: "delivered-not-received",
+    name: "Teslim edildi görünüyor ama ulaşmadı",
+    description: "Kargo teslim edildi statüsünde, müşteri ürünü almadığını bildiriyor.",
+    area: "Teslimat",
+    icon: icons.search
+  },
+  {
+    key: "returnable-product",
+    name: "İade edilebilir ürün",
+    description: "Teslim edilmiş ve iade talebi için uygun ürün siparişi hazırlanır.",
+    area: "İade",
+    icon: icons.logout
+  },
+  {
+    key: "non-returnable-product",
+    name: "İade edilemeyen ürün",
+    description: "İade politikası kısıtlı ürünle teslim edilmiş sipariş hazırlanır.",
+    area: "İade",
+    icon: icons.shield
+  },
+  {
+    key: "expired-coupon",
+    name: "Kupon süresi doldu",
+    description: "Sepete süresi dolmuş kupon bağlamı eklenir.",
+    area: "Kampanya",
+    icon: icons.star
+  }
+];
 
 function esc(value) {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;")
@@ -126,16 +175,36 @@ function feedbackStatusLabel(value) {
       : "";
 }
 
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options
-  });
-  if (response.status === 204) return null;
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.detail || "İşlem tamamlanamadı.");
-  return body;
+async function api(path, options = {}, timeoutMs = 15000) {
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const response = await fetch(path, {
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      signal: controller?.signal,
+      ...options
+    });
+    if (response.status === 204) return null;
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = body.detail;
+      const message = typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map(item => item.msg || JSON.stringify(item)).join(" ")
+          : detail
+            ? JSON.stringify(detail)
+            : "İşlem tamamlanamadı.";
+      throw new Error(message);
+    }
+    return body;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("İstek zaman aşımına uğradı.");
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function toast(message) {
@@ -171,9 +240,9 @@ function sidebar() {
       <button class="nav-item ${state.page === "returns" ? "active" : ""}" data-page="returns">${icons.box}<span>İadelerim</span></button>
       <button class="nav-item ${state.page === "scenarios" ? "active" : ""}" data-page="scenarios">${icons.star}<span>Senaryolar</span></button>
       <button class="nav-item ${state.page === "favorites" ? "active" : ""}" data-page="favorites">${icons.heart}<span>Favorilerim</span></button>
-      <button class="nav-item ${state.page === "tickets" ? "active" : ""}" data-page="tickets">${icons.ticket}<span>Destek taleplerim</span></button>
-      ${state.user?.is_admin ? `<button class="nav-item ${state.page === "admin-demo" ? "active" : ""}" data-page="admin-demo">${icons.edit}<span>Yönetim paneli</span></button>` : ""}
-      ${state.user?.is_admin ? `<button class="nav-item ${state.page === "admin" ? "active" : ""}" data-page="admin">${icons.ticket}<span>Admin destek</span></button>` : ""}
+      <button class="nav-item ${state.page === "tickets" ? "active" : ""}" data-page="tickets">${icons.ticket}<span>Destek Taleplerim</span></button>
+      ${state.user?.is_admin ? `<button class="nav-item ${state.page === "admin-demo" ? "active" : ""}" data-page="admin-demo">${icons.edit}<span>Yönetim Paneli</span></button>` : ""}
+      ${state.user?.is_admin ? `<button class="nav-item ${state.page === "admin" ? "active" : ""}" data-page="admin">${icons.ticket}<span>Admin Destek</span></button>` : ""}
     </nav>
     <div class="sidebar-help"><div class="account-summary"><span class="profile-outline" aria-hidden="true">${icons.user}</span><div><strong>${esc(state.user?.display_name || state.user?.email)}</strong>
       <span>${esc(state.user?.email)}</span></div></div><button data-action="logout" aria-label="Çıkış yap" title="Çıkış yap">${icons.logout} Çıkış yap</button>
@@ -274,33 +343,12 @@ function messageAnalysisHtml(item, compact = false) {
   </div>`;
 }
 
-function demoScenarioDeckHtml() {
-  const scenarios = [
-    { category: "Sipariş", prompt: "Siparişimi nasıl iptal edebilirim?", hint: "Sipariş / İptal" },
-    { category: "Kargo", prompt: "Kargom teslim edildi görünüyor ama bana ulaşmadı.", hint: "Kargo / Teslimat" },
-    { category: "İade", prompt: "İade talebi nasıl oluşturulur?", hint: "İade / Süreç" },
-    { category: "Kampanya", prompt: "Kupon kodum geçersiz diyor.", hint: "Kampanya / Kupon" },
-    { category: "Ödeme", prompt: "Kartımdan çekim oldu ama sipariş görünmüyor.", hint: "Ödeme / Provizyon" }
-  ];
-  return `<section class="card demo-scenarios">
-    <div class="section-head"><div><h3>Senaryolar</h3><small>Copilot’a tek tıkla soru gönderin</small></div><span>${scenarios.length} örnek</span></div>
-    <div class="scenario-deck">${scenarios.map(item => `
-      <button class="scenario-tile" data-chat-prompt="${esc(item.prompt)}">
-        <span>${esc(item.category)}</span>
-        <strong>${esc(item.prompt)}</strong>
-        <small>${esc(item.hint)}</small>
-        <em>Senaryoyu çalıştır ${icons.arrow}</em>
-      </button>
-    `).join("")}</div>
-  </section>`;
-}
-
 function systemMetricsHtml() {
   const metrics = [
-    { label: "5 Destek Kategorisi", value: "Sipariş, iade, ödeme, kargo, kampanya", note: "Destek akışını otomatik sınıflandırır", icon: icons.box },
-    { label: "RAG Yanıt Motoru", value: "Doküman referanslı cevap", note: "Kaynaklara dayalı, açıklanabilir yanıtlar üretir", icon: icons.shield },
-    { label: "Aksiyon Yönetimi", value: "Ticket, iade ve sipariş yönlendirmesi", note: "Gerektiğinde doğru işlemi başlatır", icon: icons.ticket },
-    { label: "Kaynak Gösterimi", value: "Şeffaf ve izlenebilir yanıtlar", note: "Kullanılan belgeleri görünür kılar", icon: icons.star }
+    { label: "5 Destek Kategorisi", value: "Sipariş, iade, ödeme, kargo, kampanya", note: "Otomatik sınıflandırma", icon: icons.box },
+    { label: "RAG Yanıt Motoru", value: "Doküman referanslı cevap", note: "Kaynaklı yanıt", icon: icons.shield },
+    { label: "Aksiyon Yönetimi", value: "Ticket ve yönlendirme", note: "Net sonraki adım", icon: icons.ticket },
+    { label: "Kaynak Gösterimi", value: "İzlenebilir sonuç", note: "Belge görünürlüğü", icon: icons.star }
   ];
   return `<section class="system-metrics">${metrics.map(item => `
     <article class="metric-chip">
@@ -312,14 +360,20 @@ function systemMetricsHtml() {
   `).join("")}</section>`;
 }
 
-function workflowStepperHtml() {
-  const steps = ["Soruyu anla", "Kategorize et", "Kaynağı bul", "Yanıt üret", "Gerektiğinde ticket aç"];
-  return `<div class="workflow-strip">${steps.map((step, index) => `
-    <div class="workflow-step">
+function usageFlowHtml() {
+  const steps = ["Senaryoyu hazırla", "Copilot’a kendi cümlenle sor", "Kaynaklı cevabı ve aksiyonu incele"];
+  return `<section class="usage-flow card">
+    <div class="usage-flow-head">
+      <strong>Nasıl kullanılır?</strong>
+      <span>Demo akışı</span>
+    </div>
+    <div class="workflow-strip">${steps.map((step, index) => `
+      <div class="workflow-step">
       <span>${index + 1}</span>
       <strong>${esc(step)}</strong>
-    </div>
-  `).join("")}</div>`;
+      </div>
+    `).join("")}</div>
+  </section>`;
 }
 
 function copilotRailHtml() {
@@ -367,7 +421,6 @@ function copilotRailHtml() {
       <button data-page="orders">Siparişlerime git</button>
       <button data-page="returns">İade sürecini başlat</button>
     </div>
-    ${workflowStepperHtml()}
     <div class="messages rail-messages">${copilotMessagesHtml()}</div>
     <form class="message-form rail-form" data-copilot-form>
       <textarea maxlength="1000" placeholder="Copilot'a sorunuzu yazın..." ${state.loading ? "disabled" : ""}></textarea>
@@ -458,6 +511,35 @@ function demoStatusLabel(status) {
     CATEGORY_MISMATCH: "Kategori uygun değil",
     DISABLED: "Pasif"
   })[status] || status;
+}
+
+function returnStatusLabel(status) {
+  return ({
+    CREATED: "Oluşturuldu",
+    UNDER_REVIEW: "İncelemede",
+    APPROVED: "Onaylandı",
+    REJECTED: "Reddedildi",
+    COMPLETED: "Tamamlandı"
+  })[status] || demoStatusLabel(status);
+}
+
+function refundStatusLabel(status) {
+  return ({
+    PENDING: "Beklemede",
+    APPROVED: "Onaylandı",
+    COMPLETED: "Tamamlandı",
+    FAILED: "Başarısız",
+    REFUNDED: "İade edildi"
+  })[status] || demoStatusLabel(status);
+}
+
+function returnRequestLabel(status) {
+  return ({
+    CREATED: "İade talebi oluşturuldu",
+    UNDER_REVIEW: "İade kodu oluşturuldu",
+    APPROVED: "İade onaylandı",
+    REJECTED: "İade reddedildi"
+  })[status] || "İade talebi";
 }
 
 function money(value) {
@@ -643,38 +725,21 @@ function canRequestReturn(order) {
   return true;
 }
 
-function scenarioCards() {
-  const orders = state.demoOrders || [];
-  const returns = state.returns || [];
-  const shipped = orders.find(item => ["SHIPPED", "IN_TRANSIT", "DELAYED"].includes(item.shipping_status));
-  const delivered = orders.find(item => item.shipping_status === "DELIVERED");
-  const returnItem = returns[0];
-  return `<section class="scenario-center">
-    <article class="scenario-card">
-      <span>İptal ve kargo</span>
-      <strong>${esc(shipped?.order_no || "Kargoya verilen sipariş")}</strong>
-      <p>${shipped ? `${orderProducts(shipped)} · ${demoStatusLabel(shipped.shipping_status)}` : "Demo senaryo oluşturunca kargoya verilmiş sipariş burada görünür."}</p>
-      <button data-chat-prompt="Kargoya verilen siparişimi iptal edebilir miyim?" data-current-order-id="${shipped?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
-    </article>
-    <article class="scenario-card">
-      <span>İade süreci</span>
-      <strong>${esc(returnItem?.return_code || "İade kodu")}</strong>
-      <p>${returnItem ? `${esc(returnItem.order_no || returnItem.order_id)} · ${esc(returnItem.return_status)} · ${esc(returnItem.refund_status)}` : "İade kodu, ödeme iadesi ve takip bilgisi burada özetlenir."}</p>
-      <button data-page="returns">${icons.box} İadelerime git</button>
-    </article>
-    <article class="scenario-card">
-      <span>Teslimat sorunu</span>
-      <strong>${esc(delivered?.order_no || "Teslim edildi görünüyor")}</strong>
-      <p>${delivered ? `${orderProducts(delivered)} · ${demoStatusLabel(delivered.shipping_status)}` : "Teslim edildi ama ulaşmadı senaryosunu Copilot'a anlatabilirsin."}</p>
-      <button data-chat-prompt="Kargom teslim edildi görünüyor ama bana ulaşmadı." data-current-order-id="${delivered?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
-    </article>
-    <article class="scenario-card">
-      <span>Ödeme</span>
-      <strong>Karttan çekim</strong>
-      <p>Sipariş oluşturmayan ödeme, başarısız ödeme ve iade ödemesi senaryoları destek akışında kullanılır.</p>
-      <button data-chat-prompt="Kartımdan para çekildi ama siparişim oluşmadı.">${icons.chat} Copilot'a sor</button>
-    </article>
-  </section>`;
+function orderStatusChips(order) {
+  const labels = [
+    demoStatusLabel(order.order_status),
+    demoStatusLabel(order.payment_status),
+    order.return_request ? demoStatusLabel(order.return_request.return_status) : demoStatusLabel(order.shipping_status)
+  ].filter(Boolean);
+  return [...new Set(labels)].slice(0, 3);
+}
+
+function returnStatusChips(item) {
+  const labels = [
+    refundStatusLabel(item.refund_status),
+    item.return_request ? returnRequestLabel(item.return_request) : ""
+  ].filter(Boolean);
+  return [...new Set(labels)].slice(0, 3);
 }
 
 function supportSummaryCard(icon, title, text) {
@@ -687,9 +752,22 @@ function supportSummaryCard(icon, title, text) {
   </article>`;
 }
 
-function supportPageShell({ title, description, eyebrow = "AI Destek Platformu", summaries = [], cta = "", body = "", empty = "", note = "" }) {
+function supportPageShell({
+  title,
+  description,
+  eyebrow = "AI Destek Platformu",
+  summaries = [],
+  cta = "",
+  body = "",
+  empty = "",
+  note = "",
+  className = "",
+  metaTitle = "Kurumsal Destek Akışı",
+  metaDescription = "Bu sayfadaki kayıtlar Copilot tarafından müşteri bağlamı olarak kullanılabilir.",
+  secondaryAction = { page: "shop", label: "Mağazaya Git", icon: icons.box }
+}) {
   return `
-    <section class="support-page">
+    <section class="support-page ${esc(className)}">
       <section class="support-page-hero card">
         <div class="support-page-hero-copy">
           <span class="hero-eyebrow">${esc(eyebrow)}</span>
@@ -700,12 +778,12 @@ function supportPageShell({ title, description, eyebrow = "AI Destek Platformu",
         <div class="support-page-hero-meta">
           <div class="support-page-meta-copy">
             <span class="ai-pill"><span class="online"></span>Copilot bağlamı aktif</span>
-            <strong>Kurumsal destek akışı</strong>
-            <p>Bu sayfadaki kayıtlar Copilot tarafından müşteri bağlamı olarak kullanılabilir.</p>
+            <strong>${esc(metaTitle)}</strong>
+            <p>${esc(metaDescription)}</p>
           </div>
           <div class="support-page-mini-cta">
             <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
-            <button data-page="shop">${icons.box} Mağazaya git</button>
+            <button data-page="${esc(secondaryAction.page)}">${secondaryAction.icon} ${esc(secondaryAction.label)}</button>
           </div>
         </div>
       </section>
@@ -1018,7 +1096,7 @@ function shopPage() {
           <div class="hero-copy">
             <span class="hero-eyebrow">Teknopark Demo · AI First</span>
             <h2>AI Destekli E-Ticaret Copilot</h2>
-            <p>Sipariş, iade, ödeme, kargo ve kampanya sorunlarını anlayan; kaynaklara dayalı yanıt veren ve gerektiğinde destek talebi oluşturan akıllı destek asistanı.</p>
+            <p>Sipariş, iade, ödeme, kargo ve kampanya sorunlarını kaynaklara dayalı yanıtlayan akıllı destek asistanı.</p>
             <div class="hero-badges">
               <span>Kaynağa Dayalı Yanıt</span>
               <span>Otomatik Sınıflandırma</span>
@@ -1026,22 +1104,23 @@ function shopPage() {
               <span>RAG Destekli Çözüm</span>
             </div>
           </div>
-          <div class="hero-preview card">
-            <div class="hero-preview-head">
-              <span class="ai-pill"><span class="online"></span>AI analiz önizlemesi</span>
-              <strong>Canlı demo çıktısı</strong>
-            </div>
-            <div class="hero-preview-grid">
-              <div><span>Kategori</span><strong>İade</strong></div>
-              <div><span>Kaynak</span><strong>2 belge</strong></div>
-              <div><span>Güven</span><strong>%94</strong></div>
-              <div><span>Aksiyon</span><strong>Ticket</strong></div>
-            </div>
-          </div>
-          <button data-action="demo-reset">${icons.box} Demo senaryoyu yenile</button>
         </div>
+        ${usageFlowHtml()}
         ${systemMetricsHtml()}
-        ${demoScenarioDeckHtml()}
+        <section class="scenario-entry-card card">
+          <span class="support-summary-icon">${icons.star}</span>
+          <div>
+            <strong>Demo senaryolarını hazırlamak için Senaryolar sayfasına gidin.</strong>
+            <p>Senaryolar ayrı bir ekranda hazırlanır; Copilot’a soruyu siz manuel yazarsınız.</p>
+          </div>
+          <button data-page="scenarios">${icons.arrow} Senaryolara git</button>
+        </section>
+        <section class="catalog-head">
+          <div>
+            <h2>Ürün Kataloğu</h2>
+            <p>Sepete ürün ekleyerek sipariş ve destek senaryolarını test edebilirsiniz.</p>
+          </div>
+        </section>
         <div class="shop-toolbar card">
           <label class="search-field">${icons.search}<input value="${esc(state.productQuery)}" data-product-search placeholder="Ürün, marka, özellik veya etiket ara"></label>
           <select class="category-select" data-product-category>
@@ -1052,6 +1131,12 @@ function shopPage() {
         </div>
         <section class="product-grid">
           ${items.map(item => productCard(item)).join("") || "<p>Ürün bulunamadı.</p>"}
+        </section>
+        <section class="demo-state-head">
+          <div>
+            <h2>Demo Durumu</h2>
+            <p>Sipariş, favori, iade ve sepet bilgileri burada görüntülenir. Copilot bu verileri destek bağlamı olarak kullanabilir.</p>
+          </div>
         </section>
         <section class="mini-panels">
           <article class="card mini-panel">
@@ -1164,28 +1249,33 @@ function favoritesPage() {
 function returnsPage() {
   const summaries = [
     supportSummaryCard(icons.ticket, "İade Talebi", `${state.returns.length} kayıt`),
-    supportSummaryCard(icons.box, "İade Kodu", "Takip ve doğrulama için"),
-    supportSummaryCard(icons.chat, "Ödeme İadesi", "İade tutarı ve durum takibi")
+    supportSummaryCard(icons.box, "İade Kodu", "Takip ve doğrulama"),
+    supportSummaryCard(icons.chat, "Ödeme İadesi", "Tutar ve durum")
   ];
   const body = state.returns.length ? `
     <section class="support-main card">
-      <div class="section-head"><div><h3>İade kayıtları</h3><small>İade kodu, durum ve ödeme bilgisini takip edin</small></div><span>${state.returns.length} kayıt</span></div>
+      <div class="section-head"><div><h3>İade Kayıtları</h3><small>Bu kayıtlar iade uygunluğu, iade kodu ve ödeme iadesi sorularında Copilot tarafından bağlam olarak kullanılır.</small></div><span>${state.returns.length} kayıt</span></div>
       <div class="record-grid support-record-grid">
         ${state.returns.map(item => `
           <article class="record-card return-card">
             <div class="ticket-card-header">
               <div>
-                <span class="ticket-number">${esc(item.return_code || "İade")}</span>
-                <strong>${esc(item.order_no || `Sipariş #${item.order_id}`)}</strong>
+                <span class="ticket-number">${esc(item.return_code || "İade Kodu")}</span>
+                <strong>${esc(item.product_name || item.order_no || `Sipariş #${item.order_id}`)}</strong>
+                <span class="return-order-ref">${esc(item.order_no || `Sipariş #${item.order_id}`)}</span>
               </div>
-              <span class="status-chip">${esc(item.return_status)}</span>
+              <span class="status-chip">${esc(returnStatusLabel(item.return_status))}</span>
             </div>
             <div class="status-row">
-              <span class="status-chip">${esc(item.return_status)}</span>
-              <span class="status-chip">${esc(item.refund_status)}</span>
+              ${returnStatusChips(item).map(label => `<span class="status-chip">${esc(label)}</span>`).join("")}
             </div>
-            <p>${esc(item.return_reason || "")}</p>
-            ${item.refund ? `<small>İade ödemesi: ${esc(item.refund.refund_reference)} · ${money(item.refund.refund_amount)}</small>` : ""}
+            <p>${esc(shortText(item.return_reason || "İade açıklaması yok.", 120))}</p>
+            <div class="return-meta-row">
+              <small>İade durumu: ${esc(returnStatusLabel(item.return_status))}</small>
+              <small>Ödeme iadesi: ${esc(refundStatusLabel(item.refund_status))}</small>
+              ${item.refund ? `<small>İade tutarı: ${money(item.refund.refund_amount)}</small>` : ""}
+            </div>
+            <button class="return-chat-button" data-chat-prompt="${esc(`${item.return_code || "Bu iade kaydı"} için destek almak istiyorum. İade durumu: ${returnStatusLabel(item.return_status)}. İlgili sipariş: ${item.order_no || `Sipariş #${item.order_id}`}.`)}" data-current-order-id="${item.order_id}" data-current-return-id="${item.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button>
           </article>
         `).join("")}
       </div>
@@ -1198,69 +1288,61 @@ function returnsPage() {
         <p>Bir sipariş oluşturduktan sonra iade sürecini Copilot ile test edebilirsiniz. Copilot iade uygunluğu, iade kodu ve ödeme iadesi konularında kaynaklara dayalı yanıt üretir.</p>
       </div>
       <div class="support-empty-actions">
-        <button class="primary-button" data-page="scenarios">${icons.star} İade senaryosunu çalıştır</button>
+        <button class="primary-button" data-page="scenarios">${icons.star} Senaryolar</button>
         <button data-page="shop">${icons.box} Mağazaya git</button>
         <button data-action="toggle-copilot">${icons.bot} AI Copilot</button>
       </div>
     </section>`;
-  const cta = `
-    <div class="support-cta-copy">
-      <strong>Copilot iade uygunluğu ve ödeme iadesi bağlamını bir arada değerlendirir.</strong>
-      <p>Bu sayfadaki kayıtlar, müşteri iade süreçlerini test ederken Copilot için açıklayıcı bağlam sağlar.</p>
-    </div>
-    <div class="support-cta-actions">
-      <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
-      <button data-page="scenarios">${icons.star} Senaryolar</button>
-    </div>`;
   return supportPageShell({
     title: "İadelerim",
-    description: "İade talepleri, iade kodu ve ödeme iadesi durumları burada takip edilir.",
+    description: "Bu sayfadaki iade kayıtları Copilot için iade uygunluğu, iade kodu ve ödeme iadesi bağlamı oluşturur.",
     summaries,
     body,
     empty,
-    cta
+    className: "returns-support-page",
+    metaTitle: "İade Bağlamı",
+    metaDescription: "Bu sayfadaki iade kodu, iade durumu ve ödeme iadesi bilgileri Copilot tarafından destek bağlamı olarak kullanılabilir.",
+    secondaryAction: { page: "scenarios", label: "Senaryolar", icon: icons.star }
   });
 }
 
 function ordersPage() {
   const summaries = [
     supportSummaryCard(icons.clock, "Aktif Sipariş", `${state.demoOrders.filter(item => !["CANCELLED"].includes(item.order_status)).length} kayıt`),
-    supportSummaryCard(icons.box, "İptal Akışı", "Copilot ile iptal ve iade senaryosu"),
-    supportSummaryCard(icons.search, "Kargo Takibi", "Teslimat ve gecikme bağlamı")
+    supportSummaryCard(icons.box, "İptal Akışı", "İade ve iptal bağlamı"),
+    supportSummaryCard(icons.search, "Kargo Takibi", "Teslimat durumu")
   ];
   const body = state.demoOrders.length ? `
     <section class="support-main card">
-      <div class="section-head"><div><h3>Sipariş kayıtları</h3><small>Demo siparişler Copilot için bağlam oluşturur</small></div><span>${state.demoOrders.length} kayıt</span></div>
+      <div class="section-head"><div><h3>Sipariş Kayıtları</h3><small>Bu kayıtlar iptal, kargo, teslimat ve iade sorularında Copilot tarafından bağlam olarak kullanılır.</small></div><span>${state.demoOrders.length} kayıt</span></div>
       <div class="order-grid support-order-grid">
         ${state.demoOrders.map(item => `<article class="order-card">
           <div class="order-card-head">
             <div><span class="ticket-number">${esc(item.order_no)}</span><h3>${orderProducts(item)}</h3></div>
             <div class="order-actions">
-              <button class="icon-danger" data-delete-demo-order="${item.id}" data-admin="0" aria-label="Sipariş sil">${icons.trash}</button>
+              <button class="icon-danger subtle-delete" data-delete-demo-order="${item.id}" data-admin="0" aria-label="Sipariş sil">${icons.trash}</button>
             </div>
           </div>
           <div class="status-row">
-            <span class="status-chip">${esc(demoStatusLabel(item.order_status))}</span>
-            <span class="status-chip">${esc(demoStatusLabel(item.payment_status))}</span>
-            <span class="status-chip">${esc(demoStatusLabel(item.shipping_status))}</span>
+            ${orderStatusChips(item).map(label => `<span class="status-chip">${esc(label)}</span>`).join("")}
           </div>
           <div class="order-details">
             <div><small>Toplam</small><strong>${money(item.total)}</strong></div>
             <div><small>Kupon</small><strong>${esc(item.coupon_code || "Yok")}</strong></div>
             <div><small>Tarih</small><strong>${new Date(item.updated_at).toLocaleDateString("tr-TR")}</strong></div>
           </div>
-          ${item.shipment ? `<div class="shipment-box"><small>${esc(item.shipment.carrier)}</small>
-            <p>${item.shipment.tracking_number ? `Takip numarası: ${esc(item.shipment.tracking_number)}` : "Takip numarası henüz yok."}</p>
-            ${item.shipment.delay_reason || item.shipment.admin_note ? `<p>${esc(item.shipment.delay_reason || item.shipment.admin_note)}</p>` : ""}</div>` : ""}
+          ${item.shipment ? `<div class="shipment-box compact-context"><small>${esc(item.shipment.carrier)}</small>
+            <p>${item.shipment.tracking_number ? `Takip: ${esc(item.shipment.tracking_number)}` : "Takip numarası henüz yok."}</p>
+            ${item.shipment.delay_reason || item.shipment.admin_note ? `<p>${esc(shortText(item.shipment.delay_reason || item.shipment.admin_note, 120))}</p>` : ""}</div>` : ""}
           <div class="order-flow-actions">
             ${item.return_request ? `<span class="status-chip">İade talebi açıldı</span>`
               : canRequestReturn(item) ? `<button class="primary-button" data-create-return="${item.id}">${icons.box} İade talebi oluştur</button>`
               : `<span class="status-chip">İade için uygun değil</span>`}
             <button data-chat-prompt="${esc(`${item.order_no} siparişimdeki ürün için iade süreci nasıl olur?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
           </div>
-          ${item.return_request ? `<div class="shipment-box"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
+          ${item.return_request ? `<div class="shipment-box compact-context"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
             <p>${esc(item.return_request.return_status)} · ${esc(item.return_request.refund_status)}</p>
-            <p>${esc(item.return_request.return_reason || "")}</p>
+            <p>${esc(shortText(item.return_request.return_reason || "", 110))}</p>
             <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button></div>` : ""}
         </article>`).join("")}
       </div>
@@ -1278,143 +1360,309 @@ function ordersPage() {
         <button data-action="toggle-copilot">${icons.bot} AI Copilot</button>
       </div>
     </section>`;
-  const cta = `
-    <div class="support-cta-copy">
-      <strong>Copilot sipariş, kargo ve iptal bağlamını aynı anda kullanabilir.</strong>
-      <p>Bu sayfadaki veriler, destek sorularında doğrulanmış ve kaynaklı yanıt üretmek için kullanılır.</p>
-    </div>
-    <div class="support-cta-actions">
-      <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
-      <button data-page="scenarios">${icons.star} Senaryolar</button>
-    </div>`;
   return supportPageShell({
     title: "Siparişlerim",
-    description: "Demo siparişler burada listelenir. Copilot bu siparişleri destek bağlamı olarak kullanır.",
+    description: "Bu sayfadaki siparişler iptal, kargo, teslimat ve iade sorularında Copilot için müşteri bağlamı oluşturur.",
     summaries,
     body,
     empty,
-    cta
+    className: "orders-support-page",
+    metaTitle: "Sipariş Bağlamı",
+    metaDescription: "Bu sayfadaki sipariş, kargo ve iade bilgileri Copilot tarafından destek bağlamı olarak kullanılabilir.",
+    secondaryAction: { page: "scenarios", label: "Senaryolar", icon: icons.star }
   });
+}
+
+function scenarioPrepared(key) {
+  return Boolean(state.scenarioStatuses.find(item => item.key === key)?.prepared);
+}
+
+function scenarioManagementCard(item) {
+  const prepared = scenarioPrepared(item.key);
+  return `<article class="scenario-management-card">
+    <div class="scenario-card-head">
+      <span class="scenario-icon">${item.icon}</span>
+      <span class="scenario-area">${esc(item.area)}</span>
+    </div>
+    <div class="scenario-card-copy">
+      <h3>${esc(item.name)}</h3>
+      <p>${esc(item.description)}</p>
+    </div>
+    <div class="scenario-card-meta">
+      <span class="scenario-status ${prepared ? "ready" : ""}">${prepared ? "Hazırlandı" : "Hazır değil"}</span>
+      <small>${esc(item.area)} alanını etkiler</small>
+    </div>
+    <div class="scenario-actions">
+      <button class="scenario-primary" data-scenario-prepare="${esc(item.key)}">${icons.box} Senaryoyu Hazırla</button>
+      <button class="scenario-secondary" data-scenario-clear="${esc(item.key)}">${icons.trash} Senaryoyu Temizle</button>
+    </div>
+  </article>`;
 }
 
 function scenariosPage() {
   const summaries = [
-    supportSummaryCard(icons.star, "Senaryolar", "Sipariş, iade, ödeme ve kargo"),
-    supportSummaryCard(icons.bot, "Copilot Aksiyonu", "Soruyu bağlama göre işler"),
-    supportSummaryCard(icons.search, "Kaynaklı Yanıt", "RAG destekli çözüm üretir")
+    supportSummaryCard(icons.star, "Demo Hazırlığı", "6 kontrollü senaryo"),
+    supportSummaryCard(icons.bot, "Manuel Copilot", "Otomatik soru gönderilmez"),
+    supportSummaryCard(icons.search, "Temiz State", "Senaryo bazlı temizleme")
   ];
   const body = `
-    <section class="support-main card">
-      <div class="section-head"><div><h3>Senaryolar</h3><small>Copilot'a tek tıkla soru gönderin</small></div><span>4 örnek</span></div>
-      ${scenarioCards()}
+    <section class="scenario-info-box">
+      ${icons.shield}
+      <p>Bu sayfadaki butonlar yalnızca demo verisini hazırlar. Copilot’a otomatik soru gönderilmez. Senaryo hazırlandıktan sonra Copilot’a kendi ifadenizle soru sorarak modeli test edebilirsiniz.</p>
+    </section>
+    <section class="scenario-management-grid">
+      ${DEMO_SCENARIOS.map(scenarioManagementCard).join("")}
     </section>`;
   const cta = `
     <div class="support-cta-copy">
-      <strong>Bu senaryolar Copilot için hazır demo girişleridir.</strong>
-      <p>Kartlardan birine tıklayarak destek akışını doğrudan başlatabilir, kaynaklı yanıt ve ticket davranışını gösterebilirsiniz.</p>
+      <strong>Senaryoyu hazırladıktan sonra Copilot’a kendi cümlenizle sorun.</strong>
+      <p>Hazırlanan demo verisi sipariş, ödeme, iade, kargo veya kupon bağlamı olarak değerlendirilir.</p>
     </div>
     <div class="support-cta-actions">
       <button class="primary-button" data-action="toggle-copilot">${icons.bot} AI Copilot</button>
       <button data-page="shop">${icons.box} Mağazaya git</button>
     </div>`;
   return supportPageShell({
-    title: "Senaryolar",
-    description: "Copilot'un sipariş, iade, ödeme ve kargo akışlarında nasıl çalıştığını gösteren demo kartları.",
+    title: "Demo Senaryoları",
+    description: "Sunum sırasında test etmek istediğiniz müşteri destek durumlarını buradan hazırlayabilir veya temizleyebilirsiniz. Senaryo hazırlandıktan sonra Copilot’a kendi cümlenizle soru sorabilirsiniz.",
     summaries,
     body,
     cta
   });
 }
 
+function percent(value) {
+  if (value == null || Number.isNaN(Number(value))) return "—";
+  return `%${Math.round(Number(value) * 100)}`;
+}
+
+function shortText(value, length = 150) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+}
+
+function sourceSummary(sources = []) {
+  if (!sources.length) return "Kaynak yok";
+  return sources.slice(0, 2).map(source => source.title || source.doc_id || "Kaynak").join(", ");
+}
+
+function adminSection(id, title, description, count, body, kicker = "Demo Yönetimi") {
+  return `<section class="admin-dashboard-section" id="${id}">
+    <div class="admin-section-head">
+      <div><span class="section-kicker">${esc(kicker)}</span><h3>${esc(title)}</h3><p>${esc(description)}</p></div>
+      <span class="section-count">${esc(count)}</span>
+    </div>
+    ${body}
+  </section>`;
+}
+
+function adminHumanJudgeSection() {
+  if (state.adminFeedbackLoading) {
+    return adminSection(
+      "human-judge",
+      "Human-as-a-Judge",
+      "Kullanıcı feedbackleri üzerinden AI cevaplarının faydalı/faydasız bulunma durumunu analiz eder.",
+      "Yükleniyor",
+      `<div class="empty-state">AI Feedback analitiği yükleniyor.</div>`,
+      "AI Feedback"
+    );
+  }
+  if (state.adminFeedbackError) {
+    return adminSection(
+      "human-judge",
+      "Human-as-a-Judge",
+      "Kullanıcı feedbackleri üzerinden AI cevaplarının faydalı/faydasız bulunma durumunu analiz eder.",
+      "Hata",
+      `<div class="empty-state">
+        <strong>Human-as-a-Judge verileri yüklenemedi.</strong>
+        <p>Feedback analytics endpointi yanıt vermedi veya hata döndürdü.</p>
+        <button class="primary-button" data-action="refresh-human-judge">Tekrar dene</button>
+      </div>`,
+      "AI Feedback"
+    );
+  }
+  const data = state.adminFeedbackAnalytics;
+  if (!data) {
+    return adminSection(
+      "human-judge",
+      "Human-as-a-Judge",
+      "Kullanıcı feedbackleri üzerinden AI cevaplarının faydalı/faydasız bulunma durumunu analiz eder.",
+      "0 feedback",
+      `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`,
+      "AI Feedback"
+    );
+  }
+  const total = data.total_feedback || 0;
+  const categories = data.category_breakdown || [];
+  const recent = data.recent_feedback || [];
+  const maxCategoryTotal = Math.max(1, ...categories.map(item => item.total || 0));
+  const body = total ? `<div class="admin-overview judge-overview">
+      <article class="card metric-card"><span>Toplam Feedback</span><strong>${total}</strong><small>AI cevap oyu</small></article>
+      <article class="card metric-card"><span>Helpful Oranı</span><strong>${percent(data.helpful_rate)}</strong><small>${data.helpful_count || 0} olumlu</small></article>
+      <article class="card metric-card"><span>Unhelpful Oranı</span><strong>${percent(data.unhelpful_rate)}</strong><small>${data.unhelpful_count || 0} olumsuz</small></article>
+      <article class="card metric-card"><span>Ortalama Confidence</span><strong>${data.average_confidence_score == null ? "—" : percent(data.average_confidence_score)}</strong><small>Model güven skoru</small></article>
+    </div>
+    <div class="judge-layout">
+      <article class="admin-panel-card">
+        <div class="section-head"><h3>Kategori Dağılımı</h3><span>${categories.length} kategori</span></div>
+        <div class="category-breakdown">${categories.map(item => {
+          const helpfulWidth = Math.round(((item.helpful_count || 0) / maxCategoryTotal) * 100);
+          const unhelpfulWidth = Math.round(((item.unhelpful_count || 0) / maxCategoryTotal) * 100);
+          return `<div class="category-row">
+            <div><strong>${esc(item.category || "GENEL")}</strong><span>${item.total} feedback · ${percent(item.helpful_rate)} helpful</span></div>
+            <div class="stacked-bar" aria-label="${esc(item.category || "GENEL")} feedback dağılımı">
+              <span class="bar-helpful" style="width:${helpfulWidth}%"></span>
+              <span class="bar-unhelpful" style="width:${unhelpfulWidth}%"></span>
+            </div>
+            <small>${item.helpful_count || 0} helpful / ${item.unhelpful_count || 0} unhelpful</small>
+          </div>`;
+        }).join("") || `<div class="empty-state">Kategori dağılımı yok.</div>`}</div>
+      </article>
+      <article class="admin-panel-card recent-feedback-panel">
+        <div class="section-head"><h3>Son Feedback Verilen AI Cevapları</h3><span>${recent.length} kayıt</span></div>
+        <div class="feedback-list">${recent.map(item => `<article class="feedback-row">
+          <div class="feedback-row-head">
+            <strong>${esc(shortText(item.canonical_query || "Kullanıcı sorusu yok", 90))}</strong>
+            <span class="feedback-badge ${item.feedback_value === "HELPFUL" ? "helpful" : "unhelpful"}">${esc(item.feedback_value)}</span>
+          </div>
+          <p>${esc(shortText(item.ai_answer, 180))}</p>
+          <div class="feedback-meta">
+            <span class="status-chip">${esc(item.category || "GENEL")}</span>
+            <span>Confidence: ${item.confidence_score == null ? "—" : percent(item.confidence_score)}</span>
+            <span>${esc(sourceSummary(item.sources))}</span>
+            <time>${new Date(item.feedback_created_at).toLocaleString("tr-TR")}</time>
+          </div>
+        </article>`).join("") || `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`}</div>
+      </article>
+    </div>` : `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`;
+  return adminSection(
+    "human-judge",
+    "Human-as-a-Judge",
+    "Kullanıcı feedbackleri üzerinden AI cevaplarının faydalı/faydasız bulunma durumunu analiz eder.",
+    `${total} feedback`,
+    body,
+    "AI Feedback"
+  );
+}
+
 function demoOrdersPage(admin = false) {
   const items = admin ? state.adminDemoOrders : state.demoOrders;
-  return `${topbar(admin ? "Demo sipariş yönetimi" : "Demo siparişlerim", admin ? "Kargo, ödeme ve sipariş durumlarını demo amaçlı güncelleyin." : "Sohbet asistanı bu sipariş durumlarını müşteri bağlamı olarak kullanır.")}
-    ${admin ? `<section class="admin-overview">
-      <article class="card metric-card"><span>Ürün</span><strong>${state.adminProducts.length}</strong><small>Katalog ve attribute verisi</small></article>
-      <article class="card metric-card"><span>Yorum</span><strong>${state.adminReviews.length}</strong><small>Kullanıcı puanları ve görünür yorumlar</small></article>
-      <article class="card metric-card"><span>Sipariş</span><strong>${state.adminDemoOrders.length}</strong><small>Durum yönetimi yapılabilir</small></article>
-      <article class="card metric-card"><span>İade</span><strong>${state.adminReturns.length}</strong><small>İade ve ödeme akışı</small></article>
-    </section>
-    <section class="coupon-section"><div class="section-head"><h3>Ürün kataloğu</h3><span>${state.adminProducts.length} ürün</span></div>
-      <div class="coupon-grid">${state.adminProducts.slice(0, 12).map(product => `<article class="coupon-card">
+  if (!admin) {
+    return `${topbar("Demo siparişlerim", "Sohbet asistanı bu sipariş durumlarını müşteri bağlamı olarak kullanır.")}
+      <section class="order-grid">${orderCards(items, false)}</section>`;
+  }
+  const productsBody = `<div class="admin-two-column">
+    <article class="admin-panel-card">
+      <div class="section-head"><h3>Ürün Kataloğu</h3><span>${state.adminProducts.length} ürün</span></div>
+      <p class="admin-section-note">Demo ürün verileri sipariş ve destek senaryolarına bağlam sağlar.</p>
+      <div class="admin-compact-grid">${state.adminProducts.slice(0, 12).map(product => `<article class="admin-compact-card">
         <div><strong>${esc(product.name)}</strong><span class="status-chip">${esc(productBadge(product.category))}</span></div>
         <p>${esc(product.brand || "-")} · ${money(product.price)} · Stok: ${product.stock}</p>
         <small>${esc(productRatingLabel(product))}</small>
-      </article>`).join("") || "<p>Ürün kaydı yok.</p>"}</div></section>
-    <section class="coupon-section"><div class="section-head"><h3>Ürün yorumları</h3><span>${state.adminReviews.length} yorum</span></div>
-      <div class="coupon-grid">${state.adminReviews.slice(0, 8).map(review => `<article class="coupon-card">
+      </article>`).join("") || `<div class="empty-state">Ürün kaydı yok.</div>`}</div>
+    </article>
+    <article class="admin-panel-card">
+      <div class="section-head"><h3>Ürün Yorumları</h3><span>${state.adminReviews.length} yorum</span></div>
+      <p class="admin-section-note">Müşterilerin ürünlere verdiği puan ve yorumlar.</p>
+      <div class="admin-compact-grid">${state.adminReviews.slice(0, 8).map(review => `<article class="admin-compact-card">
         <div><strong>${esc(review.product_name || `Ürün #${review.product_id}`)}</strong><span class="status-chip">${review.rating == null ? "Puan yok" : `${review.rating}/5`}</span></div>
-        <p>${esc(review.title || "")}</p>
-        <small>${esc(review.body || "")}</small>
-      </article>`).join("") || "<p>Yorum kaydı yok.</p>"}</div></section>` : ""}
-    <section class="order-grid">${items.map(item => `<article class="order-card">
-      <div class="order-card-head">
-        <div><span class="ticket-number">${esc(item.order_no)}</span><h3>${orderProducts(item)}</h3></div>
-        <div class="order-actions">
-          ${admin ? `<button class="icon-button-small" data-edit-demo-order="${item.id}" aria-label="Sipariş düzenle">${icons.edit}</button>` : ""}
-          <button class="icon-danger" data-delete-demo-order="${item.id}" data-admin="${admin ? "1" : "0"}" aria-label="Sipariş sil">${icons.trash}</button>
-        </div>
-      </div>
-      <div class="status-row">
-        <span class="status-chip">${esc(demoStatusLabel(item.order_status))}</span>
-        <span class="status-chip">${esc(demoStatusLabel(item.payment_status))}</span>
-        <span class="status-chip">${esc(demoStatusLabel(item.shipping_status))}</span>
-      </div>
-      <div class="order-details">
-        <div><small>Toplam</small><strong>${money(item.total)}</strong></div>
-        <div><small>Kupon</small><strong>${esc(item.coupon_code || "Yok")}</strong></div>
-        <div><small>Tarih</small><strong>${new Date(item.updated_at).toLocaleDateString("tr-TR")}</strong></div>
-      </div>
-      ${item.shipment ? `<div class="shipment-box"><small>${esc(item.shipment.carrier)}</small>
-        <p>${item.shipment.tracking_number ? `Takip numarası: ${esc(item.shipment.tracking_number)}` : "Takip numarası henüz yok."}</p>
-        ${item.shipment.delay_reason || item.shipment.admin_note ? `<p>${esc(item.shipment.delay_reason || item.shipment.admin_note)}</p>` : ""}</div>` : ""}
-      ${item.return_request ? `<div class="shipment-box"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
-        <p>${esc(item.return_request.return_status)} · ${esc(item.return_request.refund_status)}</p>
-        <p>${esc(item.return_request.return_reason || "")}</p>
-        <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button></div>` : ""}
-      <div class="order-flow-actions">
-        ${item.return_request ? `<span class="status-chip">İade talebi açıldı</span>`
-          : canRequestReturn(item) ? `<button class="primary-button" data-create-return="${item.id}">${icons.box} İade talebi oluştur</button>`
-          : `<span class="status-chip">İade için uygun değil</span>`}
-        <button data-chat-prompt="${esc(`${item.order_no} siparişimdeki ürün için iade süreci nasıl olur?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
-      </div>
-      ${item.admin_note ? `<div class="ticket-note admin-note"><small>Yönetici notu</small><p>${esc(item.admin_note)}</p></div>` : ""}
-      ${admin && state.editingDemoOrderId === item.id ? `<div class="admin-demo-editor">
-        <label>Sipariş durumu<select data-demo-order-status="${item.id}">${["CREATED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUND_PENDING"].map(status => `<option value="${status}" ${status === item.order_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
-        <label>Ödeme durumu<select data-demo-payment-status="${item.id}">${["SUCCESS", "FAILED", "CAPTURED_NO_ORDER", "REFUND_PENDING"].map(status => `<option value="${status}" ${status === item.payment_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
-        <label>Kargo durumu<select data-demo-shipping-status="${item.id}">${["PREPARING", "SHIPPED", "IN_TRANSIT", "DELAYED", "LOST", "DELIVERED", "PARTIALLY_DELIVERED"].map(status => `<option value="${status}" ${status === item.shipping_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
-        <label>Takip no<input data-demo-tracking="${item.id}" placeholder="TRK..." value="${esc(item.shipment?.tracking_number || "")}"></label>
-        <label class="full-field">Yönetici notu<textarea data-demo-note="${item.id}" maxlength="1000" placeholder="Gecikme nedeni veya yönetici notu">${esc(item.admin_note || item.shipment?.delay_reason || "")}</textarea></label>
-        <div class="editor-actions"><button data-cancel-demo-edit="${item.id}">Vazgeç</button><button class="primary-button" data-update-demo-order="${item.id}">Güncelle</button></div>
-      </div>` : ""}
-    </article>`).join("") || `<div class="empty-state">Demo sipariş bulunmuyor.</div>`}</section>
-    ${admin ? `<section class="coupon-section"><div class="section-head"><h3>Demo kuponlar</h3><span>${state.adminCoupons.length} kayıt</span></div>
-      <div class="coupon-grid">${state.adminCoupons.map(coupon => `<article class="coupon-card">
-        <div><strong>${esc(coupon.code)}</strong><span class="status-chip">${esc(demoStatusLabel(coupon.status))}</span></div>
-        <p>${coupon.discount_type === "PERCENT" ? `%${coupon.discount_value}` : money(coupon.discount_value)} indirim · Min: ${money(coupon.min_cart_total)} · Kategori: ${esc(coupon.allowed_category || "Tümü")}</p>
-        <button class="icon-danger" data-delete-demo-coupon="${coupon.id}" aria-label="Kupon sil">${icons.trash} Sil</button>
-      </article>`).join("")}</div></section>` : ""}
-    ${admin ? `<section class="coupon-section"><div class="section-head"><h3>İade ve ödeme iadesi</h3><span>${state.adminReturns.length} kayıt</span></div>
-      <div class="coupon-grid">${state.adminReturns.map(item => `<article class="coupon-card">
+        <p>${esc(review.title || "Başlık yok")}</p>
+        <small>${esc(shortText(review.body || "Yorum metni yok.", 110))}</small>
+      </article>`).join("") || `<div class="empty-state">Yorum kaydı yok.</div>`}</div>
+    </article>
+  </div>`;
+  const ordersBody = `<div class="order-grid admin-order-grid">${orderCards(items, true)}</div>
+    <article class="admin-panel-card">
+      <div class="section-head"><h3>İade/Ödeme İadesi</h3><span>${state.adminReturns.length} kayıt</span></div>
+      <p class="admin-section-note">Bu veriler Copilot’un ödeme, kupon ve iade sorularına bağlam sağlar.</p>
+      <div class="admin-compact-grid">${state.adminReturns.map(item => `<article class="admin-compact-card">
         <div><strong>${esc(item.return_code || item.order_id)}</strong><span class="status-chip">${esc(item.return_status)}</span></div>
-        <p>${esc(item.return_reason || "")}</p>
+        <p>${esc(item.return_reason || "İade nedeni yok.")}</p>
         <small>${esc(item.refund_status)}${item.refund ? ` · ${money(item.refund.refund_amount)}` : ""}</small>
-      </article>`).join("") || "<p>İade kaydı yok.</p>"}</div></section>` : ""}
-    ${admin ? `<section class="coupon-section"><div class="section-head"><h3>Cüzdan, kart ve güvenlik</h3><span>${state.adminWallets.length} / ${state.adminCards.length} / ${state.adminSecurityProfiles.length}</span></div>
-      <div class="coupon-grid">
-        <article class="coupon-card">
-          <strong>Cüzdan</strong>
-          ${state.adminWallets.map(wallet => `<p>${wallet.user_id}: ${money(wallet.balance)} · ${esc(wallet.status)}</p>`).join("") || "<p>Cüzdan kaydı yok.</p>"}
-        </article>
-        <article class="coupon-card">
-          <strong>Kartlar</strong>
-          ${state.adminCards.map(card => `<p>${card.user_id}: ${esc(card.card_brand)} ****${esc(card.last4)} ${card.is_default ? "(varsayılan)" : ""}</p>`).join("") || "<p>Kart kaydı yok.</p>"}
-        </article>
-        <article class="coupon-card">
-          <strong>Güvenlik</strong>
-          ${state.adminSecurityProfiles.map(profile => `<p>${profile.user_id}: ${esc(profile.security_status)} · ${esc(profile.risk_note || "")}</p>`).join("") || "<p>Güvenlik kaydı yok.</p>"}
-        </article>
-      </div></section>` : ""}`;
+      </article>`).join("") || `<div class="empty-state">İade kaydı yok.</div>`}</div>
+    </article>`;
+  const financeBody = `<div class="admin-two-column">
+    <article class="admin-panel-card">
+      <div class="section-head"><h3>Kuponlar</h3><span>${state.adminCoupons.length} kayıt</span></div>
+      <p class="admin-section-note">Bu veriler Copilot’un ödeme, kupon ve iade sorularına bağlam sağlar.</p>
+      <div class="admin-compact-grid">${state.adminCoupons.map(coupon => `<article class="admin-compact-card">
+        <div><strong>${esc(coupon.code)}</strong><span class="status-chip">${esc(demoStatusLabel(coupon.status))}</span></div>
+        <p>${coupon.discount_type === "PERCENT" ? `%${coupon.discount_value}` : money(coupon.discount_value)} indirim · Min: ${money(coupon.min_cart_total)}</p>
+        <small>Kategori: ${esc(coupon.allowed_category || "Tümü")}</small>
+        <button class="icon-danger" data-delete-demo-coupon="${coupon.id}" aria-label="Kupon sil">${icons.trash} Sil</button>
+      </article>`).join("") || `<div class="empty-state">Kupon kaydı yok.</div>`}</div>
+    </article>
+    <article class="admin-panel-card">
+      <div class="section-head"><h3>Müşteri Finansal Bağlamı</h3><span>${state.adminWallets.length + state.adminCards.length + state.adminSecurityProfiles.length} kayıt</span></div>
+      <p class="admin-section-note">Bu veriler Copilot’un ödeme, kart ve güvenlik sorularına bağlam sağlar.</p>
+      <div class="finance-context-grid">
+        <div><strong>Cüzdan</strong>${state.adminWallets.map(wallet => `<p>${wallet.user_id}: ${money(wallet.balance)} · ${esc(wallet.status)}</p>`).join("") || "<p>Cüzdan kaydı yok.</p>"}</div>
+        <div><strong>Kartlar</strong>${state.adminCards.map(card => `<p>${card.user_id}: ${esc(card.card_brand)} ****${esc(card.last4)} ${card.is_default ? "(varsayılan)" : ""}</p>`).join("") || "<p>Kart kaydı yok.</p>"}</div>
+        <div><strong>Güvenlik</strong>${state.adminSecurityProfiles.map(profile => `<p>${profile.user_id}: ${esc(profile.security_status)} · ${esc(profile.risk_note || "")}</p>`).join("") || "<p>Güvenlik kaydı yok.</p>"}</div>
+      </div>
+    </article>
+  </div>`;
+  return `${topbar("Demo Yönetim Paneli", "Ürün, sipariş, iade, kupon ve müşteri bağlamı verilerini demo amaçlı yönetin.")}
+    <section class="admin-overview">
+      <article class="card metric-card"><span>Ürün</span><strong>${state.adminProducts.length}</strong><small>Katalog Verisi</small></article>
+      <article class="card metric-card"><span>Yorum</span><strong>${state.adminReviews.length}</strong><small>Ürün Feedbackleri</small></article>
+      <article class="card metric-card"><span>Sipariş</span><strong>${state.adminDemoOrders.length}</strong><small>Demo Akışları</small></article>
+      <article class="card metric-card"><span>İade</span><strong>${state.adminReturns.length}</strong><small>İade Ve Ödeme</small></article>
+    </section>
+    <nav class="admin-section-nav" aria-label="Yönetim paneli bölümleri">
+      <a href="#products-reviews">Ürün & Yorum</a>
+      <a href="#orders-returns">Sipariş & İade</a>
+      <a href="#coupons-finance">Kupon & Ödeme</a>
+      <a href="#human-judge">Human-as-a-Judge</a>
+    </nav>
+    ${adminSection("products-reviews", "Ürün Ve Yorum Yönetimi", "Ürün kataloğu ile ürün yorumlarını ayrı ve kompakt bir alanda izleyin.", `${state.adminProducts.length} ürün / ${state.adminReviews.length} yorum`, productsBody)}
+    ${adminSection("orders-returns", "Sipariş Ve İade Yönetimi", "Demo siparişleri, iade durumlarını ve Copilot bağlamını yönetin.", `${state.adminDemoOrders.length} sipariş`, ordersBody)}
+    ${adminSection("coupons-finance", "Kupon Ve Ödeme Bağlamı", "Kupon, cüzdan, kart ve güvenlik kayıtlarını destek bağlamı olarak izleyin.", `${state.adminCoupons.length} kupon`, financeBody)}
+    ${adminHumanJudgeSection()}`;
+}
+
+function orderCards(items, admin = false) {
+  return items.map(item => `<article class="order-card admin-order-card">
+    <div class="order-card-head">
+      <div><span class="ticket-number">${esc(item.order_no)}</span><h3>${orderProducts(item)}</h3></div>
+      <div class="order-actions">
+        ${admin ? `<button class="icon-button-small" data-edit-demo-order="${item.id}" aria-label="Sipariş düzenle">${icons.edit}</button>` : ""}
+        <button class="icon-danger" data-delete-demo-order="${item.id}" data-admin="${admin ? "1" : "0"}" aria-label="Sipariş sil">${icons.trash}</button>
+      </div>
+    </div>
+    <div class="status-row admin-status-row">
+      <span class="status-chip">${esc(demoStatusLabel(item.order_status))}</span>
+      <span class="status-chip">${esc(demoStatusLabel(item.payment_status))}</span>
+      <span class="status-chip">${esc(demoStatusLabel(item.shipping_status))}</span>
+    </div>
+    <div class="order-details">
+      <div><small>Toplam</small><strong>${money(item.total)}</strong></div>
+      <div><small>Kupon</small><strong>${esc(item.coupon_code || "Yok")}</strong></div>
+      <div><small>Tarih</small><strong>${new Date(item.updated_at).toLocaleDateString("tr-TR")}</strong></div>
+    </div>
+    ${item.shipment ? `<div class="shipment-box compact-context"><small>${esc(item.shipment.carrier)}</small>
+      <p>${item.shipment.tracking_number ? `Takip: ${esc(item.shipment.tracking_number)}` : "Takip numarası henüz yok."}</p>
+      ${item.shipment.delay_reason || item.shipment.admin_note ? `<p>${esc(shortText(item.shipment.delay_reason || item.shipment.admin_note, 120))}</p>` : ""}</div>` : ""}
+    ${item.return_request ? `<div class="shipment-box compact-context"><small>İade kodu: ${esc(item.return_request.return_code || "-")}</small>
+      <p>${esc(item.return_request.return_status)} · ${esc(item.return_request.refund_status)}</p>
+      <p>${esc(shortText(item.return_request.return_reason || "", 110))}</p>
+      <button class="icon-button-small return-chat-button" data-chat-prompt="${esc(`${item.return_request.return_code} iade kodumla süreci nasıl takip ederim?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request.id}" data-page-context="returns">${icons.chat} Copilot'a sor</button></div>` : ""}
+    <div class="order-flow-actions admin-order-actions">
+      ${item.return_request ? `<span class="status-chip">İade talebi açıldı</span>`
+        : canRequestReturn(item) ? `<button class="primary-button" data-create-return="${item.id}">${icons.box} İade talebi oluştur</button>`
+        : `<span class="status-chip">İade için uygun değil</span>`}
+      <button data-chat-prompt="${esc(`${item.order_no} siparişimdeki ürün için iade süreci nasıl olur?`)}" data-current-order-id="${item.id}" data-current-return-id="${item.return_request?.id || ""}" data-page-context="orders">${icons.chat} Copilot'a sor</button>
+    </div>
+    ${item.admin_note ? `<div class="ticket-note admin-note"><small>Yönetici notu</small><p>${esc(shortText(item.admin_note, 130))}</p></div>` : ""}
+    ${admin && state.editingDemoOrderId === item.id ? `<div class="admin-demo-editor">
+      <label>Sipariş durumu<select data-demo-order-status="${item.id}">${["CREATED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUND_PENDING"].map(status => `<option value="${status}" ${status === item.order_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
+      <label>Ödeme durumu<select data-demo-payment-status="${item.id}">${["SUCCESS", "FAILED", "CAPTURED_NO_ORDER", "REFUND_PENDING"].map(status => `<option value="${status}" ${status === item.payment_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
+      <label>Kargo durumu<select data-demo-shipping-status="${item.id}">${["PREPARING", "SHIPPED", "IN_TRANSIT", "DELAYED", "LOST", "DELIVERED", "PARTIALLY_DELIVERED"].map(status => `<option value="${status}" ${status === item.shipping_status ? "selected" : ""}>${demoStatusLabel(status)}</option>`).join("")}</select></label>
+      <label>Takip no<input data-demo-tracking="${item.id}" placeholder="TRK..." value="${esc(item.shipment?.tracking_number || "")}"></label>
+      <label class="full-field">Yönetici notu<textarea data-demo-note="${item.id}" maxlength="1000" placeholder="Gecikme nedeni veya yönetici notu">${esc(item.admin_note || item.shipment?.delay_reason || "")}</textarea></label>
+      <div class="editor-actions"><button data-cancel-demo-edit="${item.id}">Vazgeç</button><button class="primary-button" data-update-demo-order="${item.id}">Güncelle</button></div>
+    </div>` : ""}
+  </article>`).join("") || `<div class="empty-state">Demo sipariş bulunmuyor.</div>`;
 }
 
 function sourceModal() {
@@ -1562,9 +1810,18 @@ async function loadPage(page) {
     if (page === "favorites") state.favorites = await api(`${API}/demo/favorites`);
     if (page === "returns") state.returns = await api(`${API}/demo/returns`);
     if (page === "orders") state.demoOrders = await api(`${API}/demo/orders`);
+    if (page === "scenarios") {
+      state.scenarioStatuses = await api(`${API}/demo/scenarios`);
+      state.cart = await api(`${API}/demo/cart`);
+      state.returns = await api(`${API}/demo/returns`);
+      state.demoOrders = await api(`${API}/demo/orders`);
+    }
     if (page === "tickets") state.tickets = await api(`${API}/tickets`);
     if (page === "admin") state.adminTickets = await api(`${API}/admin/tickets`);
     if (page === "admin-demo") {
+      state.adminFeedbackAnalytics = null;
+      state.adminFeedbackError = "";
+      refreshAdminFeedbackAnalytics();
       state.adminDemoOrders = await api(`${API}/admin/demo/orders`);
       state.adminCoupons = await api(`${API}/admin/demo/coupons`);
       state.adminProducts = await api(`${API}/admin/demo/products`);
@@ -1580,14 +1837,21 @@ async function loadPage(page) {
   render();
 }
 
-function focusDemoScenarios() {
-  if (state.page !== "shop") {
-    state.page = "shop";
+async function refreshAdminFeedbackAnalytics() {
+  if (!state.user?.is_admin) return;
+  state.adminFeedbackLoading = true;
+  state.adminFeedbackError = "";
+  render();
+  try {
+    state.adminFeedbackAnalytics = await api(`${API}/admin/feedback-analytics`);
+  } catch (error) {
+    state.adminFeedbackAnalytics = null;
+    state.adminFeedbackError = error.message;
+    toast(error.message);
+  } finally {
+    state.adminFeedbackLoading = false;
     render();
   }
-  requestAnimationFrame(() => {
-    document.querySelector(".demo-scenarios")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
 }
 
 async function loadConversation(id) {
@@ -1607,6 +1871,7 @@ async function submitFeedback(id, value, openTicket = false, note = "") {
     item.id === Number(id) ? { ...item, user_feedback: value } : item
   );
   toast(result.ticket_id ? `Destek talebi #${result.ticket_id} oluşturuldu.` : result.status);
+  await refreshAdminFeedbackAnalytics();
   render();
 }
 
@@ -1694,7 +1959,6 @@ function bind() {
     node.addEventListener("click", () => sendMessage(FAQ[Number(node.dataset.faq)])));
   document.querySelectorAll("[data-page]").forEach(node =>
     node.addEventListener("click", () => loadPage(node.dataset.page)));
-  document.querySelector("[data-action='demo-scenarios']")?.addEventListener("click", focusDemoScenarios);
   document.querySelector("[data-action='new-chat']")?.addEventListener("click", () => {
     state.conversationId = null;
     state.messages = [];
@@ -1720,6 +1984,9 @@ function bind() {
   });
   document.querySelector("[data-action='logout']")?.addEventListener("click", async () => {
     await api("/auth/logout", { method: "POST" }); location.reload();
+  });
+  document.querySelector("[data-action='refresh-human-judge']")?.addEventListener("click", async () => {
+    await refreshAdminFeedbackAnalytics();
   });
   document.querySelector("[data-action='theme']")?.addEventListener("click", () => {
     state.theme = state.theme === "dark" ? "light" : "dark";
@@ -1864,11 +2131,16 @@ function bind() {
     toast(`Sipariş oluşturuldu: ${order.order_no}`);
     await refreshShop(); render();
   });
-  document.querySelector("[data-action='demo-reset']")?.addEventListener("click", async () => {
-    const result = await api(`${API}/demo/reset`, { method: "POST" });
+  document.querySelectorAll("[data-scenario-prepare]").forEach(node => node.addEventListener("click", async () => {
+    const result = await api(`${API}/demo/scenarios/${node.dataset.scenarioPrepare}/prepare`, { method: "POST" });
     toast(result.status);
-    await refreshShop(); render();
-  });
+    await loadPage("scenarios");
+  }));
+  document.querySelectorAll("[data-scenario-clear]").forEach(node => node.addEventListener("click", async () => {
+    const result = await api(`${API}/demo/scenarios/${node.dataset.scenarioClear}/clear`, { method: "POST" });
+    toast(result.status);
+    await loadPage("scenarios");
+  }));
   document.querySelectorAll("[data-edit-demo-order]").forEach(node => node.addEventListener("click", () => {
     state.editingDemoOrderId = Number(node.dataset.editDemoOrder); render();
   }));

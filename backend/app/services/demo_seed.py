@@ -31,6 +31,15 @@ from ..models import (
 
 DEMO_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "demo"
 
+SCENARIO_MARKERS = {
+    "payment-captured-no-order": "SCENARIO:PAYMENT_CAPTURED_NO_ORDER",
+    "order-not-shipped": "SCENARIO:ORDER_NOT_SHIPPED",
+    "delivered-not-received": "SCENARIO:DELIVERED_NOT_RECEIVED",
+    "returnable-product": "SCENARIO:RETURNABLE_PRODUCT",
+    "non-returnable-product": "SCENARIO:NON_RETURNABLE_PRODUCT",
+}
+EXPIRED_COUPON_SCENARIO = "expired-coupon"
+
 
 def money(value: Decimal | int | str) -> Decimal:
     return Decimal(str(value)).quantize(Decimal("0.01"))
@@ -573,3 +582,289 @@ class DemoSeedService:
             "coupons": await session.scalar(select(func.count()).select_from(DemoCoupon)) or 0,
             "orders": len(seeded_orders),
         }
+
+    async def prepare_demo_scenario(
+        self, session: AsyncSession, user: User, scenario_key: str
+    ) -> dict:
+        await self.seed_catalog(session)
+        await self.clear_demo_scenario(session, user, scenario_key)
+        product_rows = (
+            await session.scalars(select(DemoProduct).where(DemoProduct.is_active.is_(True)))
+        ).all()
+        product_by_sku = {product.sku: product for product in product_rows}
+
+        if scenario_key == "payment-captured-no-order":
+            session.add(
+                DemoPaymentAttempt(
+                    user_id=user.id,
+                    order_id=None,
+                    status="CAPTURED_NO_ORDER",
+                    amount=money("899.90"),
+                    provider_reference=f"{SCENARIO_MARKERS[scenario_key]}-{user.id}",
+                    failure_reason="Ödeme başarılı döndü ancak sipariş kaydı oluşmadı.",
+                )
+            )
+        elif scenario_key == "order-not-shipped":
+            await self._create_scenario_order(
+                session,
+                user,
+                product_by_sku,
+                scenario_key,
+                "BAGS-BACKPACK-001",
+                order_status="PROCESSING",
+                payment_status="SUCCESS",
+                shipping_status="PREPARING",
+                admin_note="Hazırlanan sipariş henüz kargoya verilmedi.",
+            )
+        elif scenario_key == "delivered-not-received":
+            await self._create_scenario_order(
+                session,
+                user,
+                product_by_sku,
+                scenario_key,
+                "ELECTRONICS-HEADPHONE-001",
+                order_status="DELIVERED",
+                payment_status="SUCCESS",
+                shipping_status="DELIVERED",
+                admin_note="Teslim edildi görünüyor ancak müşteri ürünü almadığını belirtti.",
+                return_payload={
+                    "return_request": "CREATED",
+                    "return_code": f"RET-DNR-{user.id}",
+                    "return_status": "UNDER_REVIEW",
+                    "refund_status": "PENDING",
+                    "return_reason": "Teslim edildi görünüyor ama kullanıcı teslim almadığını belirtti.",
+                    "return_tracking_no": f"RR-DNR-{user.id}",
+                },
+            )
+        elif scenario_key == "returnable-product":
+            await self._create_scenario_order(
+                session,
+                user,
+                product_by_sku,
+                scenario_key,
+                "HOME-CAY-BARDAGI-6",
+                order_status="DELIVERED",
+                payment_status="SUCCESS",
+                shipping_status="DELIVERED",
+                admin_note="İade edilebilir ürün teslim edildi.",
+            )
+        elif scenario_key == "non-returnable-product":
+            await self._create_scenario_order(
+                session,
+                user,
+                product_by_sku,
+                scenario_key,
+                "MARKET-CAY-YESIL-250",
+                order_status="DELIVERED",
+                payment_status="SUCCESS",
+                shipping_status="DELIVERED",
+                admin_note="İade edilemeyen ürün teslim edildi.",
+            )
+        elif scenario_key == EXPIRED_COUPON_SCENARIO:
+            cart = await self._active_scenario_cart(session, user)
+            cart.coupon_code = "ESKI50"
+            cart.discount_total = Decimal("0")
+            cart.total = cart.subtotal
+        else:
+            raise ValueError("Bilinmeyen demo senaryosu.")
+        await session.flush()
+        return {"key": scenario_key, "prepared": True, "status": "Senaryo hazırlandı."}
+
+    async def clear_demo_scenario(
+        self, session: AsyncSession, user: User, scenario_key: str
+    ) -> dict:
+        if scenario_key in SCENARIO_MARKERS:
+            marker = SCENARIO_MARKERS[scenario_key]
+            order_ids = (
+                await session.scalars(
+                    select(DemoOrder.id).where(
+                        DemoOrder.user_id == user.id,
+                        DemoOrder.admin_note.like(f"{marker}%"),
+                    )
+                )
+            ).all()
+            if order_ids:
+                await session.execute(
+                    delete(DemoRefund).where(
+                        DemoRefund.return_request_id.in_(
+                            select(DemoReturnRequest.id).where(
+                                DemoReturnRequest.order_id.in_(order_ids)
+                            )
+                        )
+                    )
+                )
+                await session.execute(
+                    delete(DemoReturnRequest).where(
+                        DemoReturnRequest.order_id.in_(order_ids)
+                    )
+                )
+                await session.execute(
+                    delete(DemoPaymentAttempt).where(
+                        DemoPaymentAttempt.order_id.in_(order_ids)
+                    )
+                )
+                await session.execute(delete(DemoOrder).where(DemoOrder.id.in_(order_ids)))
+            await session.execute(
+                delete(DemoPaymentAttempt).where(
+                    DemoPaymentAttempt.user_id == user.id,
+                    DemoPaymentAttempt.provider_reference.like(f"{marker}%"),
+                )
+            )
+        elif scenario_key == EXPIRED_COUPON_SCENARIO:
+            carts = (
+                await session.scalars(
+                    select(DemoCart).where(
+                        DemoCart.user_id == user.id,
+                        DemoCart.status == "ACTIVE",
+                        DemoCart.coupon_code == "ESKI50",
+                    )
+                )
+            ).all()
+            for cart in carts:
+                cart.coupon_code = ""
+                cart.discount_total = Decimal("0")
+                cart.total = cart.subtotal
+        else:
+            raise ValueError("Bilinmeyen demo senaryosu.")
+        await session.flush()
+        return {"key": scenario_key, "prepared": False, "status": "Senaryo temizlendi."}
+
+    async def demo_scenario_statuses(
+        self, session: AsyncSession, user: User
+    ) -> list[dict]:
+        statuses: list[dict] = []
+        for key, marker in SCENARIO_MARKERS.items():
+            order_exists = await session.scalar(
+                select(func.count()).select_from(DemoOrder).where(
+                    DemoOrder.user_id == user.id,
+                    DemoOrder.admin_note.like(f"{marker}%"),
+                )
+            )
+            payment_exists = await session.scalar(
+                select(func.count()).select_from(DemoPaymentAttempt).where(
+                    DemoPaymentAttempt.user_id == user.id,
+                    DemoPaymentAttempt.provider_reference.like(f"{marker}%"),
+                )
+            )
+            prepared = bool((order_exists or 0) + (payment_exists or 0))
+            statuses.append(
+                {
+                    "key": key,
+                    "prepared": prepared,
+                    "status": "Hazırlandı" if prepared else "Hazır değil",
+                }
+            )
+        expired_coupon = await session.scalar(
+            select(func.count()).select_from(DemoCart).where(
+                DemoCart.user_id == user.id,
+                DemoCart.status == "ACTIVE",
+                DemoCart.coupon_code == "ESKI50",
+            )
+        )
+        prepared = bool(expired_coupon or 0)
+        statuses.append(
+            {
+                "key": EXPIRED_COUPON_SCENARIO,
+                "prepared": prepared,
+                "status": "Hazırlandı" if prepared else "Hazır değil",
+            }
+        )
+        return statuses
+
+    async def _active_scenario_cart(self, session: AsyncSession, user: User) -> DemoCart:
+        cart = await session.scalar(
+            select(DemoCart).where(DemoCart.user_id == user.id, DemoCart.status == "ACTIVE")
+        )
+        if cart is None:
+            cart = DemoCart(user_id=user.id, status="ACTIVE")
+            session.add(cart)
+            await session.flush()
+        return cart
+
+    async def _create_scenario_order(
+        self,
+        session: AsyncSession,
+        user: User,
+        product_by_sku: dict[str, DemoProduct],
+        scenario_key: str,
+        sku: str,
+        *,
+        order_status: str,
+        payment_status: str,
+        shipping_status: str,
+        admin_note: str,
+        return_payload: dict | None = None,
+    ) -> DemoOrder | None:
+        product = product_by_sku.get(sku)
+        if product is None:
+            return None
+        marker = SCENARIO_MARKERS[scenario_key]
+        order_no = f"DSC-{user.id}-{scenario_key.upper().replace('-', '')[:12]}"
+        order = DemoOrder(
+            user_id=user.id,
+            order_no=order_no,
+            order_status=order_status,
+            payment_status=payment_status,
+            shipping_status=shipping_status,
+            subtotal=product.price,
+            discount_total=Decimal("0"),
+            total=product.price,
+            admin_note=f"{marker} · {admin_note}",
+        )
+        session.add(order)
+        await session.flush()
+        session.add(
+            DemoOrderItem(
+                order_id=order.id,
+                product_id=product.id,
+                product_name=product.name,
+                category=product.category,
+                quantity=1,
+                unit_price=product.price,
+                line_total=product.price,
+            )
+        )
+        session.add(
+            DemoShipment(
+                order_id=order.id,
+                carrier="Demo Kargo",
+                tracking_number=f"TRK-{scenario_key[:4].upper()}-{user.id}",
+                status=shipping_status,
+                estimated_delivery_at=datetime.now(UTC) + timedelta(days=1),
+                delivered_at=datetime.now(UTC) if shipping_status == "DELIVERED" else None,
+                delay_reason=admin_note if shipping_status != "DELIVERED" else "",
+                admin_note=admin_note,
+            )
+        )
+        session.add(
+            DemoPaymentAttempt(
+                user_id=user.id,
+                order_id=order.id,
+                status=payment_status,
+                amount=order.total,
+                provider_reference=f"{marker}-{user.id}",
+            )
+        )
+        if return_payload:
+            return_request = DemoReturnRequest(
+                order_id=order.id,
+                user_id=user.id,
+                return_request=str(return_payload["return_request"]),
+                return_code=str(return_payload["return_code"]),
+                return_status=str(return_payload["return_status"]),
+                refund_status=str(return_payload["refund_status"]),
+                return_reason=str(return_payload["return_reason"]),
+                return_tracking_no=str(return_payload["return_tracking_no"]),
+            )
+            session.add(return_request)
+            await session.flush()
+            session.add(
+                DemoRefund(
+                    return_request_id=return_request.id,
+                    refund_status=return_request.refund_status,
+                    refund_amount=order.total,
+                    refund_reference=f"RF-{scenario_key[:4].upper()}-{user.id}",
+                    refund_reason=return_request.return_reason,
+                )
+            )
+        return order

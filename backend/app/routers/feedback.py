@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,11 +16,14 @@ from ..models import (
     User,
 )
 from ..schemas.feedback import (
+    FeedbackAnalyticsResponse,
+    FeedbackCategoryBreakdown,
     FeedbackResponse,
     MessageFeedbackRequest,
+    RecentFeedbackItem,
     SimilarFeedbackRequest,
 )
-from ..services.auth import get_current_user
+from ..services.auth import get_current_user, require_admin
 from ..services.privacy import request_ip_hash
 from ..services.rate_limit import rate_limiter
 from ..services.similar import SimilarSolutionService
@@ -36,6 +39,119 @@ def apply_vote(target, value: str) -> None:
         target.helpful_count += 1
     else:
         target.unhelpful_count += 1
+
+
+def rate(part: int, total: int) -> float:
+    if not total:
+        return 0.0
+    return round(part / total, 4)
+
+
+@router.get("/admin/feedback-analytics", response_model=FeedbackAnalyticsResponse)
+async def admin_feedback_analytics(
+    limit: int = 10,
+    session: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> FeedbackAnalyticsResponse:
+    limit = max(1, min(limit, 50))
+    base_filter = Feedback.message_id.is_not(None)
+    total_feedback = (
+        await session.scalar(select(func.count(Feedback.id)).where(base_filter))
+    ) or 0
+    helpful_count = (
+        await session.scalar(
+            select(func.count(Feedback.id)).where(
+                base_filter,
+                Feedback.value == "HELPFUL",
+            )
+        )
+    ) or 0
+    unhelpful_count = (
+        await session.scalar(
+            select(func.count(Feedback.id)).where(
+                base_filter,
+                Feedback.value == "UNHELPFUL",
+            )
+        )
+    ) or 0
+    average_confidence_score = await session.scalar(
+        select(func.avg(Message.confidence_score))
+        .join(Feedback, Feedback.message_id == Message.id)
+        .where(base_filter, Message.confidence_score.is_not(None))
+    )
+    category_rows = (
+        await session.execute(
+            select(
+                func.coalesce(Message.category, "GENEL").label("category"),
+                func.sum(case((Feedback.value == "HELPFUL", 1), else_=0)).label(
+                    "helpful_count"
+                ),
+                func.sum(case((Feedback.value == "UNHELPFUL", 1), else_=0)).label(
+                    "unhelpful_count"
+                ),
+                func.count(Feedback.id).label("total"),
+            )
+            .join(Message, Feedback.message_id == Message.id)
+            .where(base_filter)
+            .group_by(func.coalesce(Message.category, "GENEL"))
+            .order_by(func.count(Feedback.id).desc())
+        )
+    ).all()
+    category_breakdown = [
+        FeedbackCategoryBreakdown(
+            category=row.category,
+            helpful_count=int(row.helpful_count or 0),
+            unhelpful_count=int(row.unhelpful_count or 0),
+            total=int(row.total or 0),
+            helpful_rate=rate(int(row.helpful_count or 0), int(row.total or 0)),
+        )
+        for row in category_rows
+    ]
+    recent_rows = (
+        await session.execute(
+            select(
+                Feedback,
+                Message,
+                RagRun.model_name,
+                RagRun.total_tokens,
+            )
+            .join(Message, Feedback.message_id == Message.id)
+            .outerjoin(RagRun, RagRun.assistant_message_id == Message.id)
+            .where(base_filter)
+            .order_by(Feedback.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    recent_feedback = [
+        RecentFeedbackItem(
+            message_id=message.id,
+            ai_answer=message.safe_content,
+            canonical_query=message.canonical_query,
+            category=message.category,
+            confidence_score=message.confidence_score,
+            sources=message.sources or [],
+            feedback_value=feedback.value,
+            feedback_created_at=feedback.created_at,
+            user_id=feedback.user_id,
+            model_name=model_name,
+            total_tokens=total_tokens,
+        )
+        for feedback, message, model_name, total_tokens in recent_rows
+    ]
+    return FeedbackAnalyticsResponse(
+        total_feedback=total_feedback,
+        helpful_count=helpful_count,
+        unhelpful_count=unhelpful_count,
+        helpful_rate=rate(helpful_count, total_feedback),
+        unhelpful_rate=rate(unhelpful_count, total_feedback),
+        average_confidence_score=(
+            round(float(average_confidence_score), 4)
+            if average_confidence_score is not None
+            else None
+        ),
+        category_breakdown=category_breakdown,
+        recent_feedback=recent_feedback,
+    )
 
 
 @router.post("/messages/{message_id}/feedback", response_model=FeedbackResponse)
