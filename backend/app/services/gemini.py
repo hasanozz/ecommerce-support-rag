@@ -255,6 +255,10 @@ class GeminiService:
         few_shots: list[dict],
         available_sources: list[dict] | None = None,
         *,
+        original_user_message: str | None = None,
+        resolved_entities: dict | None = None,
+        evidence_pack: dict | None = None,
+        answer_scope: dict | None = None,
         model_name: str | None = None,
         use_dev_model: bool = False,
     ) -> dict:
@@ -271,6 +275,10 @@ class GeminiService:
             llm_context,
             few_shots,
             available_sources,
+            original_user_message=original_user_message,
+            resolved_entities=resolved_entities,
+            evidence_pack=evidence_pack,
+            answer_scope=answer_scope,
         )
         return await self._generate_json(
             prompt,

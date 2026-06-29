@@ -18,6 +18,13 @@ from backend.app.schemas.data_resolver import (
     ResolutionNextStep,
     ResolvedDataEntities,
 )
+from backend.app.schemas.evidence_fetcher import (
+    EvidenceEntityType,
+    EvidenceFetcherOutput,
+    EvidenceItem,
+    EvidenceProvenance,
+    EvidencePurpose,
+)
 from backend.app.services.classifier import ClassificationResult
 from backend.app.services.pipeline import SupportPipeline
 
@@ -434,3 +441,43 @@ async def test_evidence_fetcher_error_is_non_fatal_and_recorded_safely():
     warnings = assistant.security_metadata["debug"]["warnings"]
     assert "EVIDENCE_FETCHER_ERROR:RuntimeError" in warnings
     assert "database password" not in str(assistant.security_metadata)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_passes_structured_evidence_to_gemini():
+    resolution = data_result(
+        DataResolutionStatus.RESOLVED,
+        result=entity_result(
+            EntityType.PRODUCT,
+            DataResolutionStatus.RESOLVED,
+            resolved_id=15,
+        ),
+        resolved={"product_id": 15},
+    )
+    pipeline = configured_pipeline(context_plan(), resolution)
+    evidence = EvidenceFetcherOutput(
+        product_evidence=[
+            EvidenceItem(
+                source="PRODUCT_CATALOG",
+                entity_type=EvidenceEntityType.PRODUCT,
+                entity_id=15,
+                purpose=EvidencePurpose.PRODUCT_STOCK,
+                data={"stock": 3, "availability": "IN_STOCK"},
+                provenance=EvidenceProvenance(
+                    source="PRODUCT_CATALOG", record_id=15
+                ),
+            )
+        ]
+    )
+    pipeline.evidence_fetcher = SimpleNamespace(
+        fetch=AsyncMock(return_value=evidence)
+    )
+
+    await run_pipeline(pipeline)
+
+    kwargs = pipeline.gemini.answer.await_args.kwargs
+    assert kwargs["original_user_message"] == "stokta mı?"
+    assert kwargs["resolved_entities"]["product_id"] == 15
+    assert kwargs["evidence_pack"]["product_evidence"][0]["data"]["stock"] == 3
+    assert kwargs["answer_scope"]["evidence_only"] is True
+    assert kwargs["answer_scope"]["actions_performed"] is False

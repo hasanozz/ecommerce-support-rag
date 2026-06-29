@@ -1026,7 +1026,40 @@ class SupportPipeline:
         ]
         generated = {"answer": "", "cited_doc_ids": []}
         answer_usage: dict = {}
-        if in_scope and (grouped or support_context.get("text") or product_context.get("text")):
+        evidence_sections = (
+            "product_evidence",
+            "order_evidence",
+            "payment_evidence",
+            "coupon_evidence",
+            "cart_evidence",
+            "return_evidence",
+            "review_evidence",
+            "missing_evidence",
+        )
+        has_evidence_context = any(
+            evidence_metadata.get(section) for section in evidence_sections
+        )
+        answer_scope = {
+            "evidence_only": True,
+            "requested_purposes": [
+                item["purpose"]
+                for item in self._evidence_required_contexts(context_plan)
+            ],
+            "allowed_entity_ids": {
+                key: value
+                for key, value in resolved_data_entities.model_dump(
+                    mode="json"
+                ).items()
+                if value is not None
+            },
+            "actions_performed": False,
+        }
+        if in_scope and (
+            grouped
+            or support_context.get("text")
+            or product_context.get("text")
+            or has_evidence_context
+        ):
             try:
                 debug_metadata["gemini_called"] = self.gemini.enabled
                 generated = await self.gemini.answer(
@@ -1037,6 +1070,10 @@ class SupportPipeline:
                     llm_context,
                     few_shots,
                     available_sources,
+                    original_user_message=masked_query,
+                    resolved_entities=resolved_data_entities.model_dump(mode="json"),
+                    evidence_pack=evidence_metadata,
+                    answer_scope=answer_scope,
                     use_dev_model=True,
                 )
                 answer_usage = dict(self.gemini.last_usage)
@@ -1075,7 +1112,10 @@ class SupportPipeline:
             answer = ""
             debug_metadata["guard_reason"] = "invalid_citation"
         has_answer_context = bool(
-            grouped or support_context.get("text") or product_context.get("text")
+            grouped
+            or support_context.get("text")
+            or product_context.get("text")
+            or has_evidence_context
         )
         if data_resolution_blocks_context:
             answer = self._data_resolution_clarification_message(data_resolution)
