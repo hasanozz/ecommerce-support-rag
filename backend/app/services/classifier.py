@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Literal, Protocol
 
 from ..config import Settings, get_settings
@@ -30,6 +30,11 @@ class ClassificationResult:
     expected_action: ExpectedAction
     confidence: float | None = None
     provider: str = "rule_based"
+    domain: str | None = None
+    intent: str | None = None
+    entities: dict = field(default_factory=dict)
+    requested_info: str | None = None
+    doc_id: str | None = None
 
     def as_dict(self) -> dict:
         return asdict(self)

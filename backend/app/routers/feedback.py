@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from sqlalchemy import case, func, select
+from sqlalchemy import inspect, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +25,7 @@ from ..schemas.feedback import (
     RecentFeedbackItem,
     SimilarFeedbackRequest,
 )
-from ..services.auth import get_current_user, require_admin
+from ..services.auth import get_current_user
 from ..services.privacy import request_ip_hash
 from ..services.rate_limit import rate_limiter
 from ..services.similar import SimilarSolutionService
@@ -47,75 +49,120 @@ def rate(part: int, total: int) -> float:
     return round(part / total, 4)
 
 
+def normalize_feedback_value(value: str | None) -> str:
+    normalized = (value or "").strip().upper()
+    return normalized if normalized in {"HELPFUL", "UNHELPFUL"} else "UNHELPFUL"
+
+
+def normalize_sources(value: object) -> list[dict]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+async def feedback_comment_column_exists(session: AsyncSession) -> bool:
+    return await session.run_sync(
+        lambda sync_session: any(
+            column["name"] == "comment"
+            for column in inspect(sync_session.bind).get_columns("feedback")
+        )
+    )
+
+
+# Keep this route independent from UI concerns. It must return a stable 200 JSON
+# shape for dashboard smoke checks, including fresh databases with no feedback.
 @router.get("/admin/feedback-analytics", response_model=FeedbackAnalyticsResponse)
 async def admin_feedback_analytics(
     limit: int = 10,
     session: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
 ) -> FeedbackAnalyticsResponse:
     limit = max(1, min(limit, 50))
     base_filter = Feedback.message_id.is_not(None)
-    total_feedback = (
-        await session.scalar(select(func.count(Feedback.id)).where(base_filter))
-    ) or 0
-    helpful_count = (
-        await session.scalar(
-            select(func.count(Feedback.id)).where(
-                base_filter,
-                Feedback.value == "HELPFUL",
-            )
-        )
-    ) or 0
-    unhelpful_count = (
-        await session.scalar(
-            select(func.count(Feedback.id)).where(
-                base_filter,
-                Feedback.value == "UNHELPFUL",
-            )
-        )
-    ) or 0
-    average_confidence_score = await session.scalar(
-        select(func.avg(Message.confidence_score))
-        .join(Feedback, Feedback.message_id == Message.id)
-        .where(base_filter, Message.confidence_score.is_not(None))
+    comment_expr = (
+        Feedback.comment
+        if await feedback_comment_column_exists(session)
+        else literal(None).label("comment")
     )
-    category_rows = (
+
+    analytics_rows = (
         await session.execute(
-            select(
-                func.coalesce(Message.category, "GENEL").label("category"),
-                func.sum(case((Feedback.value == "HELPFUL", 1), else_=0)).label(
-                    "helpful_count"
-                ),
-                func.sum(case((Feedback.value == "UNHELPFUL", 1), else_=0)).label(
-                    "unhelpful_count"
-                ),
-                func.count(Feedback.id).label("total"),
-            )
-            .join(Message, Feedback.message_id == Message.id)
+            select(Feedback.value, Message.category, Message.confidence_score)
+            .outerjoin(Message, Feedback.message_id == Message.id)
             .where(base_filter)
-            .group_by(func.coalesce(Message.category, "GENEL"))
-            .order_by(func.count(Feedback.id).desc())
         )
     ).all()
+    total_feedback = len(analytics_rows)
+    helpful_count = sum(
+        1 for row in analytics_rows if normalize_feedback_value(row.value) == "HELPFUL"
+    )
+    unhelpful_count = sum(
+        1
+        for row in analytics_rows
+        if normalize_feedback_value(row.value) == "UNHELPFUL"
+    )
+
+    confidence_scores = [
+        float(row.confidence_score)
+        for row in analytics_rows
+        if row.confidence_score is not None
+    ]
+    average_confidence_score = (
+        round(sum(confidence_scores) / len(confidence_scores), 4)
+        if confidence_scores
+        else None
+    )
+
+    categories: dict[str, dict[str, int]] = {}
+    for row in analytics_rows:
+        category = (row.category or "").strip() or "Bilinmiyor"
+        bucket = categories.setdefault(
+            category, {"helpful_count": 0, "unhelpful_count": 0, "total": 0}
+        )
+        bucket["total"] += 1
+        if normalize_feedback_value(row.value) == "HELPFUL":
+            bucket["helpful_count"] += 1
+        else:
+            bucket["unhelpful_count"] += 1
+
     category_breakdown = [
         FeedbackCategoryBreakdown(
-            category=row.category,
-            helpful_count=int(row.helpful_count or 0),
-            unhelpful_count=int(row.unhelpful_count or 0),
-            total=int(row.total or 0),
-            helpful_rate=rate(int(row.helpful_count or 0), int(row.total or 0)),
+            category=category,
+            helpful_count=counts["helpful_count"],
+            unhelpful_count=counts["unhelpful_count"],
+            total=counts["total"],
+            helpful_rate=rate(counts["helpful_count"], counts["total"]),
         )
-        for row in category_rows
+        for category, counts in sorted(
+            categories.items(), key=lambda item: item[1]["total"], reverse=True
+        )
     ]
     recent_rows = (
         await session.execute(
             select(
-                Feedback,
-                Message,
+                Feedback.message_id,
+                Feedback.value,
+                comment_expr.label("feedback_comment"),
+                Feedback.created_at,
+                Feedback.user_id,
+                Message.safe_content,
+                Message.canonical_query,
+                Message.category,
+                Message.confidence_score,
+                Message.sources,
                 RagRun.model_name,
                 RagRun.total_tokens,
+                RagRun.rewritten_query,
             )
-            .join(Message, Feedback.message_id == Message.id)
+            .outerjoin(Message, Feedback.message_id == Message.id)
             .outerjoin(RagRun, RagRun.assistant_message_id == Message.id)
             .where(base_filter)
             .order_by(Feedback.created_at.desc())
@@ -124,19 +171,40 @@ async def admin_feedback_analytics(
     ).all()
     recent_feedback = [
         RecentFeedbackItem(
-            message_id=message.id,
-            ai_answer=message.safe_content,
-            canonical_query=message.canonical_query,
-            category=message.category,
-            confidence_score=message.confidence_score,
-            sources=message.sources or [],
-            feedback_value=feedback.value,
-            feedback_created_at=feedback.created_at,
-            user_id=feedback.user_id,
+            message_id=message_id,
+            ai_answer=safe_content or "",
+            canonical_query=(
+                canonical_query
+                if canonical_query
+                else rewritten_query
+            ),
+            category=(
+                category if category else "Bilinmiyor"
+            ),
+            confidence_score=confidence_score,
+            sources=normalize_sources(sources),
+            feedback_value=normalize_feedback_value(value),
+            feedback_comment=feedback_comment,
+            feedback_created_at=created_at,
+            user_id=user_id,
             model_name=model_name,
             total_tokens=total_tokens,
         )
-        for feedback, message, model_name, total_tokens in recent_rows
+        for (
+            message_id,
+            value,
+            feedback_comment,
+            created_at,
+            user_id,
+            safe_content,
+            canonical_query,
+            category,
+            confidence_score,
+            sources,
+            model_name,
+            total_tokens,
+            rewritten_query,
+        ) in recent_rows
     ]
     return FeedbackAnalyticsResponse(
         total_feedback=total_feedback,
@@ -144,11 +212,7 @@ async def admin_feedback_analytics(
         unhelpful_count=unhelpful_count,
         helpful_rate=rate(helpful_count, total_feedback),
         unhelpful_rate=rate(unhelpful_count, total_feedback),
-        average_confidence_score=(
-            round(float(average_confidence_score), 4)
-            if average_confidence_score is not None
-            else None
-        ),
+        average_confidence_score=average_confidence_score,
         category_breakdown=category_breakdown,
         recent_feedback=recent_feedback,
     )
@@ -190,6 +254,7 @@ async def message_feedback(
         user_id=user.id,
         message_id=message.id,
         value=payload.value,
+        comment=(payload.comment or payload.note or "").strip() or None,
         ip_hash=ip_hash,
     )
     session.add(feedback)

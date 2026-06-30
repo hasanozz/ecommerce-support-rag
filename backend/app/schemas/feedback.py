@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class MessageFeedbackRequest(BaseModel):
     value: Literal["HELPFUL", "UNHELPFUL"]
     open_ticket: bool = False
+    comment: str | None = Field(default=None, max_length=1000)
     note: str = Field(default="", max_length=1000)
 
 
@@ -35,6 +36,7 @@ class RecentFeedbackItem(BaseModel):
     confidence_score: float | None
     sources: list[dict]
     feedback_value: Literal["HELPFUL", "UNHELPFUL"]
+    feedback_comment: str | None = None
     feedback_created_at: datetime
     user_id: int
     model_name: str | None = None

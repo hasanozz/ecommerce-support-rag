@@ -1,4 +1,5 @@
 const API = "/api";
+const ADMIN_FEEDBACK_ANALYTICS_ENDPOINT = `${API}/admin/feedback-analytics`;
 const FAQ = [
   "Kartımdan para çekildi ama siparişim oluşmadı.",
   "Siparişimi nasıl iptal edebilirim?",
@@ -29,6 +30,7 @@ const state = {
   adminFeedbackAnalytics: null,
   adminFeedbackLoading: false,
   adminFeedbackError: "",
+  adminFeedbackCommentOpen: {},
   messages: [],
   loading: true,
   error: "",
@@ -173,6 +175,50 @@ function feedbackStatusLabel(value) {
     : value === "UNHELPFUL"
       ? "Bu mesaja olumsuz geri dönüş verdiniz."
       : "";
+}
+
+function normalizeAdminFeedbackAnalytics(result = {}) {
+  const recentFeedback = (result.recentFeedback ?? result.recent_feedback ?? []).map(item => ({
+    ...item,
+    messageId: item.messageId ?? item.message_id ?? null,
+    aiAnswer: item.aiAnswer ?? item.ai_answer ?? "",
+    canonicalQuery: item.canonicalQuery ?? item.canonical_query ?? null,
+    confidenceScore: item.confidenceScore ?? item.confidence_score ?? null,
+    feedbackValue: item.feedbackValue ?? item.feedback_value ?? "UNHELPFUL",
+    feedbackComment: item.feedbackComment ?? item.feedback_comment ?? null,
+    feedbackCreatedAt: item.feedbackCreatedAt ?? item.feedback_created_at ?? null,
+    userId: item.userId ?? item.user_id ?? null,
+    modelName: item.modelName ?? item.model_name ?? null,
+    totalTokens: item.totalTokens ?? item.total_tokens ?? null,
+    sources: Array.isArray(item.sources) ? item.sources : []
+  }));
+  const categoryBreakdown = (result.categoryBreakdown ?? result.category_breakdown ?? []).map(item => ({
+    ...item,
+    helpfulCount: item.helpfulCount ?? item.helpful_count ?? 0,
+    unhelpfulCount: item.unhelpfulCount ?? item.unhelpful_count ?? 0,
+    helpfulRate: item.helpfulRate ?? item.helpful_rate ?? 0,
+    total: item.total ?? 0,
+    category: item.category || "Bilinmiyor"
+  }));
+  return {
+    ...result,
+    totalFeedback: result.totalFeedback ?? result.total_feedback ?? 0,
+    helpfulCount: result.helpfulCount ?? result.helpful_count ?? 0,
+    unhelpfulCount: result.unhelpfulCount ?? result.unhelpful_count ?? 0,
+    helpfulRate: result.helpfulRate ?? result.helpful_rate ?? 0,
+    unhelpfulRate: result.unhelpfulRate ?? result.unhelpful_rate ?? 0,
+    averageConfidenceScore: result.averageConfidenceScore ?? result.average_confidence_score ?? null,
+    categoryBreakdown,
+    recentFeedback,
+    total_feedback: result.total_feedback ?? result.totalFeedback ?? 0,
+    helpful_count: result.helpful_count ?? result.helpfulCount ?? 0,
+    unhelpful_count: result.unhelpful_count ?? result.unhelpfulCount ?? 0,
+    helpful_rate: result.helpful_rate ?? result.helpfulRate ?? 0,
+    unhelpful_rate: result.unhelpful_rate ?? result.unhelpfulRate ?? 0,
+    average_confidence_score: result.average_confidence_score ?? result.averageConfidenceScore ?? null,
+    category_breakdown: categoryBreakdown,
+    recent_feedback: recentFeedback
+  };
 }
 
 async function api(path, options = {}, timeoutMs = 15000) {
@@ -345,10 +391,10 @@ function messageAnalysisHtml(item, compact = false) {
 
 function systemMetricsHtml() {
   const metrics = [
-    { label: "5 Destek Kategorisi", value: "Sipariş, iade, ödeme, kargo, kampanya", note: "Otomatik sınıflandırma", icon: icons.box },
-    { label: "RAG Yanıt Motoru", value: "Doküman referanslı cevap", note: "Kaynaklı yanıt", icon: icons.shield },
-    { label: "Aksiyon Yönetimi", value: "Ticket ve yönlendirme", note: "Net sonraki adım", icon: icons.ticket },
-    { label: "Kaynak Gösterimi", value: "İzlenebilir sonuç", note: "Belge görünürlüğü", icon: icons.star }
+    { label: "5 Destek Kategorisi", value: "Sipariş, iade, ödeme, kargo, kampanya", note: "Soru otomatik sınıflandırılır.", icon: icons.box },
+    { label: "RAG Yanıt Motoru", value: "Doküman referanslı cevap", note: "Yanıt kaynaklardan üretilir.", icon: icons.shield },
+    { label: "Aksiyon Yönetimi", value: "Ticket ve yönlendirme", note: "Gerekirse sonraki adım açılır.", icon: icons.ticket },
+    { label: "Kaynak Gösterimi", value: "İzlenebilir sonuç", note: "Kullanılan belgeler görünür.", icon: icons.star }
   ];
   return `<section class="system-metrics">${metrics.map(item => `
     <article class="metric-chip">
@@ -364,8 +410,8 @@ function usageFlowHtml() {
   const steps = ["Senaryoyu hazırla", "Copilot’a kendi cümlenle sor", "Kaynaklı cevabı ve aksiyonu incele"];
   return `<section class="usage-flow card">
     <div class="usage-flow-head">
-      <strong>Nasıl kullanılır?</strong>
-      <span>Demo akışı</span>
+      <strong>Demo Akışı</strong>
+      <span>3 adım</span>
     </div>
     <div class="workflow-strip">${steps.map((step, index) => `
       <div class="workflow-step">
@@ -595,7 +641,8 @@ function productBadge(category) {
     clothing: "Giyim",
     sports: "Spor",
     market: "Market",
-    home_kitchen: "Ev & Mutfak"
+    home_kitchen: "Ev ve Mutfak",
+    home_office: "Ev ve Ofis"
   })[category] || category;
 }
 
@@ -631,10 +678,10 @@ function productImageHtml(item, large = false) {
   const className = `product-visual${large ? " large" : ""}`;
   const imageUrl = item.image_url || item.image_urls?.[0] || "";
   if (imageUrl) {
-    return `<div class="${className}"><img src="${esc(imageUrl)}" alt="${esc(item.name)}" loading="lazy"></div>`;
+    return `<div class="${className}"><img src="${esc(imageUrl)}" alt="${esc(item.name)}" loading="lazy" onerror="this.hidden=true;this.parentElement.classList.add('image-missing');"><span class="product-image-placeholder">Görsel yüklenemedi</span></div>`;
   }
   if (item.sku === "WHITE-BLENDER-001") {
-    return `<div class="${className}"><img src="/assets/assets/product-blender.png" alt="${esc(item.name)}" loading="lazy"></div>`;
+    return `<div class="${className}"><img src="/assets/assets/product-blender.png" alt="${esc(item.name)}" loading="lazy" onerror="this.hidden=true;this.parentElement.classList.add('image-missing');"><span class="product-image-placeholder">Görsel yüklenemedi</span></div>`;
   }
   const position = PRODUCT_IMAGE_POSITIONS[item.sku];
   if (position) {
@@ -649,18 +696,165 @@ function productRatingLabel(item) {
   return `${Number(item.rating_average).toFixed(1)} / 5 · ${item.review_count || 0} yorum`;
 }
 
+const PRODUCT_TECH_FALLBACKS = {
+  "COFFEE-FILTER-100": [
+    ["adet", 100],
+    ["malzeme", "kagit"],
+    ["uyumlu_kullanim", "Tek kullanımlık"],
+    ["paket", "100 adet filtre"],
+    ["bakim", "Her demleme için yeni filtre kullanılması önerilir."],
+  ],
+  "HOME-CAM-DEMLIK-001": [
+    ["hacim_ml", 900],
+    ["malzeme", "Isıya dayanıklı cam"],
+    ["isi_dayanimi", "Sıcak içecek kullanımına uygun"],
+    ["uyumlu_kullanim", "Çay ve bitki çayı"],
+    ["bakim", "Bulaşık makinesinde yıkanabilir"],
+    ["kapak_tipi", "cam kapak"],
+  ],
+  "HOME-SAKLAMA-KABI-3SET": [
+    ["adet", 3],
+    ["hacim_ml", "Farklı boylar"],
+    ["malzeme", "cam"],
+    ["kapak_tipi", "kilitli"],
+    ["uyumlu_kullanim", "Kuru gıda ve mutfak düzeni"],
+    ["bakim", "Elde veya bulaşık makinesinde yıkama önerilir."],
+  ],
+  "CLOTHING-SWEATSHIRT-001": [
+    ["kumas", "pamuk_polyester"],
+    ["kalip", "rahat"],
+    ["bedenler", ["S", "M", "L", "XL"]],
+    ["bakim", "30°C hassas yıkama"],
+    ["uyumlu_kullanim", "Günlük kullanım"],
+  ],
+  "SPORT-YOGA-MAT-001": [
+    ["kalinlik_mm", 6],
+    ["olcu", "183 x 61 cm"],
+    ["uzunluk_cm", 183],
+    ["malzeme", "Kaymaz yüzeyli köpük"],
+    ["kaymaz_yuzey", true],
+    ["tasima_askisi", true],
+  ],
+  "ELECTRONICS-POWERBANK-10000": [
+    ["kapasite_mah", 10000],
+    ["guc_watt", 18],
+    ["giris_cikis", "USB-C giriş, USB-A çıkış"],
+    ["usb_c", true],
+    ["usb_a_port", 2],
+    ["hizli_sarj", true],
+    ["guvenlik", "Aşırı akım ve kısa devre koruması"],
+  ],
+  "ELECTRONICS-WIRELESS-MOUSE-001": [
+    ["baglanti", "2.4GHz"],
+    ["dpi", 1600],
+    ["pil_tipi", "AA"],
+    ["sessiz_tiklama", true],
+    ["uyumlu_kullanim", "Windows, macOS ve dizüstü bilgisayarlar"],
+  ],
+  "HOME-OFFICE-DESK-LAMP-001": [
+    ["guc_watt", 8],
+    ["baslik", "Ayarlanabilir"],
+    ["isik_modu", "Okuma ve çalışma ışığı"],
+    ["renk_sicakligi", "sicak_beyaz"],
+    ["malzeme", "metal"],
+    ["uyumlu_kullanim", "Çalışma masası ve okuma alanı"],
+  ]
+};
+
+const PRODUCT_TECH_DEFAULTS = [
+  ["malzeme", "Ürün sayfasında belirtilen standart malzeme"],
+  ["uyumlu_kullanim", "Günlük kullanım"],
+  ["bakim", "Kullanım kılavuzuna uygun bakım önerilir"]
+];
+
+function productTechnicalEntries(item) {
+  const seen = new Set();
+  const entries = [];
+  const pushEntry = (key, value) => {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey || seen.has(normalizedKey)) return;
+    seen.add(normalizedKey);
+    entries.push({
+      key: normalizedKey,
+      label: attributeLabel(normalizedKey),
+      value: attributeValue(normalizedKey, value),
+      sentence: attributeSentence(normalizedKey, value)
+    });
+  };
+  for (const [key, value] of Object.entries(item.attributes || {})) {
+    pushEntry(key, value);
+  }
+  for (const [key, value] of PRODUCT_TECH_FALLBACKS[item.sku] || []) {
+    pushEntry(key, value);
+  }
+  if (item.returnable !== undefined) {
+    pushEntry("returnable", item.returnable);
+  }
+  if (item.return_policy_note) {
+    pushEntry("return_policy_note", item.return_policy_note);
+  }
+  if (item.warranty_months != null) {
+    pushEntry("warranty_months", item.warranty_months);
+  }
+  if (item.warranty_note) {
+    pushEntry("warranty_note", item.warranty_note);
+  }
+  for (const [key, value] of PRODUCT_TECH_DEFAULTS) {
+    if (entries.length >= 3) break;
+    pushEntry(key, value);
+  }
+  return entries;
+}
+
+function productTechSummaryEntries(item, count = 4) {
+  return productTechnicalEntries(item).slice(0, count);
+}
+
 const ATTRIBUTE_LABELS = {
-  guc_watt: "Motor gücü",
-  hazne_litre: "Hazne kapasitesi",
-  hiz_kademesi: "Hız kademesi",
-  pil_suresi_saat: "Pil süresi",
-  laptop_bolmesi: "Laptop bölmesi",
-  suya_dayanikli: "Suya dayanıklı",
-  makinede_yikanabilir: "Makinede yıkanabilir",
+  guc_watt: "Motor Gücü",
+  hazne_litre: "Hazne Kapasitesi",
+  hiz_kademesi: "Hız Kademesi",
+  pil_suresi_saat: "Pil Süresi",
+  laptop_bolmesi: "Laptop Bölmesi",
+  suya_dayanikli: "Suya Dayanıklı",
+  makinede_yikanabilir: "Bulaşık Makinesinde Yıkanabilir",
   mikrofon: "Mikrofon",
   gramaj: "Gramaj",
   tip: "Tip",
-  malzeme: "Malzeme"
+  malzeme: "Malzeme",
+  paket: "Paket İçeriği",
+  bakim: "Bakım / Yıkama",
+  olcu: "Ölçü",
+  isi_dayanimi: "Isı Dayanımı",
+  giris_cikis: "Giriş / Çıkış",
+  guvenlik: "Güvenlik",
+  isik_modu: "Işık Modu",
+  returnable: "İade Uygunluğu",
+  return_policy_note: "İade Notu",
+  warranty_months: "Garanti Süresi",
+  warranty_note: "Garanti Notu",
+  hacim_ml: "Hacim",
+  adet: "Adet",
+  uyumlu_kullanim: "Uyumlu Kullanım",
+  kapak_tipi: "Kapak Tipi",
+  kumas: "Kumaş",
+  kalip: "Kalıp",
+  renk: "Renk",
+  bedenler: "Bedenler",
+  kalinlik_mm: "Kalınlık",
+  uzunluk_cm: "Uzunluk",
+  kaymaz_yuzey: "Kaymaz Yüzey",
+  tasima_askisi: "Taşıma Askısı",
+  kapasite_mah: "Kapasite",
+  usb_c: "USB-C",
+  usb_a_port: "USB-A Port",
+  hizli_sarj: "Hızlı Şarj",
+  baglanti: "Bağlantı",
+  dpi: "DPI",
+  sessiz_tiklama: "Sessiz Tıklama",
+  pil_tipi: "Pil Tipi",
+  baslik: "Başlık",
+  renk_sicakligi: "Renk Sıcaklığı"
 };
 
 const ATTRIBUTE_VALUE_LABELS = {
@@ -671,24 +865,50 @@ const ATTRIBUTE_VALUE_LABELS = {
   cam: "Cam",
   paslanmaz_celik: "Paslanmaz çelik",
   kaucuk: "Kauçuk",
-  hafif_yagmur_dayanimi: "Hafif yağmur dayanımı"
+  hafif_yagmur_dayanimi: "Hafif yağmur dayanımı",
+  kagit: "Kağıt",
+  filtre_kahve_makinesi: "Filtre kahve makinesi",
+  isiya_dayanikli_cam: "Isıya dayanıklı cam",
+  kilitli: "Kilitli",
+  pamuk_polyester: "Pamuk-polyester",
+  antrasit: "Antrasit",
+  sicak_beyaz: "Sıcak beyaz",
+  ayarlanabilir: "Ayarlanabilir",
+  metal: "Metal",
+  "2.4ghz": "2.4GHz"
 };
 
 function attributeLabel(key) {
   return ATTRIBUTE_LABELS[key] || String(key || "").replaceAll("_", " ");
 }
 
+function capitalizeTechnicalText(text) {
+  const normalized = String(text || "").trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+  return normalized.charAt(0).toLocaleUpperCase("tr-TR") + normalized.slice(1);
+}
+
 function attributeValue(key, value) {
   if (typeof value === "boolean") return value ? "Var" : "Yok";
+  if (Array.isArray(value)) {
+    const values = value.map(item => attributeValue(key, item));
+    return values.length > 1 ? `${values.slice(0, -1).join(", ")} ve ${values.at(-1)}` : values[0] || "";
+  }
   const rawText = String(value ?? "");
   const normalizedRaw = rawText.toLocaleLowerCase("tr-TR");
-  const text = typeof value === "number"
+  let text = typeof value === "number"
     ? value.toLocaleString("tr-TR")
     : ATTRIBUTE_VALUE_LABELS[normalizedRaw] || rawText.replaceAll("_", " ");
+  text = capitalizeTechnicalText(text);
   const normalized = text.toLocaleLowerCase("tr-TR");
-  if (key === "guc_watt" && !normalized.includes("w")) return `${text} W`;
-  if (key === "hazne_litre" && !normalized.includes("l")) return `${text} L`;
-  if (key === "pil_suresi_saat" && !normalized.includes("saat")) return `${text} saat`;
+  const numericValue = typeof value === "number" || /^\d/.test(text);
+  if (numericValue && key === "guc_watt" && !normalized.includes("w")) return `${text} W`;
+  if (numericValue && key === "hazne_litre" && !normalized.includes("l")) return `${text} L`;
+  if (numericValue && key === "pil_suresi_saat" && !normalized.includes("saat")) return `${text} saat`;
+  if (numericValue && key === "kalinlik_mm" && !normalized.includes("mm")) return `${text} mm`;
+  if (numericValue && key === "uzunluk_cm" && !normalized.includes("cm")) return `${text} cm`;
+  if (numericValue && key === "kapasite_mah" && !normalized.includes("mah")) return `${text} mAh`;
+  if (numericValue && key === "warranty_months" && !normalized.includes("ay")) return `${text} ay`;
   return text;
 }
 
@@ -710,10 +930,13 @@ function attributeSentence(key, value) {
   if (key === "kafein") return normalizedValue === "var" ? "Kafein içerir." : "Kafein içermez.";
   if (key === "ogutum") return `${formattedValue} öğütüm derecesine sahiptir.`;
   if (key === "kavrulma") return `${formattedValue} kavrulmuştur.`;
-  if (key === "adet") return `Set ${formattedValue} parçadan oluşur.`;
-  if (key === "malzeme") return `${formattedValue} malzemeden üretilmiştir.`;
-  if (key === "makinede_yikanabilir") return normalizedValue === "var" ? "Makinede yıkanabilir." : "Makinede yıkamaya uygun değildir.";
-  if (key === "hacim_ml") return `${formattedValue} ml hacme sahiptir.`;
+  if (key === "adet") return `Paket ${formattedValue} parçadan oluşur.`;
+  if (key === "malzeme") {
+    if (normalizedValue === "kağıt") return "Tek kullanımlık filtre kağıdından üretilmiştir.";
+    return `${formattedValue} malzeme kullanılmıştır.`;
+  }
+  if (key === "makinede_yikanabilir") return normalizedValue === "var" ? "Bulaşık makinesinde yıkanabilir." : "Bulaşık makinesinde yıkamaya uygun değildir.";
+  if (key === "hacim_ml") return /^\d/.test(formattedValue) ? `${formattedValue} hacme sahiptir.` : `Hacim bilgisi ${formattedValue} olarak belirtilmiştir.`;
   if (key === "sicak_tutma_saat") return `İçeceği yaklaşık ${formattedValue} saat sıcak tutar.`;
   if (key === "kapasite_fincan") return `Tek kullanımda ${formattedValue} fincana kadar kahve hazırlayabilir.`;
   if (key === "guc_watt") return `${formattedValue} gücünde çalışır.`;
@@ -729,6 +952,47 @@ function attributeSentence(key, value) {
   if (key === "pil_suresi_saat") return `Yaklaşık ${formattedValue} kullanım süresi sunar.`;
   if (key === "mikrofon") return normalizedValue === "var" ? "Mikrofonu vardır." : "Mikrofonu yoktur.";
   if (key === "hiz_kademesi") return `${formattedValue} farklı hız kademesi vardır.`;
+  if (key === "uyumlu_kullanim") {
+    if (normalizedValue === "tek kullanımlık") return "Her demleme için yeni filtre kullanılması önerilir.";
+    if (normalizedValue.includes("filtre kahve makinesi") && normalizedValue.includes("dripper")) return "Filtre kahve ve dripper kullanımı için uygundur.";
+    return `${formattedValue} için uygundur.`;
+  }
+  if (key === "kapak_tipi") return `${formattedValue} kapak yapısına sahiptir.`;
+  if (key === "kumas") return `${formattedValue} kumaş karışımı kullanılmıştır.`;
+  if (key === "kalip") return `${formattedValue} kalıpla tasarlanmıştır.`;
+  if (key === "renk") return `Renk seçeneği ${formattedValue}.`;
+  if (key === "bedenler") return `${formattedValue} beden seçenekleri bulunur.`;
+  if (key === "kalinlik_mm") return `${formattedValue} kalınlığındadır.`;
+  if (key === "uzunluk_cm") return `${formattedValue} uzunluğundadır.`;
+  if (key === "kaymaz_yuzey") return normalizedValue === "var" ? "Kaymaz yüzeye sahiptir." : "Kaymaz yüzey bilgisi yoktur.";
+  if (key === "tasima_askisi") return normalizedValue === "var" ? "Taşıma askısı bulunur." : "Taşıma askısı bulunmaz.";
+  if (key === "kapasite_mah") return `${formattedValue} kapasite sunar.`;
+  if (key === "usb_c") return normalizedValue === "var" ? "USB-C bağlantısı vardır." : "USB-C bağlantısı yoktur.";
+  if (key === "usb_a_port") return `${formattedValue} adet USB-A portu bulunur.`;
+  if (key === "hizli_sarj") return normalizedValue === "var" ? "Hızlı şarjı destekler." : "Hızlı şarj desteği yoktur.";
+  if (key === "paket") {
+    if (normalizedValue === "100 adet filtre") return "Filtre kahve ve dripper kullanımı için uygundur.";
+    return `Paket içeriği: ${formattedValue}.`;
+  }
+  if (key === "bakim") {
+    if (/[.!?]$/.test(formattedValue) || formattedValue.toLocaleLowerCase("tr-TR").includes("yıkanabilir")) return ensureSentence(formattedValue);
+    return `${formattedValue} önerilir.`;
+  }
+  if (key === "olcu") return `Ölçü bilgisi ${formattedValue} olarak belirtilmiştir.`;
+  if (key === "isi_dayanimi") return `${formattedValue}.`;
+  if (key === "giris_cikis") return `${formattedValue} yapılandırmasına sahiptir.`;
+  if (key === "guvenlik") return `${formattedValue} sunar.`;
+  if (key === "isik_modu") return `${formattedValue} modları için uygundur.`;
+  if (key === "returnable") return normalizedValue === "var" ? "İade koşullarına uygundur." : "İade kapsamında değildir.";
+  if (key === "return_policy_note") return ensureSentence(formattedValue);
+  if (key === "warranty_months") return `Garanti süresi ${formattedValue}.`;
+  if (key === "warranty_note") return ensureSentence(formattedValue);
+  if (key === "baglanti") return `${formattedValue} bağlantı tipini kullanır.`;
+  if (key === "dpi") return `${formattedValue} DPI hassasiyet sunar.`;
+  if (key === "sessiz_tiklama") return normalizedValue === "var" ? "Sessiz tıklama özelliği vardır." : "Sessiz tıklama özelliği yoktur.";
+  if (key === "pil_tipi") return `${formattedValue} pil ile çalışır.`;
+  if (key === "baslik") return `${formattedValue} başlık tasarımına sahiptir.`;
+  if (key === "renk_sicakligi") return `${formattedValue} ışık rengi sunar.`;
   return `${attributeLabel(key)} bilgisi ${formattedValue} olarak belirtilmiştir.`;
 }
 
@@ -902,10 +1166,29 @@ function ratingSelectHtml(name = "rating", value = 0) {
   </select>`;
 }
 
-function productAttributesHtml(attributes = {}) {
-  const entries = Object.entries(attributes || {});
-  if (!entries.length) return "<p>Teknik özellik bilgisi yok.</p>";
-  return `<p class="attribute-summary">${esc(entries.map(([key, value]) => attributeSentence(key, value)).join(" "))}</p>`;
+function productAttributesHtml(entries = []) {
+  const itemEntries = Array.isArray(entries) ? entries : [];
+  return `<div class="technical-grid">${itemEntries.map(entry => `
+    <article class="technical-item">
+      <span>${esc(entry.label)}</span>
+      <strong>${esc(entry.value)}</strong>
+      ${entry.sentence ? `<small>${esc(entry.sentence)}</small>` : ""}
+    </article>
+  `).join("")}</div>`;
+}
+
+function productTechHighlightsHtml(item, count = 4) {
+  const entries = productTechSummaryEntries(item, count);
+  return `<div class="tech-highlight-list">${entries.map(entry => `
+    <div>
+      <span>${esc(entry.label)}</span>
+      <strong>${esc(entry.value)}</strong>
+    </div>
+  `).join("")}</div>`;
+}
+
+function productChatDataset(item, prompt) {
+  return `data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(prompt)}"`;
 }
 
 function sentenceCase(text) {
@@ -961,8 +1244,13 @@ function productDetailModal() {
   const reviewCount = item.review_count || item.reviews?.length || 0;
   const tab = state.productDetailTab || "overview";
   const variant = productVariantLabel(item);
-  const technicalCount = Array.isArray(item.attributes) ? item.attributes.length : 0;
+  const technicalEntries = productTechnicalEntries(item);
+  const technicalCount = technicalEntries.length;
   const ratingValue = item.rating_average ? Number(item.rating_average).toFixed(1) : "4.8";
+  const primaryPrompt = `${item.name} ürünü hakkında destek almak istiyorum. Ürün kategorisi: ${productBadge(item.category)}, marka: ${item.brand || "-"}, fiyat: ${money(item.price)}.`;
+  const descriptionHelper = technicalEntries.find(entry =>
+    ["uyumlu_kullanim", "kapasite_mah", "hacim_ml", "olcu", "kumas"].includes(entry.key)
+  ) || technicalEntries[0];
   return `<div class="modal-layer">
     <div class="modal-backdrop" data-action="close-product-detail"></div>
     <section class="card modal product-modal">
@@ -974,7 +1262,7 @@ function productDetailModal() {
           <div class="product-head-meta">
             <div class="rating-line">${productStars(item.rating_average)} <span>${esc(productRatingLabel(item))}</span></div>
             <span class="product-head-tag">${reviewCount ? `${reviewCount} yorum` : "Yorum yok"}</span>
-            <span class="product-head-tag">${technicalCount} teknik bilgi</span>
+            <span class="product-head-tag">${technicalCount} özellik</span>
           </div>
         </div>
         <div class="product-header-right">
@@ -987,10 +1275,10 @@ function productDetailModal() {
         </div>
       </div>
       <div class="product-tabbar" role="tablist" aria-label="Ürün detay sekmeleri">
-        <button type="button" class="${tab === "overview" ? "active" : ""}" data-product-tab="overview">Ürün özeti</button>
-        <button type="button" class="${tab === "technical" ? "active" : ""}" data-product-tab="technical">Teknik bilgiler</button>
+        <button type="button" class="${tab === "overview" ? "active" : ""}" data-product-tab="overview">Ürün Özeti</button>
+        <button type="button" class="${tab === "technical" ? "active" : ""}" data-product-tab="technical">Teknik Bilgiler</button>
         <button type="button" class="${tab === "reviews" ? "active" : ""}" data-product-tab="reviews">Yorumlar</button>
-        <button type="button" class="${tab === "ai" ? "active" : ""}" data-product-tab="ai">AI destek</button>
+        <button type="button" class="${tab === "ai" ? "active" : ""}" data-product-tab="ai">AI Destek</button>
       </div>
       <div class="product-modal-body">
         <div class="product-gallery">
@@ -998,8 +1286,7 @@ function productDetailModal() {
             ${productImageHtml(item, true)}
           </div>
           <div class="product-overview card">
-            <div class="section-head"><h3>Ürün özeti</h3><span>${esc(productBadge(item.category))}</span></div>
-            <p>${esc(item.description || "")}</p>
+            <div class="section-head"><h3>Ürün Özeti</h3><span>${esc(productBadge(item.category))}</span></div>
             <div class="product-kpi-grid">
               <div><span>Marka</span><strong>${esc(item.brand || "-")}</strong></div>
               <div><span>Puan</span><strong>${ratingValue}/5</strong></div>
@@ -1008,38 +1295,35 @@ function productDetailModal() {
             </div>
           </div>
           <div class="product-actions-panel card">
-            <div class="section-head"><h3>Aksiyonlar</h3><span>Hızlı erişim</span></div>
+            <div class="section-head"><h3>Hızlı İşlemler</h3><span>Hızlı Erişim</span></div>
             <div class="modal-actions-row">
-              <button class="primary-button" data-add-product="${item.id}">${icons.cart} Sepete ekle</button>
-              <button class="favorite-button" data-product-favorite="${item.id}">${item.is_favorited ? icons.heart : icons.heart} ${item.is_favorited ? "Favoriden çıkar" : "Favoriye ekle"}</button>
-              <button class="copilot-action-button" data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} ürünü hakkında destek almak istiyorum. Ürün kategorisi: ${productBadge(item.category)}, marka: ${item.brand || "-"}, fiyat: ${money(item.price)}.`)}">${icons.chat} Copilot’a sor</button>
-            </div>
-          </div>
-          <div class="product-ai-card card">
-            <div class="section-head"><h3>AI Destek Yardımı</h3><span>Copilot</span></div>
-            <p>Bu ürünle ilgili sipariş, iade, kupon, teslimat veya ürün bilgisi sorularını Copilot’a sorabilirsiniz.</p>
-            <div class="copilot-suggestions">
-              <button data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} ürünü için iade koşulları nedir?`)}">Bu ürün iade edilebilir mi?</button>
-              <button data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} ürünü için kupon geçerli mi?`)}">Bu ürün için kupon geçerli mi?</button>
-              <button data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} ürününde siparişim gelmezse ne yapmalıyım?`)}">Siparişim gelmezse ne yapmalıyım?</button>
+              <button class="primary-button" data-add-product="${item.id}">${icons.cart} Sepete Ekle</button>
+              <button class="favorite-button" data-product-favorite="${item.id}">${item.is_favorited ? icons.heart : icons.heart} ${item.is_favorited ? "Favoriden Çıkar" : "Favoriye Ekle"}</button>
+              <button class="copilot-action-button" ${productChatDataset(item, primaryPrompt)}>${icons.chat} Copilot’a Sor</button>
             </div>
           </div>
         </div>
         <div class="product-meta-panel">
-          ${tab === "overview" ? `<section class="detail-panel">
-            <div class="section-head"><h3>Ürün açıklaması</h3><span>Genel bakış</span></div>
+          ${tab === "overview" ? `<section class="detail-panel product-description-panel">
+            <div class="section-head"><h3>Ürün Açıklaması</h3><span>Genel Bakış</span></div>
             <p>${esc(item.description || "")}</p>
+            ${descriptionHelper ? `<div class="description-helper"><span>${esc(descriptionHelper.label)}</span><strong>${esc(descriptionHelper.value)}</strong></div>` : ""}
+          </section>
+          <section class="detail-panel compact-panel">
+            <div class="section-head"><h3>Öne Çıkan Teknik Özellikler</h3><span>${technicalCount} özellik</span></div>
+            ${productTechHighlightsHtml(item, 6)}
           </section>` : ""}
           ${tab === "technical" ? `<section class="detail-panel">
-            <div class="section-head"><h3>Teknik bilgiler</h3><span>${technicalCount} özellik</span></div>
-            ${productAttributesHtml(item.attributes)}
+            <div class="section-head"><h3>Teknik Bilgiler</h3><span>${technicalCount} özellik</span></div>
+            ${productAttributesHtml(technicalEntries)}
           </section>` : ""}
           ${tab === "ai" ? `<section class="detail-panel">
-            <div class="section-head"><h3>AI destek</h3><span>Copilot</span></div>
+            <div class="section-head"><h3>AI Destek</h3><span>Copilot</span></div>
             <p class="detail-copy">Copilot bu ürünün iade uygunluğu, teslimat, kupon geçerliliği ve ürün bilgileri için kaynaklı yanıt üretebilir.</p>
             <div class="copilot-suggestions compact">
-              <button data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} iade koşulları nelerdir?`)}">${icons.chat} İade koşullarını sor</button>
-              <button data-action="chat-product" data-current-product-id="${item.id}" data-page-context="product" data-product-name="${esc(item.name)}" data-product-category="${esc(item.category)}" data-product-brand="${esc(item.brand || "")}" data-product-sku="${esc(item.sku || "")}" data-product-price="${esc(item.price)}" data-product-stock="${esc(item.stock)}" data-chat-prompt="${esc(`${item.name} için kupon geçerli mi?`)}">${icons.bot} Kuponu sor</button>
+              <button ${productChatDataset(item, `${item.name} ürünü iade edilebilir mi?`)}>${icons.chat} Bu ürün iade edilebilir mi?</button>
+              <button ${productChatDataset(item, `${item.name} ürünü için kupon geçerli mi?`)}>${icons.bot} Bu ürün için kupon geçerli mi?</button>
+              <button ${productChatDataset(item, `${item.name} teslimat sorunu yaşarsam ne yapmalıyım?`)}>${icons.chat} Teslimat sorunu yaşarsam ne yapmalıyım?</button>
             </div>
           </section>` : ""}
           ${tab === "reviews" ? `<section class="detail-panel">
@@ -1174,13 +1458,12 @@ function shopPage() {
         <div class="commerce-hero card ai-hero">
           <div class="hero-copy">
             <span class="hero-eyebrow">Teknopark Demo · AI First</span>
-            <h2>AI Destekli E-Ticaret Copilot</h2>
-            <p>Sipariş, iade, ödeme, kargo ve kampanya sorunlarını kaynaklara dayalı yanıtlayan akıllı destek asistanı.</p>
+            <h2>AI Copilot ile Akıllı Müşteri Desteği</h2>
+            <p>Senaryoyu hazırlayın, sorunuzu doğal dille yazın; Copilot kaynaklı yanıtı, kategori analizini ve gerekli aksiyonu birlikte sunsun.</p>
             <div class="hero-badges">
-              <span>Kaynağa Dayalı Yanıt</span>
-              <span>Otomatik Sınıflandırma</span>
-              <span>Ticket Aksiyonu</span>
-              <span>RAG Destekli Çözüm</span>
+              <span>Kaynaklı Yanıt</span>
+              <span>Kategori Analizi</span>
+              <span>Aksiyon Önerisi</span>
             </div>
           </div>
         </div>
@@ -1189,15 +1472,16 @@ function shopPage() {
         <section class="scenario-entry-card card">
           <span class="support-summary-icon">${icons.star}</span>
           <div>
-            <strong>Demo senaryolarını hazırlamak için Senaryolar sayfasına gidin.</strong>
-            <p>Senaryolar ayrı bir ekranda hazırlanır; Copilot’a soruyu siz manuel yazarsınız.</p>
+            <strong>Demo verisini hazırlayın, soruyu Copilot’a kendiniz yazın.</strong>
+            <p>Senaryolar sipariş, iade ve ödeme bağlamını hazırlar; destek sorusu yine kullanıcıdan gelir.</p>
           </div>
           <button data-page="scenarios">${icons.arrow} Senaryolara git</button>
         </section>
         <section class="catalog-head">
           <div>
+            <span class="catalog-kicker">Demo Veri Katmanı</span>
             <h2>Ürün Kataloğu</h2>
-            <p>Sepete ürün ekleyerek sipariş ve destek senaryolarını test edebilirsiniz.</p>
+            <p>Ürün, sipariş, iade ve kupon verileri Copilot yanıtlarında bağlam olarak kullanılır.</p>
           </div>
         </section>
         <div class="shop-toolbar card">
@@ -1564,18 +1848,18 @@ function adminHumanJudgeSection() {
       "AI Feedback"
     );
   }
-  const total = data.total_feedback || 0;
-  const categories = data.category_breakdown || [];
-  const recent = data.recent_feedback || [];
+  const total = data.totalFeedback || 0;
+  const categories = data.categoryBreakdown || [];
+  const recent = data.recentFeedback || [];
   const maxCategoryTotal = Math.max(1, ...categories.map(item => item.total || 0));
   const body = total ? `<div class="admin-overview judge-overview">
       <article class="card metric-card"><span>Toplam Feedback</span><strong>${total}</strong><small>AI cevap oyu</small></article>
-      <article class="card metric-card"><span>Helpful Oranı</span><strong>${percent(data.helpful_rate)}</strong><small>${data.helpful_count || 0} olumlu</small></article>
-      <article class="card metric-card"><span>Unhelpful Oranı</span><strong>${percent(data.unhelpful_rate)}</strong><small>${data.unhelpful_count || 0} olumsuz</small></article>
-      <article class="card metric-card"><span>Ortalama Confidence</span><strong>${data.average_confidence_score == null ? "—" : percent(data.average_confidence_score)}</strong><small>Model güven skoru</small></article>
+      <article class="card metric-card"><span>Helpful Oranı</span><strong>${percent(data.helpfulRate)}</strong><small>${data.helpfulCount || 0} olumlu</small></article>
+      <article class="card metric-card"><span>Unhelpful Oranı</span><strong>${percent(data.unhelpfulRate)}</strong><small>${data.unhelpfulCount || 0} olumsuz</small></article>
+      <article class="card metric-card"><span>Ortalama Confidence</span><strong>${data.averageConfidenceScore == null ? "—" : percent(data.averageConfidenceScore)}</strong><small>Model güven skoru</small></article>
     </div>
     <div class="judge-layout">
-      <article class="admin-panel-card">
+      <article class="admin-panel-card category-breakdown-panel">
         <div class="section-head"><h3>Kategori Dağılımı</h3><span>${categories.length} kategori</span></div>
         <div class="category-breakdown">${categories.map(item => {
           const helpfulWidth = Math.round(((item.helpful_count || 0) / maxCategoryTotal) * 100);
@@ -1592,19 +1876,29 @@ function adminHumanJudgeSection() {
       </article>
       <article class="admin-panel-card recent-feedback-panel">
         <div class="section-head"><h3>Son Feedback Verilen AI Cevapları</h3><span>${recent.length} kayıt</span></div>
-        <div class="feedback-list">${recent.map(item => `<article class="feedback-row">
+        <div class="feedback-list">${recent.map((item, index) => {
+          const feedbackKey = `${item.messageId || index}-${item.feedbackCreatedAt || index}`;
+          const feedbackComment = String(item.feedbackComment ?? "").trim();
+          const commentOpen = Boolean(state.adminFeedbackCommentOpen[feedbackKey]);
+          return `<article class="feedback-row">
           <div class="feedback-row-head">
-            <strong>${esc(shortText(item.canonical_query || "Kullanıcı sorusu yok", 90))}</strong>
-            <span class="feedback-badge ${item.feedback_value === "HELPFUL" ? "helpful" : "unhelpful"}">${esc(item.feedback_value)}</span>
+            <strong>${esc(shortText(item.canonicalQuery || "Kullanıcı sorusu yok", 90))}</strong>
+            <span class="feedback-row-actions">
+              <span class="feedback-badge ${item.feedbackValue === "HELPFUL" ? "helpful" : "unhelpful"}">${esc(item.feedbackValue)}</span>
+              ${feedbackComment ? `<span class="feedback-comment-chip">Yorum var</span>` : ""}
+            </span>
           </div>
-          <p>${esc(shortText(item.ai_answer, 180))}</p>
+          <p>${esc(shortText(item.aiAnswer, 180))}</p>
           <div class="feedback-meta">
             <span class="status-chip">${esc(item.category || "GENEL")}</span>
-            <span>Confidence: ${item.confidence_score == null ? "—" : percent(item.confidence_score)}</span>
+            <span>Confidence: ${item.confidenceScore == null ? "—" : percent(item.confidenceScore)}</span>
             <span>${esc(sourceSummary(item.sources))}</span>
-            <time>${new Date(item.feedback_created_at).toLocaleString("tr-TR")}</time>
+            <time>${item.feedbackCreatedAt ? new Date(item.feedbackCreatedAt).toLocaleString("tr-TR") : "Tarih yok"}</time>
           </div>
-        </article>`).join("") || `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`}</div>
+          ${feedbackComment ? `<button class="feedback-comment-toggle" data-feedback-comment-toggle="${esc(feedbackKey)}">${commentOpen ? "Geri bildirimi gizle" : "Geri bildirimi gör"}</button>` : `<small class="feedback-comment-muted">Yorum yok</small>`}
+          ${feedbackComment && commentOpen ? `<div class="feedback-comment-box"><small>Kullanıcı geri bildirimi</small><p>${esc(feedbackComment)}</p></div>` : ""}
+        </article>`;
+        }).join("") || `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`}</div>
       </article>
     </div>` : `<div class="empty-state">Henüz AI Feedback verisi yok. Kullanıcılar Copilot cevaplarına feedback verdiğinde burada görünecek.</div>`;
   return adminSection(
@@ -1751,11 +2045,12 @@ function sourceModal() {
 function ticketModal() {
   if (!state.ticketModal) return "";
   const directTicket = state.ticketModal.mode === "direct";
+  const feedbackOnly = state.ticketModal.mode === "feedback";
   return `<div class="modal-layer"><div class="modal-backdrop" data-action="close-modal"></div>
     <section class="card modal ticket-modal">
-      <div class="ticket-modal-line ticket-modal-title">Manuel destek talebi</div>
+      <div class="ticket-modal-line ticket-modal-title">${feedbackOnly ? "Olumsuz geri bildirim" : "Manuel destek talebi"}</div>
       <div class="ticket-modal-line ticket-modal-copy">${directTicket ? "Bu cevapla ilgili destek ekibine doğrudan destek talebi gönderebilirsiniz." : "Yanıt sorununuzu çözmediyse ilgili destek ekibine destek talebi gönderebilirsiniz."}</div>
-      <textarea maxlength="1000" data-ticket-modal-note placeholder="Sorunu kısaca açıklayın"></textarea>
+      <textarea maxlength="1000" data-ticket-modal-note placeholder="${feedbackOnly ? "Neden işinize yaramadı?" : "Sorunu kısaca açıklayın"}"></textarea>
       <div class="modal-actions"><button data-action="close-modal">Şimdilik kapat</button>
       <button class="primary-button" data-action="submit-ticket">${directTicket ? "Destek talebi aç" : "Geri bildirim ver ve destek talebi aç"}</button></div>
       ${directTicket ? "" : `<button class="text-button" data-action="feedback-only">Yalnızca olumsuz geri bildirim ver</button>`}
@@ -1914,7 +2209,8 @@ async function refreshAdminFeedbackAnalytics() {
   state.adminFeedbackError = "";
   render();
   try {
-    state.adminFeedbackAnalytics = await api(`${API}/admin/feedback-analytics`);
+    const result = await api(ADMIN_FEEDBACK_ANALYTICS_ENDPOINT);
+    state.adminFeedbackAnalytics = normalizeAdminFeedbackAnalytics(result);
   } catch (error) {
     state.adminFeedbackAnalytics = null;
     state.adminFeedbackError = error.message;
@@ -1934,9 +2230,14 @@ async function loadConversation(id) {
   render();
 }
 
-async function submitFeedback(id, value, openTicket = false, note = "") {
+async function submitFeedback(id, value, openTicket = false, note = "", comment = "") {
   const result = await api(`${API}/messages/${id}/feedback`, {
-    method: "POST", body: JSON.stringify({ value, open_ticket: openTicket, note })
+    method: "POST", body: JSON.stringify({
+      value,
+      open_ticket: openTicket,
+      note,
+      comment: comment || note
+    })
   });
   state.messages = state.messages.map(item =>
     item.id === Number(id) ? { ...item, user_feedback: value } : item
@@ -2040,6 +2341,7 @@ function bind() {
   });
   document.querySelectorAll("[data-chat-prompt]").forEach(node =>
     node.addEventListener("click", async event => {
+      if (node.dataset.action === "chat-product") return;
       event.stopPropagation();
       state.copilotOpen = true;
       await sendMessage(node.dataset.chatPrompt, chatContextFromDataset(node.dataset));
@@ -2146,8 +2448,10 @@ function bind() {
   document.querySelectorAll("[data-action='close-modal']").forEach(node =>
     node.addEventListener("click", () => { state.ticketModal = null; render(); }));
   document.querySelector("[data-action='feedback-only']")?.addEventListener("click", async () => {
-    const id = state.ticketModal.messageId; state.ticketModal = null;
-    await submitFeedback(id, "UNHELPFUL"); render();
+    const id = state.ticketModal.messageId;
+    const comment = document.querySelector("[data-ticket-modal-note]").value;
+    state.ticketModal = null;
+    await submitFeedback(id, "UNHELPFUL", false, "", comment); render();
   });
   document.querySelector("[data-action='submit-ticket']")?.addEventListener("click", async () => {
     const id = state.ticketModal.messageId;
@@ -2155,9 +2459,15 @@ function bind() {
     const note = document.querySelector("[data-ticket-modal-note]").value;
     state.ticketModal = null;
     if (mode === "direct") await createTicket(id, note);
-    else await submitFeedback(id, "UNHELPFUL", true, note);
+    else await submitFeedback(id, "UNHELPFUL", true, note, note);
     render();
   });
+  document.querySelectorAll("[data-feedback-comment-toggle]").forEach(node =>
+    node.addEventListener("click", () => {
+      const key = node.dataset.feedbackCommentToggle;
+      state.adminFeedbackCommentOpen[key] = !state.adminFeedbackCommentOpen[key];
+      render();
+    }));
   document.querySelectorAll("[data-similar]").forEach(node => node.addEventListener("click", async () => {
     const result = await api(`${API}/similar-solutions/${node.dataset.similar}/feedback`, {
       method: "POST", body: JSON.stringify({ value: node.dataset.value })

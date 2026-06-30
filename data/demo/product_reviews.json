@@ -48,5 +48,85 @@
     "body": "Zamanlayıcı kullanışlı. Garanti bilgisinin ürün detayında açık yazması iyi olmuş.",
     "is_verified_purchase": true,
     "is_visible": true
+  },
+  {
+    "sku": "COFFEE-FILTER-100",
+    "user_email": "demo-reviewer-6@example.com",
+    "display_name": "Demo Kullanıcı 6",
+    "rating": 5,
+    "title": "Dripper için uygun",
+    "body": "Kağıt kalınlığı iyi, demleme sırasında yırtılma yaşamadım. Paket adedi demo kullanım için yeterli.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "HOME-CAM-DEMLIK-001",
+    "user_email": "demo-reviewer-7@example.com",
+    "display_name": "Demo Kullanıcı 7",
+    "rating": 4,
+    "title": "Camı net ve şık",
+    "body": "Bitki çayı için kullanıyorum. Cam yüzeyi kolay temizleniyor, paketleme sağlam geldi.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "HOME-SAKLAMA-KABI-3SET",
+    "user_email": "demo-reviewer-8@example.com",
+    "display_name": "Demo Kullanıcı 8",
+    "rating": 5,
+    "title": "Kapakları sıkı kapanıyor",
+    "body": "Üç farklı boy mutfakta düzen sağladı. Kapak kilitleri sağlam hissettiriyor.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "CLOTHING-SWEATSHIRT-001",
+    "user_email": "demo-reviewer-9@example.com",
+    "display_name": "Demo Kullanıcı 9",
+    "rating": 4,
+    "title": "Kumaşı yumuşak",
+    "body": "Basic model olarak rahat. Beden seçimi için ürün detayındaki bilgi yeterli.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "SPORT-YOGA-MAT-001",
+    "user_email": "demo-reviewer-10@example.com",
+    "display_name": "Demo Kullanıcı 10",
+    "rating": 5,
+    "title": "Kayma yapmadı",
+    "body": "Ev egzersizlerinde zeminde sabit kalıyor. Taşıma askısı pratik.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "ELECTRONICS-POWERBANK-10000",
+    "user_email": "demo-reviewer-11@example.com",
+    "display_name": "Demo Kullanıcı 11",
+    "rating": 4,
+    "title": "Günlük kullanım için yeterli",
+    "body": "Çantada fazla yer kaplamıyor. Port sayısı birden fazla cihaz için kullanışlı.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "ELECTRONICS-WIRELESS-MOUSE-001",
+    "user_email": "demo-reviewer-12@example.com",
+    "display_name": "Demo Kullanıcı 12",
+    "rating": 4,
+    "title": "Sessiz ve rahat",
+    "body": "Tıklama sesi düşük, ofis kullanımı için ergonomisi yeterli.",
+    "is_verified_purchase": true,
+    "is_visible": true
+  },
+  {
+    "sku": "HOME-OFFICE-DESK-LAMP-001",
+    "user_email": "demo-reviewer-13@example.com",
+    "display_name": "Demo Kullanıcı 13",
+    "rating": 5,
+    "title": "Çalışma masasına uygun",
+    "body": "Başlığın ayarlanabilir olması iyi. Işık seviyesi masa kullanımı için yeterli.",
+    "is_verified_purchase": true,
+    "is_visible": true
   }
 ]

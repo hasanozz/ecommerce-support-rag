@@ -51,6 +51,14 @@ PRODUCT_HINTS = {
     "gram",
     "ürün",
     "urun",
+    "powerbank",
+    "şarj",
+    "sarj",
+    "mouse",
+    "fare",
+    "lamba",
+    "aydınlatma",
+    "aydinlatma",
 }
 
 QUERY_STOPWORDS = {
