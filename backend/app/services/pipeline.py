@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 import re
 from decimal import Decimal
-from dataclasses import replace
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,7 @@ from .retrieval import GroupedDocument, RetrievalService
 from .similar import SimilarSolutionService
 
 
+logger = logging.getLogger(__name__)
 ORDER_NO_PATTERN = re.compile(r"\bDMO-[A-Za-z0-9-]+\b", re.IGNORECASE)
 COUPON_CODE_PATTERN = re.compile(r"\b[A-ZÇĞİÖŞÜ0-9][A-ZÇĞİÖŞÜ0-9_-]{3,31}\b")
 CONTEXT_ORDER_PATTERN = re.compile(r"Sipariş\s+(DMO-[^:\s]+)", re.IGNORECASE)
@@ -89,6 +91,32 @@ class SupportPipeline:
         self.product_context = ProductContextService()
         self.reranker = PassthroughReranker()
         self.context_builder = ContextBuilder()
+
+    @staticmethod
+    def _stage_timeout(stage: str, default_seconds: float) -> float:
+        if stage in {
+            "product_context",
+            "customer_context",
+            "data_resolver",
+            "evidence_fetcher",
+            "retrieval",
+            "similar",
+        }:
+            return min(default_seconds, 12.0)
+        if stage in {"rewrite", "gemini_answer"}:
+            return min(default_seconds, 20.0)
+        return default_seconds
+
+    @staticmethod
+    def _log_stage(stage: str, started: float, status: str, detail: str = "") -> None:
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        logger.info(
+            "pipeline_stage stage=%s status=%s ms=%s detail=%s",
+            stage,
+            status,
+            elapsed_ms,
+            detail,
+        )
 
     def _normalize_citations(
         self, raw_citations: list[str], allowed_sources: list[dict]
@@ -274,7 +302,7 @@ class SupportPipeline:
         followup_reference: dict,
     ) -> dict:
         entities = dict(classification.entities or {})
-        intent = self._infer_context_intent(
+        intent = (classification.intent or "").strip().upper() or self._infer_context_intent(
             classification, canonical_query, is_in_scope=is_in_scope
         )
         if frontend_context.get("current_product_id"):
@@ -310,6 +338,10 @@ class SupportPipeline:
                 "doc_id": classification.doc_id,
                 "entities": entities,
                 "requested_info": requested_info,
+                "requested_information": classification.requested_information,
+                "expected_action": classification.expected_action,
+                "priority": classification.priority,
+                "routing_hints": classification.routing_hints,
                 "confidence": confidence,
             },
             "conversation_state": {
@@ -467,7 +499,315 @@ class SupportPipeline:
             purposes.append("CART_STATUS")
         if "return_db" in sources:
             purposes.append("RETURN_STATUS")
+        if "product_db" in sources and not any(
+            purpose.startswith("PRODUCT_") for purpose in purposes
+        ):
+            purposes.append("PRODUCT_PROFILE")
         return [{"purpose": purpose} for purpose in dict.fromkeys(purposes)]
+
+    @staticmethod
+    def _router_payload(classification: ClassificationResult) -> dict:
+        payload = classification.raw_router_output or classification.as_dict()
+        payload.setdefault("domain", classification.domain)
+        payload.setdefault("intent", classification.intent)
+        payload.setdefault("category", classification.category)
+        payload.setdefault("subcategory", classification.subcategory)
+        payload.setdefault("requested_information", classification.requested_information)
+        payload.setdefault("requested_info", classification.requested_info)
+        payload.setdefault("routing_hints", classification.routing_hints)
+        payload.setdefault("expected_action", classification.expected_action)
+        payload.setdefault("priority", classification.priority)
+        return payload
+
+    @staticmethod
+    def _evidence_source_type(section: str) -> str:
+        return {
+            "product_evidence": "product",
+            "order_evidence": "order",
+            "payment_evidence": "payment",
+            "coupon_evidence": "coupon",
+            "cart_evidence": "cart",
+            "return_evidence": "return_request",
+            "review_evidence": "review",
+        }.get(section, "rag")
+
+    def _structured_evidence_pack(
+        self,
+        *,
+        classification: ClassificationResult,
+        context_plan: ContextResolverOutput,
+        data_resolution: DataResolverOutput,
+        evidence_output: EvidenceFetcherOutput,
+        grouped: list[GroupedDocument],
+        route_family: str,
+    ) -> dict:
+        db_evidence: list[dict] = []
+        for section in (
+            "product_evidence",
+            "order_evidence",
+            "payment_evidence",
+            "coupon_evidence",
+            "cart_evidence",
+            "return_evidence",
+            "review_evidence",
+        ):
+            for item in getattr(evidence_output, section, []) or []:
+                db_evidence.append(
+                    {
+                        "source_type": self._evidence_source_type(section),
+                        "source_id": item.entity_id,
+                        "title_or_name": item.data.get("name")
+                        or item.data.get("order_no")
+                        or item.data.get("code")
+                        or item.data.get("provider_reference")
+                        or item.data.get("return_code")
+                        or item.data.get("status")
+                        or "",
+                        "matched_fields": [
+                            key for key, value in item.data.items() if value is not None
+                        ],
+                        "structured_fields": item.data,
+                        "raw_excerpt": ", ".join(
+                            f"{key}={value}"
+                            for key, value in list(item.data.items())[:6]
+                            if value is not None
+                        ),
+                        "confidence": 1.0,
+                        "retrieval_reason": item.purpose.value,
+                        "provenance": item.provenance.model_dump(mode="json"),
+                    }
+                )
+        rag_evidence = [
+            {
+                "source_type": "rag",
+                "source_id": item.doc_id,
+                "title_or_name": item.title,
+                "matched_fields": item.matched_sections,
+                "structured_fields": {},
+                "raw_excerpt": item.combined_context[:800],
+                "confidence": item.best_score,
+                "retrieval_reason": "support_rag",
+            }
+            for item in grouped
+        ]
+        return {
+            "router": self._router_payload(classification),
+            "db_evidence": db_evidence,
+            "rag_evidence": rag_evidence,
+            "product_evidence": evidence_output.product_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.product_evidence
+            ]
+            or [],
+            "order_evidence": evidence_output.order_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.order_evidence
+            ]
+            or [],
+            "payment_evidence": evidence_output.payment_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.payment_evidence
+            ]
+            or [],
+            "coupon_evidence": evidence_output.coupon_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.coupon_evidence
+            ]
+            or [],
+            "cart_evidence": evidence_output.cart_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.cart_evidence
+            ]
+            or [],
+            "return_evidence": evidence_output.return_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.return_evidence
+            ]
+            or [],
+            "review_evidence": evidence_output.review_evidence and [
+                item.model_dump(mode="json") for item in evidence_output.review_evidence
+            ]
+            or [],
+            "missing_evidence": [
+                item.model_dump(mode="json") for item in evidence_output.missing_evidence
+            ],
+            "warnings": list(evidence_output.warnings),
+            "retrieval_meta": {
+                "route_family": route_family,
+                "category": classification.category,
+                "subcategory": classification.subcategory,
+                "domain": classification.domain,
+                "intent": classification.intent,
+                "requested_information": classification.requested_information,
+                "db_needed": bool(context_plan.data_sources),
+                "rag_needed": context_plan.needs_support_rag,
+            },
+            "selected_evidence_count": len(db_evidence) + len(rag_evidence),
+        }
+
+    @staticmethod
+    def _route_family(classification: ClassificationResult) -> str:
+        domain = (classification.domain or "").strip().upper()
+        if domain in {"PRODUCT", "SUPPORT", "MIXED", "OUT_OF_DOMAIN", "UNSAFE", "NONSENSE"}:
+            return domain
+        if (classification.intent or "").startswith("PRODUCT_"):
+            return "PRODUCT"
+        return "SUPPORT"
+
+    def _safe_router_fallback(
+        self,
+        *,
+        classification: ClassificationResult,
+        original_user_message: str,
+        canonical_query: str,
+        evidence_pack: dict,
+    ) -> str:
+        router = evidence_pack.get("router", {})
+        requested = router.get("requested_information") or []
+        if isinstance(requested, str):
+            requested = [requested]
+        structured = evidence_pack.get("db_evidence", []) + evidence_pack.get("rag_evidence", [])
+        for item in structured:
+            fields = item.get("structured_fields") or {}
+            for key in requested:
+                if key and key in fields and fields.get(key) not in {None, "", [], {}}:
+                    return str(fields.get(key))
+        if structured:
+            first = structured[0]
+            title = first.get("title_or_name") or ""
+            excerpt = first.get("raw_excerpt") or ""
+            if title and excerpt:
+                return f"{title} ile ilgili mevcut kaynaklarda {excerpt[:220]}."
+            if excerpt:
+                return str(excerpt)[:300]
+        if router.get("intent") in {"OUT_OF_DOMAIN", "UNSAFE", "NONSENSE"}:
+            return "Bu istek mevcut destek kapsamı dışında."
+        del classification, original_user_message, canonical_query
+        return "Bu bilgi mevcut kaynaklarda bulunamadı."
+
+    def _safe_router_fallback_router_first(
+        self,
+        *,
+        classification: ClassificationResult,
+        original_user_message: str,
+        canonical_query: str,
+        evidence_pack: dict,
+    ) -> str:
+        router = evidence_pack.get("router", {})
+        requested = router.get("requested_information") or []
+        if isinstance(requested, str):
+            requested = [requested]
+        structured = evidence_pack.get("db_evidence", []) + evidence_pack.get("rag_evidence", [])
+        for item in structured:
+            summary = self._summarize_evidence_item(item, requested)
+            if summary:
+                return summary
+        for item in structured:
+            fields = item.get("structured_fields") or {}
+            for key in requested:
+                if key and key in fields and fields.get(key) not in {None, "", [], {}}:
+                    return str(fields.get(key))
+        if router.get("intent") in {"OUT_OF_DOMAIN", "UNSAFE", "NONSENSE"}:
+            return "Bu istek mevcut destek kapsamı dışında."
+        del classification, original_user_message, canonical_query
+        return "Bu bilgi mevcut kaynaklarda bulunamadı."
+
+    def _summarize_evidence_item(
+        self, item: dict, requested: list[str] | tuple[str, ...]
+    ) -> str:
+        fields = item.get("structured_fields") or {}
+        source_type = str(item.get("source_type") or "").lower()
+        title = str(item.get("title_or_name") or "").strip()
+        requested_set = {
+            str(key).strip().casefold() for key in requested if str(key).strip()
+        }
+        if source_type == "product":
+            name = str(fields.get("name") or title or "Ürün").strip()
+            if "price" in requested_set or fields.get("price") is not None:
+                price = fields.get("price")
+                currency = fields.get("currency") or "TRY"
+                return f"{name} ürününün fiyatı {price} {currency}."
+            if "stock" in requested_set or fields.get("stock") is not None:
+                stock = fields.get("stock")
+                availability = fields.get("availability")
+                if availability:
+                    return f"{name} için stok durumu {availability}."
+                if stock is not None:
+                    return f"{name} için stokta {stock} adet görünüyor."
+            if "rating_average" in fields or "review_count" in fields:
+                rating = fields.get("rating_average")
+                count = fields.get("review_count")
+                return f"{name} için ortalama puan {rating} / 5 ve {count} yorum var."
+            if fields.get("returnable") is not None:
+                return (
+                    f"{name} iade edilebilir."
+                    if fields.get("returnable")
+                    else f"{name} iade edilemez."
+                )
+            if fields.get("description"):
+                return f"{name} için mevcut bilgi: {fields.get('description')}."
+            return f"{name} için mevcut ürün bilgileri bulundu."
+
+        if source_type == "order":
+            order_no = str(fields.get("order_no") or title or "").strip()
+            if not order_no:
+                return ""
+            parts: list[str] = []
+            if fields.get("order_status"):
+                parts.append(f"sipariş durumu {fields['order_status']}")
+            if fields.get("shipping_status"):
+                parts.append(f"kargo durumu {fields['shipping_status']}")
+            if fields.get("tracking_number"):
+                parts.append(f"takip numarası {fields['tracking_number']}")
+            if fields.get("estimated_delivery_at"):
+                parts.append(f"tahmini teslimat {fields['estimated_delivery_at']}")
+            if fields.get("delay_reason"):
+                parts.append(f"gecikme nedeni {fields['delay_reason']}")
+            if parts:
+                return f"{order_no} için {'; '.join(parts)}."
+            return f"{order_no} numaralı sipariş için kayıt bulundu."
+
+        if source_type == "payment":
+            reference = str(fields.get("provider_reference") or title or "ödeme kaydı").strip()
+            parts: list[str] = []
+            if fields.get("status"):
+                parts.append(f"durum {fields['status']}")
+            if fields.get("amount") is not None:
+                parts.append(f"tutar {fields['amount']}")
+            if fields.get("order_id") is not None:
+                parts.append(f"bağlı sipariş {fields['order_id']}")
+            if parts:
+                return f"{reference} için {'; '.join(parts)}."
+            return f"{reference} için ödeme kaydı bulundu."
+
+        if source_type == "coupon":
+            code = str(fields.get("code") or title or "kupon").strip()
+            parts: list[str] = []
+            if fields.get("status"):
+                parts.append(f"durum {fields['status']}")
+            if fields.get("discount_value") is not None:
+                parts.append(f"indirim {fields['discount_value']}")
+            if fields.get("min_cart_total") is not None:
+                parts.append(f"minimum sepet {fields['min_cart_total']}")
+            if parts:
+                return f"{code} için {'; '.join(parts)}."
+            return f"{code} için kupon kaydı bulundu."
+
+        if source_type == "cart":
+            if fields.get("total") is not None:
+                return f"Aktif sepet toplamı {fields['total']}."
+            return "Aktif sepet kaydı bulundu."
+
+        if source_type == "return_request":
+            return_code = str(fields.get("return_code") or title or "iade kaydı").strip()
+            parts: list[str] = []
+            if fields.get("return_status"):
+                parts.append(f"iade durumu {fields['return_status']}")
+            if fields.get("refund_status"):
+                parts.append(f"geri ödeme durumu {fields['refund_status']}")
+            if parts:
+                return f"{return_code} için {'; '.join(parts)}."
+            return f"{return_code} için iade kaydı bulundu."
+
+        if source_type == "review":
+            if fields.get("rating_average") is not None:
+                return f"Ortalama puan {fields['rating_average']} / 5."
+            return "İnceleme bilgisi bulundu."
+        return ""
 
     async def _last_customer_context(
         self, session: AsyncSession, conversation: Conversation
@@ -510,9 +850,16 @@ class SupportPipeline:
         grouped: list[GroupedDocument],
         customer_context: dict | None = None,
         product_context: dict | None = None,
+        classification: ClassificationResult | None = None,
     ) -> str:
         customer_context = customer_context or {}
         product_context = product_context or {}
+        classification = classification or ClassificationResult(
+            category="GENEL_DESTEK",
+            subcategory="fallback",
+            priority="LOW",
+            expected_action="RAG_ANSWER",
+        )
         decision_hints = [
             str(item).strip()
             for item in customer_context.get("decision_hints", [])
@@ -535,7 +882,39 @@ class SupportPipeline:
         ]
         route_mode = product_context.get("route_mode", "")
         product_match_reason = product_context.get("product_match_reason", "")
-        if product_match_reason in {"ambiguous_catalog_match", "ambiguous_weak_match"}:
+        support_procedure = (
+            (classification.domain or "").upper() == "SUPPORT"
+            and (classification.requested_info or "").casefold() == "procedure"
+        )
+        if grouped:
+            standard_chunk = await session.scalar(
+                select(Chunk.content)
+                .where(
+                    Chunk.doc_id == grouped[0].doc_id,
+                    Chunk.section == "standart_yanit",
+                )
+                .order_by(Chunk.chunk_id)
+            )
+            if standard_chunk:
+                return str(standard_chunk).strip()
+            document = await session.get(Document, grouped[0].doc_id)
+            if document:
+                standard = str(document.raw_json.get("standart_yanit", "")).strip()
+                if standard:
+                    return standard
+            combined_context = str(grouped[0].combined_context or "").strip()
+            if combined_context:
+                paragraphs = [
+                    part.strip()
+                    for part in re.split(r"\n{2,}", combined_context)
+                    if part.strip()
+                ]
+                return (paragraphs[0] if paragraphs else combined_context)[:800].strip()
+        if (
+            not support_procedure
+            and (classification.domain or "").upper() in {"PRODUCT", "MIXED"}
+            and product_match_reason in {"ambiguous_catalog_match", "ambiguous_weak_match"}
+        ):
             names = [
                 str(item.get("name", "")).strip()
                 for item in product_context.get("top_candidates", [])[:3]
@@ -695,7 +1074,14 @@ class SupportPipeline:
         followup_reference = self._resolve_followup_reference(
             masked_query, previous_customer_context
         )
+        classifier_started = time.perf_counter()
         classification = await self.classifier.classify(safe_query, masked_query)
+        self._log_stage(
+            "router",
+            classifier_started,
+            "ok",
+            f"provider={getattr(self.classifier, 'last_provider', classification.provider)} fallback={getattr(self.classifier, 'last_fallback_used', False)}",
+        )
         classifier_usage = dict(self.classifier.last_usage)
         history_rows = (
             await session.execute(
@@ -717,6 +1103,7 @@ class SupportPipeline:
                 "is_in_scope": False,
             }
         else:
+            rewrite_started = time.perf_counter()
             try:
                 rewrite = await self.rewriter.rewrite(
                     masked_query,
@@ -724,6 +1111,20 @@ class SupportPipeline:
                     use_dev_model=True,
                 )
                 rewrite_usage = dict(self.gemini.last_usage)
+                self._log_stage(
+                    "rewrite",
+                    rewrite_started,
+                    "ok",
+                    f"in_scope={rewrite.get('is_in_scope', True)}",
+                )
+            except asyncio.TimeoutError as exc:
+                pipeline_errors.append("REWRITE_TIMEOUT")
+                rewrite = {
+                    "canonical_query": masked_query,
+                    "category": classification.category,
+                    "is_in_scope": True,
+                }
+                self._log_stage("rewrite", rewrite_started, "timeout", type(exc).__name__)
             except GeminiServiceError:
                 pipeline_errors.append("GEMINI_REWRITE_UNAVAILABLE")
                 rewrite = {
@@ -731,26 +1132,16 @@ class SupportPipeline:
                     "category": classification.category,
                     "is_in_scope": True,
                 }
+                self._log_stage("rewrite", rewrite_started, "error", "GeminiServiceError")
         canonical = rewrite.get("canonical_query", masked_query).strip() or masked_query
         category = classification.category
-        if category == "GENEL_DESTEK" and rewrite.get("category"):
-            category = rewrite.get("category", "GENEL_DESTEK")
         if followup_reference:
-            if category == "GENEL_DESTEK":
-                category = followup_reference["category"]
             canonical = (
                 f"{followup_reference['order_no']} numaralı sipariş bağlamında: "
                 f"{canonical}"
                 if followup_reference.get("order_no")
                 else f"{followup_reference['category']} bağlamında: {canonical}"
             )
-            classification = replace(
-                classification,
-                category=category,
-                expected_action="RAG_ANSWER",
-                confidence=max(classification.confidence or 0, 0.75),
-            )
-
         resolver_scope = bool(rewrite.get("is_in_scope", True)) and (
             classification.expected_action != "REJECT"
         )
@@ -778,15 +1169,30 @@ class SupportPipeline:
             data_resolver = self.data_resolver or DataResolver(
                 SqlAlchemyDataResolverAdapter(session)
             )
-            data_resolution = await data_resolver.resolve(
-                self._data_resolver_input(
-                    user_id=user.id,
-                    message=masked_query,
-                    context_plan=context_plan,
-                    conversation_state=conversation_state,
-                    frontend_context=frontend_context,
+            data_started = time.perf_counter()
+            try:
+                data_resolution = await asyncio.wait_for(
+                    data_resolver.resolve(
+                        self._data_resolver_input(
+                            user_id=user.id,
+                            message=masked_query,
+                            context_plan=context_plan,
+                            conversation_state=conversation_state,
+                            frontend_context=frontend_context,
+                        )
+                    ),
+                    timeout=self._stage_timeout("data_resolver", self.settings.llm_timeout_seconds),
                 )
-            )
+                self._log_stage(
+                    "data_resolver",
+                    data_started,
+                    "ok",
+                    f"status={data_resolution.status.value}",
+                )
+            except asyncio.TimeoutError as exc:
+                pipeline_errors.append("DATA_RESOLVER_TIMEOUT")
+                data_resolution = self._skipped_data_resolution()
+                self._log_stage("data_resolver", data_started, "timeout", type(exc).__name__)
         data_resolution_metadata = data_resolution.model_dump(mode="json")
         data_allows_context = self._data_resolution_allows_context(data_resolution)
         pipeline_fetches_context = resolver_fetches_context and data_allows_context
@@ -795,6 +1201,7 @@ class SupportPipeline:
         )
         evidence_output = EvidenceFetcherOutput()
         if pipeline_fetches_context and self.evidence_fetcher is not None:
+            evidence_started = time.perf_counter()
             try:
                 evidence_fetcher = self.evidence_fetcher
                 adapter = getattr(evidence_fetcher, "adapter", None)
@@ -802,22 +1209,36 @@ class SupportPipeline:
                     evidence_fetcher = EvidenceFetcher(
                         adapter.bind(session)
                     )
-                evidence_output = await evidence_fetcher.fetch(
-                    {
-                        "user_id": user.id,
-                        "context_plan": context_plan.model_dump(mode="json"),
-                        "data_resolution": data_resolution.model_dump(mode="json"),
-                        "required_contexts": self._evidence_required_contexts(
-                            context_plan
-                        ),
-                    }
+                evidence_output = await asyncio.wait_for(
+                    evidence_fetcher.fetch(
+                        {
+                            "user_id": user.id,
+                            "context_plan": context_plan.model_dump(mode="json"),
+                            "data_resolution": data_resolution.model_dump(mode="json"),
+                            "required_contexts": self._evidence_required_contexts(
+                                context_plan
+                            ),
+                        }
+                    ),
+                    timeout=self._stage_timeout("evidence_fetcher", self.settings.llm_timeout_seconds),
                 )
+                self._log_stage(
+                    "evidence_fetcher",
+                    evidence_started,
+                    "ok",
+                    f"selected={len(evidence_output.product_evidence) + len(evidence_output.order_evidence) + len(evidence_output.payment_evidence) + len(evidence_output.coupon_evidence) + len(evidence_output.cart_evidence) + len(evidence_output.return_evidence) + len(evidence_output.review_evidence)}",
+                )
+            except asyncio.TimeoutError as exc:
+                pipeline_errors.append("EVIDENCE_FETCHER_TIMEOUT")
+                evidence_output = EvidenceFetcherOutput()
+                self._log_stage("evidence_fetcher", evidence_started, "timeout", type(exc).__name__)
             except Exception as exc:
                 safe_error_summary = type(exc).__name__
                 evidence_output.warnings.append(
                     f"EVIDENCE_FETCHER_ERROR:{safe_error_summary}"
                 )
                 pipeline_errors.append("EVIDENCE_FETCHER_ERROR")
+                self._log_stage("evidence_fetcher", evidence_started, "error", safe_error_summary)
         evidence_metadata = evidence_output.model_dump(mode="json")
         effective_frontend_context = dict(frontend_context)
         resolved_data_entities = data_resolution.resolved_entities
@@ -845,6 +1266,7 @@ class SupportPipeline:
         legacy_context_allowed = (
             pipeline_fetches_context and not explicit_coupon_resolution
         )
+        route_family = self._route_family(classification)
 
         user_message = Message(
             conversation_id=conversation.id,
@@ -864,21 +1286,41 @@ class SupportPipeline:
         session.add(user_message)
         await session.flush()
 
-        support_in_scope = resolver_scope and pipeline_fetches_context
-        product_context = (
-            await self.product_context.build(
-                session,
-                user,
-                category,
-                canonical,
-                conversation=conversation,
-                selected_order_no=selected_order_no,
-                frontend_context=effective_frontend_context,
-                original_query=safe_query,
-            )
-            if legacy_context_allowed
-            else {
-                "route_mode": (
+        product_context_started = time.perf_counter()
+        if legacy_context_allowed and route_family in {"PRODUCT", "MIXED"}:
+            try:
+                product_context = await asyncio.wait_for(
+                    self.product_context.build(
+                        session,
+                        user,
+                        category,
+                        canonical,
+                        conversation=conversation,
+                        selected_order_no=selected_order_no,
+                        frontend_context=effective_frontend_context,
+                        original_query=safe_query,
+                    ),
+                    timeout=self._stage_timeout("product_context", self.settings.llm_timeout_seconds),
+                )
+                self._log_stage(
+                    "product_context",
+                    product_context_started,
+                    "ok",
+                    f"items={len(product_context.get('items', []))} route_mode={product_context.get('route_mode')}",
+                )
+            except asyncio.TimeoutError as exc:
+                product_context = {
+                    "route_mode": "resolver_no_fetch",
+                    "category": category,
+                    "context_type": "clarification_needed",
+                    "items": [],
+                    "text": "",
+                    "decision_hints": [],
+                }
+                self._log_stage("product_context", product_context_started, "timeout", type(exc).__name__)
+        else:
+            product_context = {
+                "route_mode": route_family.lower() if route_family else (
                     "data_resolver_coupon_only"
                     if explicit_coupon_resolution
                     else "resolver_no_fetch"
@@ -889,28 +1331,54 @@ class SupportPipeline:
                 "text": "",
                 "decision_hints": [],
             }
-        )
-        route_mode = product_context.get("route_mode", "support_only")
-        product_in_scope = (
-            pipeline_fetches_context and route_mode != "fallback_unclear"
-        )
-        support_context = (
-            await self.customer_context.build(
-                session,
-                user,
-                category,
-                canonical,
-                selected_order_no=selected_order_no,
-                selected_order_id=resolved_data_entities.order_id,
-            )
-            if legacy_context_allowed
-            and support_in_scope
-            and route_mode != "product_only"
-            else {"category": category, "items": [], "text": ""}
-        )
+        route_mode = product_context.get("route_mode", route_family.lower() or "support_only")
+        customer_context_started = time.perf_counter()
+        if legacy_context_allowed and route_family in {"SUPPORT", "MIXED"}:
+            try:
+                support_context = await asyncio.wait_for(
+                    self.customer_context.build(
+                        session,
+                        user,
+                        category,
+                        canonical,
+                        selected_order_no=selected_order_no,
+                        selected_order_id=resolved_data_entities.order_id,
+                    ),
+                    timeout=self._stage_timeout("customer_context", self.settings.llm_timeout_seconds),
+                )
+                self._log_stage(
+                    "customer_context",
+                    customer_context_started,
+                    "ok",
+                    f"items={len(support_context.get('items', []))}",
+                )
+            except asyncio.TimeoutError as exc:
+                support_context = {"category": category, "items": [], "text": ""}
+                self._log_stage("customer_context", customer_context_started, "timeout", type(exc).__name__)
+        else:
+            support_context = {"category": category, "items": [], "text": ""}
+        support_in_scope = pipeline_fetches_context and route_family in {"SUPPORT", "MIXED"}
+        product_in_scope = pipeline_fetches_context and route_family in {"PRODUCT", "MIXED"}
         in_scope = pipeline_fetches_context and (support_in_scope or product_in_scope)
+        grouped = []
+        structured_evidence_pack = self._structured_evidence_pack(
+            classification=classification,
+            context_plan=context_plan,
+            data_resolution=data_resolution,
+            evidence_output=evidence_output,
+            grouped=grouped,
+            route_family=route_family,
+        )
+        evidence_metadata = structured_evidence_pack
+        user_message.security_metadata = {
+            **(user_message.security_metadata or {}),
+            "router": self._router_payload(classification),
+            "evidence_pack": structured_evidence_pack,
+        }
         debug_metadata = {
             "route_mode": route_mode,
+            "route_family": route_family,
+            "router": self._router_payload(classification),
             "context_resolver": context_plan_metadata,
             "data_resolver": data_resolution_metadata,
             "evidence_fetcher": evidence_metadata,
@@ -973,53 +1441,113 @@ class SupportPipeline:
             "guard_reason": "",
             "fallback_reason": "",
             "formatter_mode": "",
+            "db_called": False,
+            "rag_called": False,
             "support_rag_used": False,
             "product_context_used": False,
             "customer_context_used": False,
         }
         grouped = []
-        should_run_support_rag = self._should_run_support_rag(
-            needs_support_rag=context_plan.needs_support_rag,
-            support_in_scope=support_in_scope,
-            route_mode=route_mode,
+        should_run_support_rag = (
+            (context_plan.needs_support_rag or bool(classification.routing_hints.get("rag_needed")))
+            and (support_in_scope or product_in_scope)
+            and route_family in {"SUPPORT", "MIXED", "PRODUCT"}
         )
+        retrieval_query = f"{canonical} {safe_query}".strip()
         if should_run_support_rag:
+            rag_started = time.perf_counter()
             try:
-                grouped = await self.retrieval.grouped_search(
-                    session,
-                    canonical,
-                    candidate_limit=30,
-                    max_documents=2,
-                    max_sections=5,
+                grouped = await asyncio.wait_for(
+                    self.retrieval.grouped_search(
+                        session,
+                        retrieval_query,
+                        candidate_limit=24,
+                        max_documents=2,
+                        max_sections=5,
+                    ),
+                    timeout=self._stage_timeout("retrieval", self.settings.llm_timeout_seconds),
                 )
+                self._log_stage(
+                    "retrieval",
+                    rag_started,
+                    "ok",
+                    f"grouped={len(grouped)} query_len={len(retrieval_query)}",
+                )
+            except asyncio.TimeoutError as exc:
+                grouped = []
+                pipeline_errors.append("RETRIEVAL_TIMEOUT")
+                self._log_stage("retrieval", rag_started, "timeout", type(exc).__name__)
             except HTTPException:
                 pipeline_errors.append("RETRIEVAL_UNAVAILABLE")
         if should_run_support_rag and not grouped and support_context.get("text"):
+            fallback_rag_started = time.perf_counter()
             try:
-                grouped = await self.retrieval.grouped_by_category(
-                    session,
-                    category,
-                    max_documents=2,
-                    max_sections=5,
+                grouped = await asyncio.wait_for(
+                    self.retrieval.grouped_by_category(
+                        session,
+                        category,
+                        max_documents=2,
+                        max_sections=5,
+                    ),
+                    timeout=self._stage_timeout("retrieval", self.settings.llm_timeout_seconds),
                 )
+                self._log_stage(
+                    "retrieval_category",
+                    fallback_rag_started,
+                    "ok",
+                    f"grouped={len(grouped)} category={category}",
+                )
+            except asyncio.TimeoutError as exc:
+                grouped = []
+                pipeline_errors.append("CATEGORY_RETRIEVAL_TIMEOUT")
+                self._log_stage("retrieval_category", fallback_rag_started, "timeout", type(exc).__name__)
             except HTTPException:
                 pipeline_errors.append("CATEGORY_RETRIEVAL_UNAVAILABLE")
+        rerank_started = time.perf_counter()
         grouped, reranker_score = await self.reranker.rerank(canonical, grouped)
-        if grouped and category == "GENEL_DESTEK":
-            category = grouped[0].category
-            user_message.category = category
+        self._log_stage("reranker", rerank_started, "ok", f"grouped={len(grouped)}")
+        structured_evidence_pack = self._structured_evidence_pack(
+            classification=classification,
+            context_plan=context_plan,
+            data_resolution=data_resolution,
+            evidence_output=evidence_output,
+            grouped=grouped,
+            route_family=route_family,
+        )
+        evidence_metadata = structured_evidence_pack
+        user_message.security_metadata = {
+            **(user_message.security_metadata or {}),
+            "router": self._router_payload(classification),
+            "evidence_pack": structured_evidence_pack,
+        }
         debug_metadata["retrieved_doc_ids"] = [
             {"doc_id": item.doc_id, "score": item.best_score} for item in grouped
         ]
+        debug_metadata["db_called"] = bool(
+            resolver_fetches_context
+            or bool(product_context.get("text"))
+            or bool(support_context.get("text"))
+        )
+        debug_metadata["rag_called"] = bool(grouped)
         debug_metadata["support_rag_used"] = bool(grouped)
         debug_metadata["product_context_used"] = bool(product_context.get("text"))
         debug_metadata["customer_context_used"] = bool(support_context.get("text"))
 
         similar = (
-            await self.similar.search(session, canonical, category, limit=3)
-            if support_in_scope
-            else []
+            []
         )
+        if support_in_scope:
+            similar_started = time.perf_counter()
+            try:
+                similar = await asyncio.wait_for(
+                    self.similar.search(session, retrieval_query, category, limit=3),
+                    timeout=self._stage_timeout("similar", self.settings.llm_timeout_seconds),
+                )
+                self._log_stage("similar", similar_started, "ok", f"candidates={len(similar)}")
+            except asyncio.TimeoutError as exc:
+                similar = []
+                pipeline_errors.append("SIMILAR_TIMEOUT")
+                self._log_stage("similar", similar_started, "timeout", type(exc).__name__)
         few_shots = [
             {
                 "question": solution.canonical_question,
@@ -1070,6 +1598,7 @@ class SupportPipeline:
             or has_evidence_context
         ):
             try:
+                gemini_started = time.perf_counter()
                 debug_metadata["gemini_called"] = self.gemini.enabled
                 generated = await self.gemini.answer(
                     canonical,
@@ -1079,16 +1608,23 @@ class SupportPipeline:
                     llm_context,
                     few_shots,
                     available_sources,
-                    original_user_message=masked_query,
+                    original_user_message=safe_query,
                     resolved_entities=resolved_data_entities.model_dump(mode="json"),
-                    evidence_pack=evidence_metadata,
+                    evidence_pack=structured_evidence_pack,
+                    router_json=self._router_payload(classification),
                     answer_scope=answer_scope,
                     use_dev_model=True,
                 )
                 answer_usage = dict(self.gemini.last_usage)
+                self._log_stage("gemini_answer", gemini_started, "ok", f"cited={len(generated.get('cited_doc_ids', []))}")
+            except asyncio.TimeoutError as exc:
+                pipeline_errors.append("GEMINI_ANSWER_TIMEOUT")
+                debug_metadata["gemini_error"] = "TimeoutError"
+                self._log_stage("gemini_answer", gemini_started, "timeout", type(exc).__name__)
             except GeminiServiceError:
                 pipeline_errors.append("GEMINI_ANSWER_UNAVAILABLE")
                 debug_metadata["gemini_error"] = "GeminiServiceError"
+                self._log_stage("gemini_answer", gemini_started, "error", "GeminiServiceError")
         elif not in_scope:
             debug_metadata["fallback_reason"] = "out_of_scope"
         else:
@@ -1170,8 +1706,11 @@ class SupportPipeline:
                     debug_metadata["fallback_reason"] = debug_metadata["guard_reason"]
                 else:
                     debug_metadata["fallback_reason"] = "empty_answer"
-            answer = await self._fallback_answer(
-                session, grouped, support_context, product_context
+            answer = self._safe_router_fallback_router_first(
+                classification=classification,
+                original_user_message=safe_query,
+                canonical_query=canonical,
+                evidence_pack=structured_evidence_pack,
             )
             debug_metadata["formatter_mode"] = "fallback_natural"
         else:
@@ -1196,6 +1735,23 @@ class SupportPipeline:
                 "başlatılması gerekir."
             )
             debug_metadata["formatter_mode"] = "payment_no_order_context"
+        answer_source = (
+            "gemini"
+            if debug_metadata["formatter_mode"] == "gemini_natural"
+            else "safe_fallback"
+            if debug_metadata["formatter_mode"] in {
+                "fallback_natural",
+                "resolver_clarification",
+                "data_resolver_clarification",
+                "out_of_scope_plain",
+                "clarification_natural",
+                "payment_no_order_context",
+            }
+            else "router_refusal"
+            if debug_metadata["formatter_mode"] == "out_of_scope_plain"
+            else "safe_fallback"
+        )
+        debug_metadata["answer_source"] = answer_source
         answer, output_pii = mask_pii(answer)
 
         top_score = grouped[0].best_score if grouped else 0.0
@@ -1206,7 +1762,7 @@ class SupportPipeline:
             conversation_id=conversation.id,
             role="ASSISTANT",
             safe_content=answer,
-            category=category,
+            category=classification.category,
             confidence=confidence_label(combined_score, self.settings),
             confidence_score=combined_score,
             sources=[
@@ -1227,6 +1783,27 @@ class SupportPipeline:
                 "pipeline_errors": pipeline_errors,
                 "debug": debug_metadata,
             },
+        )
+        logger.info(
+            "pipeline_trace router_provider_used=%s fallback_used=%s domain=%s intent=%s category=%s subcategory=%s requested_information=%s db_needed=%s rag_needed=%s db_called=%s rag_called=%s product_candidates=%s order_candidates=%s return_candidates=%s selected_evidence_count=%s gemini_called=%s answer_source=%s raw_context_dump=%s",
+            getattr(self.classifier, "last_provider", classification.provider),
+            getattr(self.classifier, "last_fallback_used", False),
+            classification.domain,
+            classification.intent,
+            classification.category,
+            classification.subcategory,
+            ",".join(classification.requested_information or ([] if not classification.requested_info else [classification.requested_info])),
+            bool(context_plan.data_sources),
+            bool(context_plan.needs_support_rag),
+            pipeline_fetches_context,
+            bool(grouped),
+            debug_metadata.get("product_context", {}).get("selected_counts", {}).get("products", 0),
+            debug_metadata.get("customer_context", {}).get("selected_counts", {}).get("orders", 0),
+            debug_metadata.get("customer_context", {}).get("selected_counts", {}).get("returns", 0),
+            structured_evidence_pack.get("selected_evidence_count", 0),
+            debug_metadata["gemini_called"],
+            answer_source,
+            False,
         )
         session.add(assistant)
         await session.flush()
@@ -1271,7 +1848,7 @@ class SupportPipeline:
         await self.product_context.update_state(
             session,
             conversation,
-            last_topic=category,
+            last_topic=classification.category,
             last_product_id=product_context.get("primary_product", {}).get("id"),
             last_product_name=product_context.get("primary_product", {}).get("name", ""),
             last_order_id=product_context.get("primary_order", {}).get("id"),
@@ -1281,7 +1858,7 @@ class SupportPipeline:
             or frontend_context.get("current_cart_id"),
             last_payment_id=product_context.get("primary_payment", {}).get("id")
             or frontend_context.get("current_payment_id"),
-            last_intent=product_context.get("route_mode", ""),
+            last_intent=classification.intent or product_context.get("route_mode", ""),
             last_action=(
                 "show_technical_details"
                 if product_context.get("primary_product")
@@ -1293,8 +1870,8 @@ class SupportPipeline:
             last_mentioned_product_ids=product_context.get("selected_product_ids", []),
             last_mentioned_order_ids=product_context.get("selected_order_ids", []),
             state_metadata={
-                "route_mode": product_context.get("route_mode", ""),
-                "support_category": category,
+                "route_mode": route_family,
+                "support_category": classification.category,
                 "last_recommended_action": (
                     "show_product_details"
                     if product_context.get("primary_product")

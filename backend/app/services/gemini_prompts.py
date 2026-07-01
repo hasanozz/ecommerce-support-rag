@@ -49,6 +49,8 @@ ANSWER_SYSTEM_INSTRUCTION = (
     + """
 
 Bu çağrıda müşteri destek cevabı üret:
+- Router JSON ana yönlendiricidir; domain, intent, category, subcategory,
+  requested_information ve routing_hints alanlarını koru.
 - Kayıt/ürün/sipariş/ödeme/kupon gerçekleri için öncelikle EVIDENCE_PACK içindeki
   structured DB evidence'a dayan. Legacy context ikincil ve geçici kaynaktır.
 - SUPPORT_POLICY_CONTEXT yalnızca prosedür ve politika bilgisidir; kullanıcıya
@@ -148,10 +150,12 @@ def build_answer_user_prompt(
     original_user_message: str | None = None,
     resolved_entities: dict | None = None,
     evidence_pack: dict | None = None,
+    router_json: dict | None = None,
     answer_scope: dict | None = None,
 ) -> str:
     evidence_pack = _safe_evidence_pack(evidence_pack or {})
     resolved_entities = _safe_resolved_entities(resolved_entities or {})
+    router = json.dumps(router_json or evidence_pack.get("router", {}), ensure_ascii=False)
     question = json.dumps(
         {"canonical_user_query": canonical_query}, ensure_ascii=False
     )
@@ -187,6 +191,10 @@ def build_answer_user_prompt(
 <RESOLVED_ENTITIES>
 {entities}
 </RESOLVED_ENTITIES>
+
+<ROUTER_JSON>
+{router}
+</ROUTER_JSON>
 
 <EVIDENCE_PACK>
 {evidence}
@@ -283,6 +291,11 @@ def _safe_evidence_pack(value: dict) -> dict:
         "missing_evidence",
     )
     safe = {key: value.get(key, []) for key in evidence_keys}
+    safe["router"] = value.get("router", {})
+    safe["db_evidence"] = value.get("db_evidence", [])
+    safe["rag_evidence"] = value.get("rag_evidence", [])
+    safe["retrieval_meta"] = value.get("retrieval_meta", {})
+    safe["selected_evidence_count"] = value.get("selected_evidence_count", 0)
     safe["warnings"] = [
         warning
         for warning in value.get("warnings", [])

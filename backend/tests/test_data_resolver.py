@@ -9,6 +9,7 @@ from backend.app.services.data_resolver import (
     USED_CONVERSATION_STATE,
     DataResolver,
     InMemoryDataResolverAdapter,
+    SqlAlchemyDataResolverAdapter,
     ResolverRecord,
 )
 
@@ -274,3 +275,17 @@ async def test_fallback_context_plan_is_skipped_without_lookup():
 
     assert result.status == DataResolutionStatus.SKIP
     assert result.next_step == ResolutionNextStep.SKIP
+
+
+def test_sqlalchemy_record_uses_entity_specific_fields():
+    product = type(
+        "DemoProductRow",
+        (),
+        {"id": 15, "name": "Çay Bardağı", "user_id": 1},
+    )()
+
+    record = SqlAlchemyDataResolverAdapter._record(EntityType.PRODUCT, product)
+
+    assert record.record_id == 15
+    assert record.display_label == "Çay Bardağı"
+    assert record.lookup_value == "Çay Bardağı"

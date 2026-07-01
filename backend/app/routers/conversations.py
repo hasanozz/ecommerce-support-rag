@@ -159,10 +159,23 @@ async def send_message(
         ip_hash,
         frontend_context=frontend_context,
     )
+    debug_trace = (
+        assistant.security_metadata.get("debug", {})
+        if isinstance(assistant.security_metadata, dict)
+        else {}
+    )
     return AssistantAnswerResponse(
         assistant_message_id=assistant.id,
         answer=assistant.safe_content,
         canonical_query=canonical,
+        category=classification.category,
+        subcategory=classification.subcategory,
+        domain=classification.domain,
+        intent=classification.intent,
+        expected_action=classification.expected_action,
+        requested_information=classification.requested_information
+        or ([classification.requested_info] if classification.requested_info else []),
+        answer_source=str(debug_trace.get("answer_source") or "").strip() or None,
         sources=[
             SourceResponse(
                 doc_id=item.doc_id,
@@ -179,7 +192,7 @@ async def send_message(
         confidence_score=assistant.confidence_score,
         priority=classification.priority,
         ticket_available=True,
-        ticket_recommended=classification.priority in {"HIGH", "URGENT"},
+        ticket_recommended=classification.expected_action == "CREATE_TICKET",
         similar_solutions=[
             SimilarSolutionResponse(
                 id=solution.id,

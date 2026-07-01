@@ -66,6 +66,13 @@ class Settings(BaseSettings):
 
     classifier_provider: str = "rule_based"
     classifier_fallback_provider: str = "rule_based"
+    router_provider: str = "rule_based"
+    router_fallback_enabled: bool = True
+    router_fallback_provider: str = "rule_based"
+    qwen_remote_router_url: str | None = None
+    qwen_remote_router_timeout_seconds: int | None = 30
+    remote_qwen_router_url: str | None = None
+    remote_qwen_timeout_seconds: int | None = 30
 
     similar_solution_min_views: int = 10
     similar_solution_min_helpful: int = 5
@@ -117,6 +124,33 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_required_secrets(self) -> "Settings":
+        provider_aliases = {
+            "remote_qwen": "qwen_remote",
+            "qwen_remote": "qwen_remote",
+            "rule_based": "rule_based",
+        }
+        configured_provider = (
+            self.router_provider
+            if self.router_provider.casefold().strip() != "rule_based"
+            or self.classifier_provider.casefold().strip() == "rule_based"
+            else self.classifier_provider
+        )
+        self.router_provider = provider_aliases.get(
+            configured_provider.casefold().strip(),
+            configured_provider.casefold().strip() or "rule_based",
+        )
+        self.classifier_provider = self.router_provider
+        self.router_fallback_provider = (
+            self.router_fallback_provider.casefold().strip() or "rule_based"
+        )
+        self.classifier_fallback_provider = self.router_fallback_provider
+        if self.remote_qwen_router_url and not self.qwen_remote_router_url:
+            self.qwen_remote_router_url = self.remote_qwen_router_url
+        if (
+            self.remote_qwen_timeout_seconds is not None
+            and self.qwen_remote_router_timeout_seconds is None
+        ):
+            self.qwen_remote_router_timeout_seconds = self.remote_qwen_timeout_seconds
         required_strings = {
             "GOOGLE_CLIENT_ID": self.google_client_id,
             "GOOGLE_REDIRECT_URI": self.google_redirect_uri,

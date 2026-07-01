@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ from ..models import (
     User,
 )
 from .demo_commerce import money
+from .embedding import get_embedding_service
 
 
 PRODUCT_HINTS = {
@@ -249,6 +251,17 @@ def _positive_int(value: object) -> int | None:
     return number if number > 0 else None
 
 
+def _cosine_similarity(left: list[float], right: list[float]) -> float:
+    if not left or not right or len(left) != len(right):
+        return 0.0
+    numerator = sum(a * b for a, b in zip(left, right))
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
+    if not left_norm or not right_norm:
+        return 0.0
+    return numerator / (left_norm * right_norm)
+
+
 @dataclass(slots=True)
 class ProductMatch:
     product: DemoProduct
@@ -268,6 +281,7 @@ class ProductMatchResult:
 class ProductContextService:
     def __init__(self) -> None:
         self._last_product_match = ProductMatchResult([], "not_applicable", 0, False, [])
+        self._embedding_service = get_embedding_service()
 
     async def _load_state(
         self, session: AsyncSession, conversation: Conversation | None
@@ -410,6 +424,39 @@ class ProductContextService:
             for item in scored[:5]
         ]
 
+    @staticmethod
+    def _product_search_text(product: DemoProduct) -> str:
+        attribute_text = " ".join(
+            f"{key} {value}" for key, value in (product.attributes or {}).items()
+        )
+        tag_text = " ".join(product.tags or [])
+        return " ".join(
+            part
+            for part in [
+                product.name,
+                product.sku,
+                product.brand,
+                product.category,
+                product.subcategory,
+                product.description,
+                product.search_text,
+                product.ai_context,
+                tag_text,
+                attribute_text,
+            ]
+            if part
+        )
+
+    def _semantic_score(self, query: str, product: DemoProduct) -> float:
+        try:
+            query_vector = self._embedding_service.embed_query(query)
+            product_vector = self._embedding_service.embed_query(
+                self._product_search_text(product)
+            )
+        except Exception:
+            return 0.0
+        return _cosine_similarity(query_vector, product_vector)
+
     async def _product_stats(
         self,
         session: AsyncSession,
@@ -549,7 +596,11 @@ class ProductContextService:
         if not terms:
             self._last_product_match = ProductMatchResult([], "no_product_mention", 0, False, [])
             return []
-        rows = (await session.scalars(statement)).all()
+        rows = (
+            await session.scalars(
+                statement.limit(200)
+            )
+        ).all()
         explicit_scored: list[ProductMatch] = []
         weak_scored: list[ProductMatch] = []
         for product in rows:
@@ -672,6 +723,83 @@ class ProductContextService:
             [], "no_catalog_match", 0, bool(terms), self._candidate_debug(candidates)
         )
         return []
+
+    async def _selected_products_hybrid(
+        self,
+        session: AsyncSession,
+        user: User,
+        query: str,
+        selected_product_id: int | None = None,
+    ) -> list[DemoProduct]:
+        primary_products = await self._selected_products(
+            session,
+            user,
+            query,
+            selected_product_id=selected_product_id,
+        )
+        primary_match = self._last_product_match
+        if primary_products:
+            return primary_products
+        if selected_product_id is not None and primary_match.reason == "trusted_context_match":
+            return primary_products
+
+        normalized = _normalize(query)
+        terms = self._query_tokens(query)
+        if not terms:
+            return primary_products
+
+        rows = (
+            await session.scalars(
+                select(DemoProduct).where(DemoProduct.is_active.is_(True)).limit(200)
+            )
+        ).all()
+        if not rows:
+            return primary_products
+
+        scored: list[ProductMatch] = []
+        for product in rows:
+            haystack = _normalize(self._product_search_text(product))
+            fuzzy_ratio = SequenceMatcher(None, normalized, haystack).ratio()
+            token_overlap = sum(
+                1
+                for term in terms
+                if term and any(_token_matches(term, token) for token in haystack.split())
+            )
+            semantic_score = self._semantic_score(normalized, product)
+            score = max(
+                int(fuzzy_ratio * 100),
+                35 + token_overlap * 5,
+                int(semantic_score * 100),
+            )
+            if score >= 45:
+                reason = "semantic_match" if semantic_score >= 0.55 else "fuzzy_text_match"
+                scored.append(ProductMatch(product=product, score=score, reason=reason))
+
+        scored.sort(key=lambda item: (-item.score, item.product.category, item.product.name))
+        if not scored:
+            self._last_product_match = primary_match
+            return primary_products
+
+        top_score = scored[0].score
+        close = [item for item in scored if top_score - item.score <= 5]
+        if len(close) > 1:
+            self._last_product_match = ProductMatchResult(
+                [],
+                "ambiguous_semantic_match",
+                top_score,
+                False,
+                self._candidate_debug(close),
+            )
+            return []
+
+        self._last_product_match = ProductMatchResult(
+            [scored[0].product],
+            scored[0].reason,
+            scored[0].score,
+            False,
+            self._candidate_debug(scored),
+        )
+        return [scored[0].product]
 
     async def _selected_orders(
         self,
@@ -882,7 +1010,9 @@ class ProductContextService:
         top_candidates: list[dict] = []
 
         if route_mode in product_context_modes:
-            selected_products = await self._selected_products(session, user, context_query)
+            selected_products = await self._selected_products_hybrid(
+                session, user, context_query
+            )
             match_result = self._last_product_match
             product_match_reason = match_result.reason
             product_match_score = match_result.score
@@ -891,7 +1021,7 @@ class ProductContextService:
             if selected_products:
                 product_match_reason = match_result.reason
             elif selected_product_id is not None and not explicit_product_mention:
-                selected_products = await self._selected_products(
+                selected_products = await self._selected_products_hybrid(
                     session, user, context_query, selected_product_id=selected_product_id
                 )
                 if selected_products:

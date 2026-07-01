@@ -44,6 +44,10 @@ class ClassifierOutput(BaseModel):
     doc_id: str | None = None
     entities: ClassifierEntities = Field(default_factory=ClassifierEntities)
     requested_info: str | None = None
+    requested_information: list[str] = Field(default_factory=list)
+    expected_action: str | None = None
+    priority: str | None = None
+    routing_hints: dict = Field(default_factory=dict)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 

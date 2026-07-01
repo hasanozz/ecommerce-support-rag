@@ -57,6 +57,13 @@ class AssistantAnswerResponse(BaseModel):
     answer: str
     canonical_query: str
     sources: list[SourceResponse]
+    category: str | None = None
+    subcategory: str | None = None
+    domain: str | None = None
+    intent: str | None = None
+    expected_action: str | None = None
+    requested_information: list[str] = Field(default_factory=list)
+    answer_source: str | None = None
     confidence: Literal["HIGH", "MEDIUM", "LOW"] | None
     confidence_score: float | None
     priority: Literal["LOW", "MEDIUM", "HIGH", "URGENT"]

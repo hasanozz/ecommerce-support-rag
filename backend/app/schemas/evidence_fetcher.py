@@ -9,6 +9,7 @@ from .data_resolver import DataResolverOutput, ResolvedDataEntities
 
 
 class EvidencePurpose(str, Enum):
+    PRODUCT_PROFILE = "PRODUCT_PROFILE"
     PRODUCT_CAPACITY = "PRODUCT_CAPACITY"
     PRODUCT_PRICE = "PRODUCT_PRICE"
     PRODUCT_STOCK = "PRODUCT_STOCK"

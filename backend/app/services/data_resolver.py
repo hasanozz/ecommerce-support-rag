@@ -148,14 +148,15 @@ class SqlAlchemyDataResolverAdapter:
         if entity_type == EntityType.PRODUCT:
             rows = (
                 await self.session.scalars(
-                    select(DemoProduct).where(DemoProduct.is_active.is_(True))
+                    select(DemoProduct).where(DemoProduct.is_active.is_(True)).limit(200)
                 )
             ).all()
-            return [
-                self._record(entity_type, row)
+            exact_rows = [
+                row
                 for row in rows
-                if _normalize(row.name) == normalized
+                if self._product_exact_match(row, normalized)
             ]
+            return [self._record(entity_type, row) for row in exact_rows]
         if entity_type == EntityType.ORDER:
             rows = (
                 await self.session.scalars(
@@ -184,15 +185,13 @@ class SqlAlchemyDataResolverAdapter:
         normalized = _normalize(name)
         rows = (
             await self.session.scalars(
-                select(DemoProduct).where(DemoProduct.is_active.is_(True))
+                select(DemoProduct).where(DemoProduct.is_active.is_(True)).limit(200)
             )
         ).all()
         matches = [
             ResolverMatch(
                 record=self._record(EntityType.PRODUCT, row),
-                confidence=SequenceMatcher(
-                    None, normalized, _normalize(row.name)
-                ).ratio(),
+                confidence=self._product_candidate_score(normalized, row),
                 match_type=MatchType.FUZZY_NAME,
             )
             for row in rows
@@ -211,13 +210,16 @@ class SqlAlchemyDataResolverAdapter:
 
     @staticmethod
     def _record(entity_type: EntityType, row: object) -> ResolverRecord:
-        display_value = {
-            EntityType.PRODUCT: getattr(row, "name"),
-            EntityType.ORDER: getattr(row, "order_no"),
-            EntityType.COUPON: getattr(row, "code"),
-            EntityType.CART: f"Cart {getattr(row, 'id')}",
-            EntityType.PAYMENT: getattr(row, "provider_reference"),
-        }[entity_type]
+        if entity_type == EntityType.PRODUCT:
+            display_value = getattr(row, "name")
+        elif entity_type == EntityType.ORDER:
+            display_value = getattr(row, "order_no")
+        elif entity_type == EntityType.COUPON:
+            display_value = getattr(row, "code")
+        elif entity_type == EntityType.CART:
+            display_value = f"Cart {getattr(row, 'id')}"
+        else:
+            display_value = getattr(row, "provider_reference")
         return ResolverRecord(
             entity_type=entity_type,
             record_id=getattr(row, "id"),
@@ -225,6 +227,68 @@ class SqlAlchemyDataResolverAdapter:
             lookup_value=str(display_value),
             owner_user_id=getattr(row, "user_id", None),
         )
+
+    @staticmethod
+    def _product_exact_match(row: object, normalized_value: str) -> bool:
+        candidates = [
+            getattr(row, "name", ""),
+            getattr(row, "sku", ""),
+            f"{getattr(row, 'brand', '')} {getattr(row, 'name', '')}".strip(),
+            f"{getattr(row, 'name', '')} {getattr(row, 'brand', '')}".strip(),
+            getattr(row, "search_text", ""),
+            getattr(row, "description", ""),
+            getattr(row, "ai_context", ""),
+        ]
+        tags = getattr(row, "tags", []) or []
+        candidates.extend(str(tag) for tag in tags if str(tag).strip())
+        return any(_normalize(candidate) == normalized_value for candidate in candidates if candidate)
+
+    @staticmethod
+    def _product_candidate_score(normalized_query: str, row: object) -> float:
+        fields = [
+            getattr(row, "name", ""),
+            getattr(row, "sku", ""),
+            getattr(row, "brand", ""),
+            getattr(row, "category", ""),
+            getattr(row, "subcategory", ""),
+            getattr(row, "search_text", ""),
+            getattr(row, "description", ""),
+            getattr(row, "ai_context", ""),
+        ]
+        tags = getattr(row, "tags", []) or []
+        tokens = {
+            token
+            for token in _normalize(normalized_query).split(" ")
+            if token and len(token) > 1
+        }
+        best_ratio = 0.0
+        field_texts = [_normalize(value) for value in fields if str(value).strip()]
+        field_texts.extend(_normalize(str(tag)) for tag in tags if str(tag).strip())
+        for text in field_texts:
+            best_ratio = max(best_ratio, SequenceMatcher(None, normalized_query, text).ratio())
+        query_tokens = set(normalized_query.split())
+        if query_tokens:
+            overlap_scores = []
+            for text in field_texts:
+                text_tokens = set(text.split())
+                overlap = len(query_tokens & text_tokens) / max(len(query_tokens), 1)
+                overlap_scores.append(overlap)
+            token_overlap = max(overlap_scores, default=0.0)
+        else:
+            token_overlap = 0.0
+        exact_bonus = 0.0
+        for candidate in field_texts:
+            if candidate == normalized_query:
+                exact_bonus = 1.0
+                break
+            if normalized_query in candidate or candidate in normalized_query:
+                exact_bonus = max(exact_bonus, 0.92)
+        if tokens:
+            for token in tokens:
+                if any(token in text for text in field_texts):
+                    exact_bonus = max(exact_bonus, 0.85)
+        score = max(best_ratio, token_overlap, exact_bonus)
+        return round(min(1.0, score), 4)
 
 
 class DataResolver:
@@ -326,9 +390,8 @@ class DataResolver:
                         else USED_CONVERSATION_STATE
                     )
 
-        order_is_required = "order_db" in sources and "payment_db" not in sources
         if EntityType.ORDER not in existing_types and (
-            plan_entities.order_no or plan_entities.order_id or order_is_required
+            plan_entities.order_no or plan_entities.order_id
         ):
             if plan_entities.order_no:
                 references.append(

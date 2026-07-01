@@ -1,0 +1,735 @@
+{
+  "generated_at": "2026-07-01T00:00:00+03:00",
+  "source_files": [
+    "data/debug/router_dataset/fine_tune_train_v4_router.jsonl",
+    "data/debug/router_dataset/fine_tune_test_v4_router.jsonl",
+    "data/debug/router_dataset/fine_tune_aligned_v4_router.jsonl",
+    "data/debug/router_dataset/db_router_mapping_snapshot.json"
+  ],
+  "scope": {
+    "goal": "Map fine-tuned router output fields to existing DB lookup strategies without using doc_id for commerce lookups.",
+    "constraints": [
+      "doc_id is only valid for RAG documents/chunks.",
+      "Product/order/return lookup must not expect doc_id.",
+      "router metadata should be preserved and used as the primary routing signal."
+    ]
+  },
+  "router_field_contract": {
+    "preserve_fields": [
+      "domain",
+      "intent",
+      "category",
+      "subcategory",
+      "entities",
+      "requested_information",
+      "routing_hints"
+    ],
+    "field_triggers": {
+      "domain": {
+        "description": "Top-level router split. Determines the first data source family.",
+        "values": {
+          "PRODUCT": "Product resolver first, then optional reviews/policy if requested_information asks for it.",
+          "SUPPORT": "Support resolver. May require DB, RAG, or both depending on intent and routing_hints.",
+          "MIXED": "Run DB and RAG in parallel when the question mixes product data with support/policy/return/shipping semantics.",
+          "UNCLEAR": "Conversation clarification only; do not fabricate DB or RAG evidence.",
+          "OUT_OF_DOMAIN": "No commerce lookup.",
+          "NONSENSE": "No commerce lookup.",
+          "UNSAFE": "No commerce lookup."
+        }
+      },
+      "intent": {
+        "description": "Primary semantic selector for table family and evidence priority.",
+        "rules": [
+          "PRODUCT_* intents route to demo_products first.",
+          "ORDER_* and SHIPPING_DELIVERY_* intents route to demo_orders + demo_shipments + demo_order_items.",
+          "RETURN_* intents route to demo_return_requests + demo_orders + demo_order_items + demo_products.",
+          "PROMOTION_POINTS, ACCOUNT_SECURITY and policy/procedure-style SUPPORT intents can require RAG even when DB is also needed.",
+          "TRACK_ORDER, TRACK_SHIPMENT and ORDER_STATUS are DB-first intents.",
+          "RETURN_POLICY, RETURN_SHIPPING_PROCESS, RETURN_REJECTION_REASON, PROMOTION_USAGE, COUPON_CODE_USAGE and account-security/how-to intents are RAG-first intents."
+        ]
+      },
+      "category": {
+        "description": "Secondary selector used to pick the lookup family when intent is ambiguous.",
+        "values": {
+          "PRODUCT": "demo_products",
+          "ORDER": "demo_orders + demo_order_items + demo_shipments",
+          "SHIPPING_DELIVERY": "demo_orders + demo_order_items + demo_shipments",
+          "RETURN": "demo_return_requests + demo_orders + demo_order_items + demo_products",
+          "PROMOTION_POINTS": "RAG policy + optional coupons/orders context",
+          "ACCOUNT_SECURITY": "RAG policy + optional user/security context",
+          "PAYMENT": "DB if transaction evidence exists, otherwise RAG policy",
+          "UNCLEAR": "Conversation fallback",
+          "NONSENSE": "No lookup",
+          "OUT_OF_DOMAIN": "No lookup",
+          "SAFETY": "No lookup"
+        }
+      },
+      "subcategory": {
+        "description": "Fine-grained selector that chooses the exact table join path and result projection.",
+        "rules": [
+          "PRODUCT_INFORMATION and PRODUCT_FOLLOW_UP are product evidence lookups.",
+          "TRACK_ORDER, ORDER_STATUS, TRACK_SHIPMENT are order/shipment lookups.",
+          "DELAYED_DELIVERY, DELIVERY_PROCESS, MARKED_DELIVERED_NOT_RECEIVED, UNDELIVERED_SHIPMENT, PICKUP_FROM_BRANCH, REDELIVERY_TO_ADDRESS, CHANGE_SHIPPING_COMPANY, WRONG_ITEM_DELIVERY, MISSING_ITEM_DELIVERY, SPLIT_ORDER, ORDER_CANCELLATION, CREATE_ORDER, CHARGED_NO_ORDER are support order/shipping lookups, with RAG added when policy/process text is needed.",
+          "RETURN_POLICY, CREATE_RETURN_REQUEST, GET_RETURN_CODE, RETURN_SHIPPING_PROCESS, RETURN_REJECTION_REASON, REFUND_PROCESS, REFUND_TIMING, USED_PRODUCT_RETURN, DEFECTIVE_DAMAGED_RETURN, PRODUCT_INSPECTION, PRODUCT_RETURNABILITY, WARRANTY_COVERAGE are return lookups with RAG policy support.",
+          "COUPON_USAGE, INVALID_COUPON, MINIMUM_CART_AMOUNT, PROMOTION_USAGE, EARN_POINTS, USE_POINTS, COUPON_POINTS_PAYMENT, EXPIRED_COUPON_POINTS, PROMOTION_TERMS are RAG-first with optional coupon/order context.",
+          "LOGIN_ISSUE, PASSWORD_RESET, ACCOUNT_CREATION, ACCOUNT_DELETION, EMAIL_CHANGE, PHONE_NUMBER_CHANGE, ACCOUNT_VERIFICATION, TWO_FACTOR_AUTHENTICATION, SUSPICIOUS_LOGIN, SESSION_DEVICE_MANAGEMENT, PERSONAL_DATA_SECURITY are RAG-first."
+        ]
+      },
+      "entities": {
+        "description": "Entity values are the strongest lookup keys when present.",
+        "rules": {
+          "product_name": "Primary product resolver key. Use normalized name plus alias/tag/search fields.",
+          "order_no": "Exact order resolver key. Use order_no equality first, then recent active order context if absent.",
+          "coupon_code": "Coupon/promotion lookup key, plus order history if the same code appears on orders.",
+          "doc_id": "RAG-only lookup key. Do not expect it for product/order/return retrieval."
+        }
+      },
+      "requested_information": {
+        "description": "Controls which columns are projected after the primary row is found.",
+        "rules": [
+          "GENERAL_INFO, PRICE, STOCK, WARRANTY, RETURNABILITY, TECHNICAL_SPECS, COMPARISON, REVIEWS map to product columns and optional review rows.",
+          "SHIPPING_STATUS maps to shipment and order status columns.",
+          "COUPON_ELIGIBILITY maps to coupon and cart/order eligibility fields.",
+          "Any requested_information item that is policy/process-oriented should add RAG evidence, not raw chunk text."
+        ]
+      },
+      "routing_hints": {
+        "description": "Hard routing flags from the classifier.",
+        "rules": {
+          "db_needed": "Must run DB resolver before final answer.",
+          "rag_needed": "Must run RAG resolver for policy/procedure evidence.",
+          "conversation_needed": "May use prior conversation state or recent active records instead of asking for clarification."
+        }
+      }
+    }
+  },
+  "lookup_plan": {
+    "PRODUCT": {
+      "intents": [
+        "PRODUCT_INFORMATION_REQUEST",
+        "PRODUCT_FOLLOW_UP"
+      ],
+      "primary_table": "demo_products",
+      "lookup_order": [
+        "Normalize entities.product_name into lowercase, accent-insensitive tokens.",
+        "Exact and ILIKE match on demo_products.name.",
+        "Exact and ILIKE match on demo_products.sku.",
+        "ILIKE/trigram-style match on demo_products.brand, category, subcategory, tags, search_text and ai_context.",
+        "If available, use semantic similarity over ai_context/search_text as a last DB-side resolver step."
+      ],
+      "matched_columns": [
+        "id",
+        "sku",
+        "name",
+        "brand",
+        "category",
+        "subcategory",
+        "price",
+        "currency",
+        "stock",
+        "description",
+        "returnable",
+        "return_policy_note",
+        "warranty_months",
+        "warranty_note",
+        "tags",
+        "attributes",
+        "search_text",
+        "ai_context"
+      ],
+      "secondary_context": [
+        "demo_product_reviews"
+      ],
+      "secondary_context_rules": [
+        "Use reviews only when requested_information includes REVIEWS or the router output is PRODUCT_FOLLOW_UP.",
+        "Do not dump raw product rows into the user-facing answer; pass only evidence snippets and normalized facts to Gemini."
+      ],
+      "projection_policy": {
+        "GENERAL_INFO": [
+          "name",
+          "brand",
+          "category",
+          "subcategory",
+          "description"
+        ],
+        "PRICE": [
+          "price",
+          "currency"
+        ],
+        "STOCK": [
+          "stock"
+        ],
+        "WARRANTY": [
+          "warranty_months",
+          "warranty_note"
+        ],
+        "RETURNABILITY": [
+          "returnable",
+          "return_policy_note"
+        ],
+        "TECHNICAL_SPECS": [
+          "attributes"
+        ],
+        "COMPARISON": [
+          "name",
+          "brand",
+          "category",
+          "subcategory",
+          "price",
+          "attributes",
+          "tags"
+        ],
+        "REVIEWS": [
+          "demo_product_reviews.rating",
+          "demo_product_reviews.title",
+          "demo_product_reviews.body",
+          "demo_product_reviews.is_verified_purchase"
+        ]
+      }
+    },
+    "ORDER": {
+      "intents": [
+        "CREATE_ORDER",
+        "ORDER_STATUS",
+        "TRACK_ORDER",
+        "ORDER_CANCELLATION",
+        "CHANGE_ORDER_CONTENT",
+        "CHANGE_ORDER_ADDRESS",
+        "SPLIT_ORDER",
+        "CHARGED_BUT_ORDER_NOT_CREATED",
+        "MISSING_ITEM_DELIVERY",
+        "WRONG_ITEM_DELIVERY"
+      ],
+      "primary_tables": [
+        "demo_orders",
+        "demo_order_items",
+        "demo_shipments"
+      ],
+      "lookup_order": [
+        "If entities.order_no exists, resolve demo_orders by exact order_no first.",
+        "If order_no is missing, use user-scoped recent active orders as fallback context instead of clarifying immediately.",
+        "Join demo_order_items by order_id for item breakdown.",
+        "Join demo_shipments by order_id for shipping state and tracking evidence.",
+        "If the intent is CREATE_ORDER or CHARGED_BUT_ORDER_NOT_CREATED, also inspect order/payment state transitions before answering."
+      ],
+      "matched_columns": {
+        "demo_orders": [
+          "id",
+          "user_id",
+          "order_no",
+          "order_status",
+          "payment_status",
+          "shipping_status",
+          "coupon_code",
+          "subtotal",
+          "discount_total",
+          "total",
+          "admin_note",
+          "created_at",
+          "updated_at"
+        ],
+        "demo_order_items": [
+          "id",
+          "order_id",
+          "product_id",
+          "product_name",
+          "category",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "demo_shipments": [
+          "id",
+          "order_id",
+          "carrier",
+          "tracking_number",
+          "status",
+          "estimated_delivery_at",
+          "delivered_at",
+          "delay_reason",
+          "admin_note",
+          "updated_at"
+        ]
+      },
+      "projection_policy": {
+        "TRACK_ORDER": [
+          "order_no",
+          "order_status",
+          "shipping_status",
+          "tracking_number",
+          "status",
+          "estimated_delivery_at",
+          "delivered_at"
+        ],
+        "ORDER_STATUS": [
+          "order_no",
+          "order_status",
+          "payment_status",
+          "shipping_status"
+        ],
+        "ORDER_CANCELLATION": [
+          "order_no",
+          "order_status",
+          "payment_status",
+          "shipping_status",
+          "admin_note"
+        ],
+        "CHANGE_ORDER_CONTENT": [
+          "order_no",
+          "order_items.product_name",
+          "order_items.quantity"
+        ],
+        "CHANGE_ORDER_ADDRESS": [
+          "order_no",
+          "shipping_status",
+          "shipment.status"
+        ],
+        "SPLIT_ORDER": [
+          "order_no",
+          "order_items.product_name",
+          "order_items.quantity"
+        ],
+        "CHARGED_BUT_ORDER_NOT_CREATED": [
+          "payment_status",
+          "order_status",
+          "admin_note"
+        ],
+        "MISSING_ITEM_DELIVERY": [
+          "order_no",
+          "order_items.product_name",
+          "order_items.quantity",
+          "shipment.status"
+        ],
+        "WRONG_ITEM_DELIVERY": [
+          "order_no",
+          "order_items.product_name",
+          "shipment.status"
+        ]
+      }
+    },
+    "SHIPPING": {
+      "intents": [
+        "DELAYED_DELIVERY",
+        "DELIVERY_PROCESS",
+        "TRACK_SHIPMENT",
+        "ESTIMATED_DELIVERY_DATE",
+        "MARKED_DELIVERED_NOT_RECEIVED",
+        "UNDELIVERED_SHIPMENT",
+        "PICKUP_FROM_BRANCH",
+        "REDELIVERY_TO_ADDRESS",
+        "CHANGE_SHIPPING_COMPANY",
+        "DAMAGED_DELIVERY",
+        "MULTI_SHIPMENT_DELIVERY"
+      ],
+      "primary_tables": [
+        "demo_orders",
+        "demo_shipments",
+        "demo_order_items"
+      ],
+      "lookup_order": [
+        "Use order_no when present.",
+        "Otherwise use user-scoped active/recent orders as context.",
+        "Prefer shipment.status, tracking_number and estimated_delivery_at for shipping answers.",
+        "Use order_items only to identify what is inside the affected order."
+      ],
+      "matched_columns": {
+        "demo_shipments": [
+          "order_id",
+          "carrier",
+          "tracking_number",
+          "status",
+          "estimated_delivery_at",
+          "delivered_at",
+          "delay_reason",
+          "admin_note"
+        ],
+        "demo_orders": [
+          "id",
+          "user_id",
+          "order_no",
+          "order_status",
+          "shipping_status",
+          "created_at"
+        ],
+        "demo_order_items": [
+          "order_id",
+          "product_id",
+          "product_name",
+          "quantity",
+          "unit_price"
+        ]
+      },
+      "projection_policy": {
+        "TRACK_SHIPMENT": [
+          "tracking_number",
+          "status",
+          "estimated_delivery_at",
+          "delivered_at"
+        ],
+        "DELAYED_DELIVERY": [
+          "status",
+          "delay_reason",
+          "estimated_delivery_at"
+        ],
+        "ESTIMATED_DELIVERY_DATE": [
+          "estimated_delivery_at"
+        ],
+        "MARKED_DELIVERED_NOT_RECEIVED": [
+          "status",
+          "delivered_at",
+          "tracking_number"
+        ],
+        "UNDELIVERED_SHIPMENT": [
+          "status",
+          "delivered_at",
+          "tracking_number"
+        ],
+        "PICKUP_FROM_BRANCH": [
+          "status",
+          "carrier",
+          "tracking_number"
+        ],
+        "REDELIVERY_TO_ADDRESS": [
+          "status",
+          "carrier",
+          "estimated_delivery_at"
+        ],
+        "CHANGE_SHIPPING_COMPANY": [
+          "carrier",
+          "status"
+        ],
+        "DAMAGED_DELIVERY": [
+          "status",
+          "order_items.product_name"
+        ],
+        "MULTI_SHIPMENT_DELIVERY": [
+          "order_no",
+          "tracking_number",
+          "status"
+        ]
+      }
+    },
+    "RETURN": {
+      "intents": [
+        "CREATE_RETURN_REQUEST",
+        "RETURN_POLICY",
+        "GET_RETURN_CODE",
+        "RETURN_SHIPPING_PROCESS",
+        "RETURN_REJECTION_REASON",
+        "RETURN_REFUND_TIMING",
+        "DEFECTIVE_OR_DAMAGED_PRODUCT_RETURN",
+        "USED_PRODUCT_RETURN",
+        "UNOPENED_PRODUCT_RETURN",
+        "PRODUCT_RETURNABILITY",
+        "PRODUCT_WARRANTY_COVERAGE",
+        "POINT_STATUS_AFTER_RETURN"
+      ],
+      "primary_tables": [
+        "demo_return_requests",
+        "demo_orders",
+        "demo_order_items",
+        "demo_products"
+      ],
+      "lookup_order": [
+        "Find demo_return_requests by return_code, order_id, user_id or return_tracking_no if available.",
+        "Join demo_orders for order status and fulfillment context.",
+        "Join demo_order_items to identify the returned items.",
+        "Join demo_products to inspect returnable, return_policy_note, warranty_months, warranty_note, tags and attributes."
+      ],
+      "matched_columns": {
+        "demo_return_requests": [
+          "id",
+          "order_id",
+          "user_id",
+          "return_code",
+          "return_status",
+          "refund_status",
+          "return_reason",
+          "return_tracking_no",
+          "created_at",
+          "updated_at"
+        ],
+        "demo_orders": [
+          "id",
+          "user_id",
+          "order_no",
+          "order_status",
+          "payment_status",
+          "shipping_status",
+          "coupon_code",
+          "created_at"
+        ],
+        "demo_order_items": [
+          "id",
+          "order_id",
+          "product_id",
+          "product_name",
+          "category",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "demo_products": [
+          "id",
+          "sku",
+          "name",
+          "brand",
+          "category",
+          "subcategory",
+          "returnable",
+          "return_policy_note",
+          "warranty_months",
+          "warranty_note",
+          "tags",
+          "attributes",
+          "search_text",
+          "ai_context"
+        ]
+      },
+      "projection_policy": {
+        "CREATE_RETURN_REQUEST": [
+          "return_code",
+          "return_status",
+          "order_no",
+          "product_name"
+        ],
+        "RETURN_POLICY": [
+          "returnable",
+          "return_policy_note"
+        ],
+        "GET_RETURN_CODE": [
+          "return_code",
+          "return_tracking_no"
+        ],
+        "RETURN_SHIPPING_PROCESS": [
+          "return_tracking_no",
+          "return_status"
+        ],
+        "RETURN_REJECTION_REASON": [
+          "return_status",
+          "return_reason"
+        ],
+        "RETURN_REFUND_TIMING": [
+          "refund_status",
+          "created_at"
+        ],
+        "DEFECTIVE_OR_DAMAGED_PRODUCT_RETURN": [
+          "returnable",
+          "return_policy_note",
+          "return_status"
+        ],
+        "USED_PRODUCT_RETURN": [
+          "returnable",
+          "return_policy_note"
+        ],
+        "UNOPENED_PRODUCT_RETURN": [
+          "returnable",
+          "return_policy_note"
+        ],
+        "PRODUCT_RETURNABILITY": [
+          "returnable",
+          "return_policy_note"
+        ],
+        "PRODUCT_WARRANTY_COVERAGE": [
+          "warranty_months",
+          "warranty_note"
+        ],
+        "POINT_STATUS_AFTER_RETURN": [
+          "return_status",
+          "refund_status"
+        ]
+      }
+    },
+    "SUPPORT": {
+      "description": "Support is not RAG-only. Use DB first for transaction state, then RAG for procedure/policy evidence.",
+      "db_first_intents": [
+        "TRACK_ORDER",
+        "TRACK_SHIPMENT",
+        "ORDER_STATUS",
+        "ORDER_CANCELLATION",
+        "CHARGED_BUT_ORDER_NOT_CREATED",
+        "DOUBLE_CHARGE_PROBLEM",
+        "PAYMENT_FAILED_ERROR"
+      ],
+      "rag_first_intents": [
+        "RETURN_POLICY",
+        "RETURN_SHIPPING_PROCESS",
+        "RETURN_REJECTION_REASON",
+        "PROMOTION_USAGE",
+        "COUPON_CODE_USAGE",
+        "INVALID_COUPON_ERROR",
+        "MINIMUM_CART_AMOUNT",
+        "USE_POINTS",
+        "EARN_POINTS",
+        "PROMOTION_TERMS",
+        "ACCOUNT_LOGIN_ISSUE",
+        "PASSWORD_RESET",
+        "ACCOUNT_CREATION",
+        "ACCOUNT_DELETION",
+        "EMAIL_CHANGE",
+        "PHONE_NUMBER_CHANGE",
+        "ACCOUNT_VERIFICATION",
+        "TWO_FACTOR_AUTHENTICATION",
+        "SUSPICIOUS_LOGIN",
+        "SESSION_DEVICE_MANAGEMENT",
+        "PERSONAL_DATA_SECURITY"
+      ],
+      "mixed_intents": [
+        "RETURN_POLICY + PRODUCT",
+        "PRODUCT_RETURNABILITY + PRODUCT",
+        "PRODUCT_WARRANTY_COVERAGE + PRODUCT",
+        "ORDER_STATUS + PRODUCT",
+        "COUPON_ELIGIBILITY + PRODUCT",
+        "ORDER_NOT_SHIPPED_PRODUCT_CHECK"
+      ],
+      "rag_documents_rules": [
+        "Use documents/chunks when the answer depends on policy, how-to instructions, eligibility, timing, or non-transactional explanation.",
+        "Use documents/chunks when routing_hints.rag_needed is true.",
+        "Use documents/chunks when the support intent is about procedure rather than the state of a specific commerce record.",
+        "Do not stream chunk text directly to the user. Convert to evidence bullets for Gemini."
+      ],
+      "db_rules": [
+        "If the question mentions an order, shipment, return, payment attempt, or product-specific eligibility, fetch the corresponding DB evidence first.",
+        "If the user omitted order_no, use user-scoped recent active orders instead of immediate clarification when the intent is clearly order/shipping/return related.",
+        "For product + support combinations, pass both product evidence and the relevant support policy evidence to Gemini."
+      ]
+    },
+    "MIXED": {
+      "description": "Mixed questions must allow both commerce DB context and RAG policy context to coexist.",
+      "lookup_pattern": [
+        "Run product resolver if a product entity exists.",
+        "Run order/shipment/return resolver if order or return semantics exist.",
+        "Run RAG if routing_hints.rag_needed is true or if the question includes policy/process language.",
+        "Merge selected evidence into a compact answer payload for Gemini."
+      ],
+      "examples": [
+        "Product + returnability",
+        "Product + warranty",
+        "Product + coupon eligibility",
+        "Order not shipped + product availability",
+        "Return policy + product-specific returnability"
+      ]
+    }
+  },
+  "rag_policy": {
+    "use_rag_when": [
+      "routing_hints.rag_needed is true",
+      "domain is SUPPORT and the intent is policy/procedure/how-to rather than pure state lookup",
+      "domain is MIXED and any part of the question needs policy evidence",
+      "DB evidence exists but is insufficient to explain the rule the user is asking about"
+    ],
+    "do_not_use_rag_alone_for": [
+      "pure product evidence questions when demo_products already resolves the answer",
+      "pure order/shipping status questions when demo_orders or demo_shipments already resolves the answer",
+      "pure return state questions when demo_return_requests already resolves the answer"
+    ],
+    "doc_id_scope": {
+      "allowed": [
+        "documents.id",
+        "chunks.doc_id"
+      ],
+      "not_allowed": [
+        "demo_products",
+        "demo_orders",
+        "demo_order_items",
+        "demo_return_requests"
+      ]
+    }
+  },
+  "table_field_map_summary": {
+    "demo_products": [
+      "id",
+      "sku",
+      "name",
+      "brand",
+      "category",
+      "subcategory",
+      "price",
+      "currency",
+      "stock",
+      "description",
+      "returnable",
+      "return_policy_note",
+      "warranty_months",
+      "warranty_note",
+      "tags",
+      "attributes",
+      "search_text",
+      "ai_context"
+    ],
+    "demo_orders": [
+      "id",
+      "user_id",
+      "order_no",
+      "order_status",
+      "payment_status",
+      "shipping_status",
+      "coupon_code",
+      "subtotal",
+      "discount_total",
+      "total",
+      "admin_note",
+      "created_at",
+      "updated_at"
+    ],
+    "demo_order_items": [
+      "id",
+      "order_id",
+      "product_id",
+      "product_name",
+      "category",
+      "quantity",
+      "unit_price",
+      "line_total"
+    ],
+    "demo_shipments": [
+      "id",
+      "order_id",
+      "carrier",
+      "tracking_number",
+      "status",
+      "estimated_delivery_at",
+      "delivered_at",
+      "delay_reason",
+      "admin_note",
+      "updated_at"
+    ],
+    "demo_return_requests": [
+      "id",
+      "order_id",
+      "user_id",
+      "return_code",
+      "return_status",
+      "refund_status",
+      "return_reason",
+      "return_tracking_no",
+      "created_at",
+      "updated_at"
+    ],
+    "documents": [
+      "id",
+      "category",
+      "subcategory",
+      "title",
+      "raw_json"
+    ],
+    "chunks": [
+      "chunk_id",
+      "doc_id",
+      "category",
+      "subcategory",
+      "title",
+      "section",
+      "content",
+      "contextual_content",
+      "embedding"
+    ]
+  },
+  "final_rules": [
+    "Keep router metadata as the primary source of truth.",
+    "Prefer DB evidence over RAG for concrete commerce state.",
+    "Prefer RAG for policy/procedure questions.",
+    "Never require doc_id for product/order/return resolution.",
+    "Never send raw context dumps to the user."
+  ]
+}

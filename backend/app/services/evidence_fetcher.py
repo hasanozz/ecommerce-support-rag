@@ -39,6 +39,31 @@ class PurposeSpec:
 
 
 PURPOSE_SPECS: dict[EvidencePurpose, PurposeSpec] = {
+    EvidencePurpose.PRODUCT_PROFILE: PurposeSpec(
+        "PRODUCT_CATALOG",
+        EvidenceEntityType.PRODUCT,
+        "product_id",
+        "product_evidence",
+        (
+            "name",
+            "sku",
+            "brand",
+            "category",
+            "subcategory",
+            "description",
+            "search_text",
+            "ai_context",
+            "tags",
+            "attributes",
+            "price",
+            "currency",
+            "stock",
+            "returnable",
+            "return_policy_note",
+            "warranty_months",
+            "warranty_note",
+        ),
+    ),
     EvidencePurpose.PRODUCT_CAPACITY: PurposeSpec(
         "PRODUCT_CATALOG",
         EvidenceEntityType.PRODUCT,
@@ -291,6 +316,26 @@ class SqlAlchemyEvidenceFetcherAdapter:
             if capacity is not None:
                 data["capacity_ml"] = capacity
                 data["volume_ml"] = capacity
+        elif purpose == EvidencePurpose.PRODUCT_PROFILE:
+            data = {
+                "name": product.name,
+                "sku": product.sku,
+                "brand": product.brand,
+                "category": product.category,
+                "subcategory": product.subcategory,
+                "description": product.description,
+                "search_text": product.search_text,
+                "ai_context": product.ai_context,
+                "tags": product.tags,
+                "attributes": product.attributes,
+                "price": product.price,
+                "currency": product.currency,
+                "stock": product.stock,
+                "returnable": product.returnable,
+                "return_policy_note": product.return_policy_note,
+                "warranty_months": product.warranty_months,
+                "warranty_note": product.warranty_note,
+            }
         elif purpose == EvidencePurpose.PRODUCT_PRICE:
             data = {"price": product.price, "currency": product.currency}
         elif purpose == EvidencePurpose.PRODUCT_STOCK:

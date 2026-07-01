@@ -145,7 +145,7 @@ class GeminiService:
                     self.last_usage = payload.get("usageMetadata", {})
                     text = payload["candidates"][0]["content"]["parts"][0]["text"]
                     return json.loads(text)
-                except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError) as exc:
+                except (httpx.HTTPError, asyncio.TimeoutError, TimeoutError, KeyError, ValueError, json.JSONDecodeError) as exc:
                     if attempt + 1 < attempts and not isinstance(
                         exc, httpx.HTTPStatusError
                     ):
@@ -258,6 +258,7 @@ class GeminiService:
         original_user_message: str | None = None,
         resolved_entities: dict | None = None,
         evidence_pack: dict | None = None,
+        router_json: dict | None = None,
         answer_scope: dict | None = None,
         model_name: str | None = None,
         use_dev_model: bool = False,
@@ -278,6 +279,7 @@ class GeminiService:
             original_user_message=original_user_message,
             resolved_entities=resolved_entities,
             evidence_pack=evidence_pack,
+            router_json=router_json,
             answer_scope=answer_scope,
         )
         return await self._generate_json(
