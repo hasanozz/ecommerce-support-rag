@@ -59,6 +59,31 @@ class DemoProduct(Base):
     )
 
 
+class DemoProductAlias(Base):
+    __tablename__ = "demo_product_aliases"
+    __table_args__ = (
+        UniqueConstraint("normalized_alias", "alias_type", name="uq_demo_product_alias_scope"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    alias: Mapped[str] = mapped_column(String(255), index=True)
+    normalized_alias: Mapped[str] = mapped_column(String(255), index=True)
+    alias_type: Mapped[str] = mapped_column(String(32), index=True)
+    product_id: Mapped[int | None] = mapped_column(
+        ForeignKey("demo_products.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    category: Mapped[str] = mapped_column(String(64), default="", index=True)
+    subcategory: Mapped[str] = mapped_column(String(64), default="", index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=100)
+    source: Mapped[str] = mapped_column(String(64), default="demo_seed")
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    product: Mapped["DemoProduct | None"] = relationship()
+
+
 class DemoProductReview(Base):
     __tablename__ = "demo_product_reviews"
     __table_args__ = (

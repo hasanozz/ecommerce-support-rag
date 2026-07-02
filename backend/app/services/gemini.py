@@ -39,6 +39,7 @@ class GeminiService:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
         self.last_usage: dict = {}
+        self.last_trace: dict = {}
 
     @property
     def enabled(self) -> bool:
@@ -103,6 +104,13 @@ class GeminiService:
                 },
             ],
         }
+        self.last_trace = {
+            "model": selected_model,
+            "system_instruction_preview": system_instruction[:1200],
+            "prompt_preview": prompt[:1200],
+            "prompt_length": len(prompt),
+            "full_prompt": prompt if self.settings.pipeline_trace_prompts else None,
+        }
         attempts = max(
             1,
             max_attempts
@@ -144,7 +152,17 @@ class GeminiService:
                     payload = response.json()
                     self.last_usage = payload.get("usageMetadata", {})
                     text = payload["candidates"][0]["content"]["parts"][0]["text"]
-                    return json.loads(text)
+                    parsed = json.loads(text)
+                    self.last_trace.update(
+                        {
+                            "status_code": response.status_code,
+                            "response_preview": text[:1200],
+                            "response_length": len(text),
+                            "parsed_response": parsed,
+                            "usage": self.last_usage,
+                        }
+                    )
+                    return parsed
                 except (httpx.HTTPError, asyncio.TimeoutError, TimeoutError, KeyError, ValueError, json.JSONDecodeError) as exc:
                     if attempt + 1 < attempts and not isinstance(
                         exc, httpx.HTTPStatusError
@@ -158,10 +176,33 @@ class GeminiService:
                         if isinstance(exc, httpx.HTTPStatusError)
                         else None
                     )
+                    body_preview = None
+                    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+                        body_preview = exc.response.text[:1200]
+                    self.last_trace.update(
+                        {
+                            "error": {
+                                "exception_type": type(exc).__name__,
+                                "message": str(exc),
+                                "status_code": status_code,
+                                "body_preview": body_preview,
+                            }
+                        }
+                    )
                     raise GeminiServiceError(
                         "Gemini isteği tamamlanamadı"
                         + (f" (HTTP {status_code})" if status_code else "")
                     ) from exc
+        self.last_trace.update(
+            {
+                "error": {
+                    "exception_type": "GeminiServiceError",
+                    "message": "Gemini isteği tamamlanamadı.",
+                    "status_code": None,
+                    "body_preview": None,
+                }
+            }
+        )
         raise GeminiServiceError("Gemini isteği tamamlanamadı.")
 
     async def classify(
@@ -260,6 +301,8 @@ class GeminiService:
         evidence_pack: dict | None = None,
         router_json: dict | None = None,
         answer_scope: dict | None = None,
+        compact_context: dict | None = None,
+        deterministic_draft: str | None = None,
         model_name: str | None = None,
         use_dev_model: bool = False,
     ) -> dict:
@@ -281,6 +324,8 @@ class GeminiService:
             evidence_pack=evidence_pack,
             router_json=router_json,
             answer_scope=answer_scope,
+            compact_context=compact_context,
+            deterministic_draft=deterministic_draft,
         )
         return await self._generate_json(
             prompt,

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -17,6 +19,7 @@ from ..models import (
     DemoOrderItem,
     DemoPaymentAttempt,
     DemoProduct,
+    DemoProductAlias,
     DemoProductFavorite,
     DemoProductReview,
     DemoRefund,
@@ -55,6 +58,13 @@ def _text_value(value: Any) -> str:
             f"{key}: {_text_value(item)}" for key, item in value.items() if _text_value(item)
         )
     return str(value)
+
+
+def _normalize_alias(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "").casefold()
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = re.sub(r"[^\w\s]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
 
 
 def build_product_search_text(payload: dict) -> str:
@@ -223,11 +233,60 @@ class DemoSeedService:
         await session.flush()
         return count
 
+    async def seed_product_aliases(self, session: AsyncSession) -> int:
+        rows = self.load_demo_json("product_aliases.json")
+        products = (
+            await session.scalars(select(DemoProduct).where(DemoProduct.is_active.is_(True)))
+        ).all()
+        product_by_sku = {product.sku: product for product in products}
+        count = 0
+        for payload in rows:
+            alias = str(payload.get("alias", "")).strip()
+            alias_type = str(payload.get("alias_type", "")).strip().upper()
+            normalized_alias = _normalize_alias(alias)
+            if not alias or alias_type not in {"PRODUCT", "PRODUCT_GROUP"}:
+                continue
+            product = product_by_sku.get(str(payload.get("sku", "")).strip())
+            product_id = product.id if product is not None else None
+            if alias_type == "PRODUCT" and product_id is None:
+                continue
+            row = await session.scalar(
+                select(DemoProductAlias).where(
+                    DemoProductAlias.normalized_alias == normalized_alias,
+                    DemoProductAlias.alias_type == alias_type,
+                )
+            )
+            values = {
+                "alias": alias,
+                "normalized_alias": normalized_alias,
+                "alias_type": alias_type,
+                "product_id": product_id,
+                "category": str(payload.get("category", "")).strip(),
+                "subcategory": str(payload.get("subcategory", "")).strip(),
+                "priority": int(payload.get("priority", 100)),
+                "source": str(payload.get("source", "demo_seed")).strip() or "demo_seed",
+                "is_active": bool(payload.get("is_active", True)),
+            }
+            if row is None:
+                session.add(DemoProductAlias(**values))
+            else:
+                for key, value in values.items():
+                    setattr(row, key, value)
+            count += 1
+        await session.flush()
+        return count
+
     async def seed_catalog(self, session: AsyncSession) -> dict:
         products = await self.seed_products(session)
         coupons = await self.seed_coupons(session)
         reviews = await self.seed_product_reviews(session)
-        return {"products": products, "coupons": coupons, "reviews": reviews}
+        aliases = await self.seed_product_aliases(session)
+        return {
+            "products": products,
+            "coupons": coupons,
+            "reviews": reviews,
+            "aliases": aliases,
+        }
 
     async def seed_demo_wallet(self, session: AsyncSession, user: User, payload: dict) -> None:
         wallet = await session.scalar(select(DemoWallet).where(DemoWallet.user_id == user.id))

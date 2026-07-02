@@ -221,7 +221,7 @@ function normalizeAdminFeedbackAnalytics(result = {}) {
   };
 }
 
-async function api(path, options = {}, timeoutMs = 15000) {
+async function api(path, options = {}, timeoutMs = 60000) {
   const controller = timeoutMs > 0 ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
@@ -374,17 +374,13 @@ function latestUserMessage() {
 function messageAnalysisHtml(item, compact = false) {
   if (!item) return "";
   const firstSource = item.sources?.[0];
-  const confidence = typeof item.confidence_score === "number"
-    ? `%${Math.round(item.confidence_score * 100)}`
-    : item.confidence || "N/A";
-  const action = item.ticket_recommended ? "Ticket önerildi" : "RAG yanıtı";
+  const action = item.expected_action || item.action || (item.ticket_recommended ? "Ticket önerildi" : "RAG yanıtı");
   const sourceCount = item.sources?.length || 0;
   const className = compact ? "analysis-grid compact" : "analysis-grid";
   return `<div class="${className}">
     <div class="analysis-item"><span>Kategori</span><strong>${esc(supportCategoryLabel(item.category))}</strong></div>
-    <div class="analysis-item"><span>Alt kategori</span><strong>${esc(firstSource?.subcategory || item.canonical_query || "Genel destek")}</strong></div>
+    <div class="analysis-item"><span>Alt kategori</span><strong>${esc(item.subcategory || firstSource?.subcategory || item.canonical_query || "Genel destek")}</strong></div>
     <div class="analysis-item"><span>Aksiyon</span><strong>${esc(action)}</strong></div>
-    <div class="analysis-item"><span>Güven</span><strong>${esc(confidence)}</strong></div>
     <div class="analysis-item"><span>Kaynak</span><strong>${sourceCount ? `${sourceCount} belge` : "0 belge"}</strong></div>
   </div>`;
 }
@@ -429,9 +425,8 @@ function copilotRailHtml() {
   const demoUser = latestUser?.content || "İade talebi nasıl oluşturulur?";
   const demoAnswer = latest?.content || "İade talebinizi hesap hareketleri ve sipariş kayıtları üzerinden açabilirsiniz. Uygun siparişe göre destek talebi oluşturulur.";
   const demoCategory = latest?.category || "IADE";
-  const demoSubcategory = latest?.sources?.[0]?.subcategory || "İade talebi";
-  const demoConfidence = typeof latest?.confidence_score === "number" ? `%${Math.round(latest.confidence_score * 100)}` : "%94";
-  const demoAction = latest?.ticket_recommended ? "Ticket önerildi" : "RAG yanıtı";
+  const demoSubcategory = latest?.subcategory || latest?.sources?.[0]?.subcategory || "İade talebi";
+  const demoAction = latest?.expected_action || latest?.action || (latest?.ticket_recommended ? "Ticket önerildi" : "RAG yanıtı");
   return `<section class="card support-rail-panel">
     <div class="copilot-rail-head">
       <div>
@@ -458,7 +453,6 @@ function copilotRailHtml() {
       <div class="analysis-item"><span>Kategori</span><strong>${esc(supportCategoryLabel(demoCategory))}</strong></div>
       <div class="analysis-item"><span>Alt kategori</span><strong>${esc(demoSubcategory)}</strong></div>
       <div class="analysis-item"><span>Aksiyon</span><strong>${esc(demoAction)}</strong></div>
-      <div class="analysis-item"><span>Güven</span><strong>${esc(demoConfidence)}</strong></div>
       <div class="analysis-item"><span>Kaynak</span><strong>${sourceCount ? `${sourceCount} belge` : "2 belge"}</strong></div>
     </div>
     <div class="rail-actions">
@@ -479,7 +473,7 @@ function messagesHtml() {
   if (!state.messages.length) return `<div class="empty-chat"><span class="brand-mark">${icons.chat}</span>
     <h2>Size nasıl yardımcı olabiliriz?</h2>
     <p>Sipariş, iade, ödeme, kargo, hesap veya kampanya sorununuzu yazabilirsiniz.</p></div>`;
-  return state.messages.map(item => item.role === "USER"
+  const renderedMessages = state.messages.map(item => item.role === "USER"
     ? `<div class="message user-message"><div class="message-text">${esc(item.content)}</div></div>`
     : `<div class="message ai-message"><span class="message-avatar ai-avatar">AI</span><div class="message-text">
         ${messageAnalysisHtml(item)}
@@ -492,6 +486,7 @@ function messagesHtml() {
             <button class="open-ticket-button" data-open-ticket="${item.id}">${icons.ticket} Destek talebi aç</button>
           </div>`) : ""}${similarList(item.similar_solutions)}
       </div></div>`).join("");
+  return renderedMessages;
 }
 
 function chatPage() {
@@ -1247,7 +1242,7 @@ function productDetailModal() {
   const technicalEntries = productTechnicalEntries(item);
   const technicalCount = technicalEntries.length;
   const ratingValue = item.rating_average ? Number(item.rating_average).toFixed(1) : "4.8";
-  const primaryPrompt = `${item.name} ürünü hakkında destek almak istiyorum. Ürün kategorisi: ${productBadge(item.category)}, marka: ${item.brand || "-"}, fiyat: ${money(item.price)}.`;
+  const primaryPrompt = "Bu ürün hakkında bilgi almak istiyorum.";
   const descriptionHelper = technicalEntries.find(entry =>
     ["uyumlu_kullanim", "kapasite_mah", "hacim_ml", "olcu", "kumas"].includes(entry.key)
   ) || technicalEntries[0];
@@ -1378,10 +1373,9 @@ function floatingCopilotButton() {
 function copilotAnalysisCard() {
   const latest = latestAssistantMessage();
   const category = latest?.category ? supportCategoryLabel(latest.category) : "İade";
-  const subcategory = latest?.sources?.[0]?.subcategory || "İade Talebi";
-  const confidence = typeof latest?.confidence_score === "number" ? `%${Math.round(latest.confidence_score * 100)}` : "%94";
+  const subcategory = latest?.subcategory || latest?.sources?.[0]?.subcategory || "İade Talebi";
   const sourceCount = latest?.sources?.length || 2;
-  const action = latest?.ticket_recommended ? "Destek talebi aç" : "RAG yanıtı";
+  const action = latest?.expected_action || latest?.action || (latest?.ticket_recommended ? "Destek talebi aç" : "RAG yanıtı");
   return `<section class="copilot-analysis card">
     <div class="section-head">
       <div><h3>Analiz Sonucu</h3><small>Örnek teknik çıktı</small></div>
@@ -1390,7 +1384,6 @@ function copilotAnalysisCard() {
     <div class="analysis-grid compact copilot-analysis-grid">
       <div class="analysis-item"><span>Kategori</span><strong>${esc(category)}</strong></div>
       <div class="analysis-item"><span>Alt kategori</span><strong>${esc(subcategory)}</strong></div>
-      <div class="analysis-item"><span>Güven</span><strong>${esc(confidence)}</strong></div>
       <div class="analysis-item"><span>Kaynak</span><strong>${sourceCount} doküman</strong></div>
       <div class="analysis-item"><span>Aksiyon</span><strong>${esc(action)}</strong></div>
     </div>
@@ -2151,7 +2144,9 @@ async function sendMessage(text, context = {}) {
       confidence: result.confidence, confidence_score: result.confidence_score,
       priority: result.priority, ticket_available: result.ticket_available,
       ticket_recommended: result.ticket_recommended, sources: result.sources,
-      similar_solutions: result.similar_solutions
+      similar_solutions: result.similar_solutions, category: result.category,
+      subcategory: result.subcategory, expected_action: result.expected_action,
+      canonical_query: result.canonical_query, answer_source: result.answer_source
     });
   } catch (error) {
     state.messages.push({ role: "ASSISTANT", content: error.message, confidence: null });

@@ -8,6 +8,7 @@ from ..schemas.context_resolver import (
     ContextResolverOutput,
     ResolvedEntities,
 )
+from .context_planner import is_read_only_order_shipping_intent, should_use_rag
 
 
 USED_CONVERSATION_STATE = "USED_CONVERSATION_STATE"
@@ -152,7 +153,11 @@ class ContextResolver:
         )
         warnings: list[str] = []
         clarification_reason = self._resolve_required_entity(
-            plan.entity_kind, resolved, request, warnings
+            plan.entity_kind,
+            resolved,
+            request,
+            warnings,
+            intent=intent_value,
         )
 
         support_doc_ids = (
@@ -256,7 +261,11 @@ class ContextResolver:
             )
         warnings: list[str] = []
         clarification_reason = self._resolve_required_entity(
-            plan.entity_kind, resolved, request, warnings
+            plan.entity_kind,
+            resolved,
+            request,
+            warnings,
+            intent=legacy_intent.value,
         )
         return ContextResolverOutput(
             resolved_entities=resolved,
@@ -347,9 +356,13 @@ class ContextResolver:
         )
         warnings: list[str] = []
         clarification_reason = self._resolve_required_entity(
-            entity_kind, resolved, request, warnings
+            entity_kind,
+            resolved,
+            request,
+            warnings,
+            intent=intent,
         )
-        needs_support_rag = bool(hints.get("rag_needed")) or requested_info in {
+        needs_support_rag = should_use_rag(classifier.domain, intent, hints) or requested_info in {
             "policy",
             "procedure",
             "eligibility",
@@ -427,8 +440,13 @@ class ContextResolver:
             return ["stock", "availability"]
         if requested_info == "reviews" or "reviews" in requested_information:
             return ["rating_average", "review_count", "reviews"]
-        if requested_info == "capacity" or "capacity" in requested_information:
+        if requested_info in {"capacity", "power", "watt", "motor_power", "motor_gucu"} or any(
+            item in {"capacity", "power", "watt", "motor_power", "motor_gucu"}
+            for item in requested_information
+        ):
             return ["capacity_ml", "volume_ml", "description"]
+        if requested_info == "warranty" or "warranty" in requested_information:
+            return ["warranty_months", "warranty_note"]
         if requested_info in {"policy", "eligibility"} or any(
             item in {"policy", "eligibility"} for item in requested_information
         ):
@@ -442,7 +460,14 @@ class ContextResolver:
         requested_information: list[str],
         requested_info: str,
     ) -> tuple[tuple[str, ...], list[str], str | None]:
+        intent_value = intent.strip().upper()
         if category == "IADE":
+            if intent_value == "RETURN_CREATE":
+                return (
+                    ("order_db", "return_db"),
+                    ["order_status", "return_status", "returnable", "return_policy_note"],
+                    "order",
+                )
             return (
                 ("order_db", "return_db"),
                 ["order_status", "return_status", "returnable", "return_policy_note"],
@@ -455,10 +480,28 @@ class ContextResolver:
                 None,
             )
         if category == "KARGO_TESLIMAT":
+            if is_read_only_order_shipping_intent(intent, None):
+                return (
+                    ("order_db", "shipment_db"),
+                    [
+                        "order_status",
+                        "shipping_status",
+                        "tracking_number",
+                        "estimated_delivery_at",
+                        "delay_reason",
+                    ],
+                    None,
+                )
             return (
-                ("order_db",),
-                ["order_status", "shipping_status", "tracking_number", "estimated_delivery_at", "delay_reason"],
-                None,
+                ("order_db", "shipment_db"),
+                [
+                    "order_status",
+                    "shipping_status",
+                    "tracking_number",
+                    "estimated_delivery_at",
+                    "delay_reason",
+                ],
+                "order",
             )
         if category == "KAMPANYA_PUAN":
             return (
@@ -467,18 +510,41 @@ class ContextResolver:
                 None,
             )
         if category == "SIPARIS":
+            if is_read_only_order_shipping_intent(intent, None):
+                return (
+                    ("order_db", "shipment_db"),
+                    ["order_status", "shipping_status", "order_no"],
+                    None,
+                )
             return (
-                ("order_db",),
+                ("order_db", "shipment_db"),
                 ["order_status", "shipping_status", "order_no"],
-                None,
+                "order",
             )
         if category == "HESAP_GUVENLIK":
             return ((), ["security_status", "risk_note"], None)
         if intent.startswith("RETURN_"):
+            if intent_value in {
+                "RETURN_POLICY",
+                "RETURN_SHIPPING_PROCESS",
+                "RETURN_REJECTION_REASON",
+                "RETURN_REFUND_TIMING",
+                "USED_PRODUCT_RETURN",
+                "UNOPENED_PRODUCT_RETURN",
+                "PRODUCT_RETURNABILITY",
+                "PRODUCT_WARRANTY_COVERAGE",
+                "DEFECTIVE_OR_DAMAGED_PRODUCT_RETURN",
+                "POINT_STATUS_AFTER_RETURN",
+            }:
+                return (
+                    ("order_db", "return_db", "product_db"),
+                    ["order_status", "return_status", "returnable", "return_policy_note"],
+                    None,
+                )
             return (
                 ("order_db", "return_db"),
                 ["order_status", "return_status", "returnable", "return_policy_note"],
-                None,
+                "order",
             )
         return (
             ("order_db",),
@@ -506,6 +572,8 @@ class ContextResolver:
         resolved: ResolvedEntities,
         request: ContextResolverInput,
         warnings: list[str],
+        *,
+        intent: str | None = None,
     ) -> str | None:
         state = request.conversation_state
         if entity_kind == "product":
@@ -521,6 +589,8 @@ class ContextResolver:
             return "PRODUCT_CONTEXT_REQUIRED"
 
         if entity_kind == "order":
+            if is_read_only_order_shipping_intent(intent, request.classifier_output.subcategory):
+                return None
             if resolved.order_id is not None:
                 return None
             if resolved.order_no:

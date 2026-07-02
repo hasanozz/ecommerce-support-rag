@@ -360,7 +360,25 @@ class DataResolver:
             or "product_db" in sources
             or "review_db" in sources
         ):
-            if plan_entities.product_name:
+            product_id, reference_type = self._context_id(
+                plan_entities.product_id,
+                request.frontend_context.current_product_id,
+                request.conversation_state.last_product_id,
+            )
+            if product_id is not None:
+                references.append(
+                    EntityReference(
+                        entity_type=EntityType.PRODUCT,
+                        type=reference_type,
+                        value=product_id,
+                    )
+                )
+                warnings.append(
+                    USED_FRONTEND_CONTEXT
+                    if reference_type == ReferenceType.FRONTEND_ID
+                    else USED_CONVERSATION_STATE
+                )
+            elif plan_entities.product_name:
                 references.append(
                     EntityReference(
                         entity_type=EntityType.PRODUCT,
@@ -368,28 +386,7 @@ class DataResolver:
                         value=plan_entities.product_name,
                     )
                 )
-            else:
-                product_id, reference_type = self._context_id(
-                    plan_entities.product_id,
-                    request.frontend_context.current_product_id,
-                    request.conversation_state.last_product_id,
-                )
-                if product_id is None:
-                    missing.append(EntityType.PRODUCT)
-                else:
-                    references.append(
-                        EntityReference(
-                            entity_type=EntityType.PRODUCT,
-                            type=reference_type,
-                            value=product_id,
-                        )
-                    )
-                    warnings.append(
-                        USED_FRONTEND_CONTEXT
-                        if reference_type == ReferenceType.FRONTEND_ID
-                        else USED_CONVERSATION_STATE
-                    )
-
+            
         if EntityType.ORDER not in existing_types and (
             plan_entities.order_no or plan_entities.order_id
         ):
@@ -497,7 +494,12 @@ class DataResolver:
         if len(exact) == 1:
             return self._single_record_result(reference, exact[0], MatchType.EXACT_NAME)
         if len(exact) > 1:
-            return self._ambiguous(reference, exact, MatchType.EXACT_NAME)
+            return self._single_record_result(
+                reference,
+                exact[0],
+                MatchType.EXACT_NAME,
+                confidence=0.95,
+            )
 
         candidates = [
             match
@@ -520,11 +522,11 @@ class DataResolver:
                 MatchType.FUZZY_NAME,
                 confidence=top.confidence,
             )
-        return EntityResolutionResult(
-            entity_type=reference.entity_type,
-            input_reference=reference,
-            status=DataResolutionStatus.AMBIGUOUS,
-            candidates=[self._match_candidate(match) for match in candidates[:5]],
+        return self._single_record_result(
+            reference,
+            top.record,
+            MatchType.FUZZY_NAME,
+            confidence=top.confidence,
         )
 
     def _single_record_result(

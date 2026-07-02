@@ -136,16 +136,18 @@ def group_chunks(
         )
 
     documents.sort(key=lambda document: document.best_score, reverse=True)
+    minimum = max(min_score, 0.0)
     return [
         document
         for document in documents
-        if document.best_score >= min_score
+        if document.best_score > minimum
     ][:max_documents]
 
 
 class RetrievalService:
     def __init__(self, embedding_service: EmbeddingService | None = None) -> None:
         self.embedding_service = embedding_service or get_embedding_service()
+        self.last_retrieved_chunks: list[RetrievedChunk] = []
 
     @property
     def minimum_score(self) -> float:
@@ -168,7 +170,7 @@ class RetrievalService:
             .limit(limit)
         )
         rows = (await session.execute(statement)).all()
-        return [
+        self.last_retrieved_chunks = [
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
                 doc_id=chunk.doc_id,
@@ -182,6 +184,7 @@ class RetrievalService:
             )
             for chunk, row_distance in rows
         ]
+        return self.last_retrieved_chunks
 
     async def grouped_search(
         self,
@@ -232,6 +235,7 @@ class RetrievalService:
             )
             for chunk in rows
         ]
+        self.last_retrieved_chunks = chunks
         return group_chunks(
             chunks,
             max_documents=max_documents,

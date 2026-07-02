@@ -43,6 +43,45 @@ VALID_CATEGORIES = {
     "KAMPANYA_PUAN",
     "GENEL_DESTEK",
 }
+REMOTE_CATEGORY_ALIASES = {
+    "ORDER": "SIPARIS",
+    "ORDERS": "SIPARIS",
+    "RETURN": "IADE",
+    "RETURNS": "IADE",
+    "PAYMENT": "ODEME",
+    "SHIPPING": "KARGO_TESLIMAT",
+    "DELIVERY": "KARGO_TESLIMAT",
+    "SHIPPING_DELIVERY": "KARGO_TESLIMAT",
+    "ACCOUNT": "HESAP_GUVENLIK",
+    "SECURITY": "HESAP_GUVENLIK",
+    "CAMPAIGN": "KAMPANYA_PUAN",
+    "COUPON": "KAMPANYA_PUAN",
+    "PRODUCT": "GENEL_DESTEK",
+    "SUPPORT": "GENEL_DESTEK",
+}
+REMOTE_REQUEST_INFO_ALIASES = {
+    "POWER": "attribute",
+    "WATT": "attribute",
+    "MOTOR_POWER": "attribute",
+    "WARRANTY": "warranty",
+    "TECHNICAL_SPECS": "attribute",
+    "PRODUCT_INFORMATION": "attribute",
+    "PRODUCT_INFO": "attribute",
+    "RETURNABILITY": "policy",
+    "RETURN_ELIGIBILITY": "eligibility",
+    "PRODUCT_RETURNABILITY": "eligibility",
+    "PRICE": "price",
+    "STOCK": "stock",
+    "REVIEWS": "reviews",
+    "CAPACITY": "capacity",
+}
+REMOTE_EXPECTED_ACTION_ALIASES = {
+    "ANSWER": "RAG_ANSWER",
+    "RAG": "RAG_ANSWER",
+    "LOOKUP": "RAG_ANSWER",
+    "CLARIFY": "ASK_CLARIFICATION",
+    "TICKET": "CREATE_TICKET",
+}
 PROCEDURE_TERMS = (
     "nasil",
     "nasıl",
@@ -69,6 +108,9 @@ ACTION_TERMS = (
 )
 PRODUCT_ATTRIBUTE_TERMS = {
     "watt": "attribute",
+    "motor": "attribute",
+    "guc": "attribute",
+    "gucu": "attribute",
     "gramaj": "attribute",
     "gram": "attribute",
     "ml": "capacity",
@@ -76,11 +118,15 @@ PRODUCT_ATTRIBUTE_TERMS = {
     "fiyat": "price",
     "stok": "stock",
     "yorum": "reviews",
+    "puan": "reviews",
+    "degerlendirme": "reviews",
+    "değerlendirme": "reviews",
     "kapasite": "capacity",
     "malzeme": "attribute",
-    "garanti": "attribute",
+    "garanti": "warranty",
     "renk": "attribute",
     "boyut": "attribute",
+    "iade": "eligibility",
 }
 PRODUCT_TERMS = (
     "urun",
@@ -96,6 +142,17 @@ PRODUCT_TERMS = (
     "kupa",
     "mat",
     "filtre",
+    "cay",
+    "yesil",
+)
+PRODUCT_INFO_TERMS = (
+    "bilgi",
+    "hakkinda",
+    "hakkında",
+    "ozellik",
+    "özellik",
+    "detay",
+    "nedir",
 )
 SUPPORT_CATEGORY_TERMS: dict[Category, tuple[str, ...]] = {
     "IADE": ("iade", "refund", "geri gonder", "geri gönder", "cayma", "cayma"),
@@ -176,12 +233,112 @@ def _extract_product_name(original: str) -> str | None:
     return cleaned or None
 
 
+def _clean_product_name(original: str) -> str | None:
+    cleaned = _extract_product_name(original) or original
+    cleaned = _normalized(cleaned)
+    cleaned = re.sub(
+        r"\b(kac|watt|motor|guc|gucu|gramaj|gram|ml|litre|stok|fiyat|yorum|puan|iade|garanti|edilebilir|mi|mı|mu|mü|nasil|nedir|ne kadar|olur|hakkinda|bilgi|ozellik|detay)\b",
+        " ",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" ?.,!")
+    return cleaned or None
+
+
+def _product_intent(requested_info: str | None, text: str) -> str:
+    if requested_info == "price":
+        return "PRODUCT_PRICE"
+    if requested_info == "stock":
+        return "PRODUCT_STOCK"
+    if requested_info == "reviews":
+        return "PRODUCT_REVIEWS"
+    if requested_info in {"policy", "eligibility"}:
+        return "PRODUCT_RETURN_ELIGIBILITY"
+    if requested_info == "warranty":
+        return "PRODUCT_WARRANTY"
+    if any(term in text for term in ("iade", "edilebilir")):
+        return "PRODUCT_RETURN_ELIGIBILITY"
+    return "PRODUCT_ATTRIBUTE"
+
+
+def _product_requested_information(requested_info: str | None) -> list[str]:
+    if not requested_info:
+        return ["attribute"]
+    if requested_info == "warranty":
+        return ["warranty", "attribute"]
+    return [requested_info]
+
+
+def _product_fast_path_result(
+    safe_original: str,
+    *,
+    provider: str,
+    original_result: ClassificationResult | None = None,
+) -> ClassificationResult | None:
+    text = _normalized(safe_original)
+    if not text:
+        return None
+    requested_info = _product_requested_info(text)
+    has_product_signal = _looks_like_product_name(text) or any(
+        term in text for term in PRODUCT_TERMS
+    )
+    has_info_intent = any(term in text for term in PRODUCT_INFO_TERMS)
+    category = _support_category(text)
+    is_product_return = has_product_signal and category == "IADE"
+    is_attribute_question = has_product_signal and requested_info is not None
+    is_product_info = has_product_signal and has_info_intent and category == "GENEL_DESTEK"
+    if not (is_attribute_question or is_product_return or is_product_info):
+        return None
+    product_name = _clean_product_name(safe_original)
+    if not product_name:
+        return None
+    if is_product_return:
+        requested_info = requested_info or "eligibility"
+    intent = _product_intent(requested_info, text)
+    domain = "MIXED" if is_product_return else "PRODUCT"
+    routing_hints = {"product_fast_path": True}
+    raw_router_output = {
+        "provider": provider,
+        "domain": domain,
+        "intent": intent,
+        "category": "IADE" if is_product_return else "GENEL_DESTEK",
+        "subcategory": intent,
+        "requested_information": _product_requested_information(requested_info),
+        "entities": {"product_name": product_name},
+        "routing_hints": routing_hints,
+    }
+    if original_result is not None:
+        routing_hints["product_rescue"] = True
+        raw_router_output["original_router"] = original_result.as_dict()
+    return ClassificationResult(
+        category="IADE" if is_product_return else "GENEL_DESTEK",
+        subcategory=intent,
+        priority="MEDIUM" if is_product_return else "LOW",
+        expected_action="RAG_ANSWER",
+        confidence=0.86 if original_result is None else 0.78,
+        provider=provider,
+        domain=domain,
+        intent=intent,
+        entities={"product_name": product_name},
+        requested_info=requested_info or "attribute",
+        requested_information=_product_requested_information(requested_info),
+        routing_hints=routing_hints,
+        raw_router_output=raw_router_output,
+    )
+
+
 def _requested_information_list(raw_value: object) -> list[str]:
     if isinstance(raw_value, str):
         value = raw_value.strip()
-        return [value] if value else []
+        normalized = REMOTE_REQUEST_INFO_ALIASES.get(value.upper(), value)
+        return [normalized] if normalized else []
     if isinstance(raw_value, list):
-        values = [str(item).strip() for item in raw_value if str(item).strip()]
+        values = [
+            REMOTE_REQUEST_INFO_ALIASES.get(str(item).strip().upper(), str(item).strip())
+            for item in raw_value
+            if str(item).strip()
+        ]
         return list(dict.fromkeys(values))
     return []
 
@@ -203,7 +360,9 @@ def _requested_info_scalar(values: list[str]) -> str | None:
 
 
 def _normalize_expected_action(raw: object, *, reject: bool = False) -> ExpectedAction:
-    value = str(raw or "").strip().upper()
+    value = REMOTE_EXPECTED_ACTION_ALIASES.get(
+        str(raw or "").strip().upper(), str(raw or "").strip().upper()
+    )
     if value in VALID_EXPECTED_ACTIONS:
         return value  # type: ignore[return-value]
     return "REJECT" if reject else "RAG_ANSWER"
@@ -218,6 +377,7 @@ def _normalize_priority(raw: object) -> Priority:
 
 def _normalize_category(raw: object, *, text: str, domain: str | None) -> Category:
     value = str(raw or "").strip().upper()
+    value = REMOTE_CATEGORY_ALIASES.get(value, value)
     if value in VALID_CATEGORIES:
         return value  # type: ignore[return-value]
     if domain == "PRODUCT":
@@ -279,55 +439,85 @@ def _normalize_intent(
     return intent or "SUPPORT_POLICY_ONLY"
 
 
-def _parse_router_payload(payload: dict, original_message: str) -> ClassificationResult:
-    raw = (
-        payload.get("raw_model_output")
-        or payload.get("router_output")
-        or payload.get("parsed_json")
-        or payload.get("output")
-        or payload
+def _router_payload_candidate(payload: dict) -> object:
+    for key in ("parsed_json", "router_output", "output", "raw_model_output"):
+        value = payload.get(key)
+        if value not in (None, ""):
+            return value
+    return payload
+
+
+def _coerce_router_json(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Remote router JSON parse edilemedi: {exc.msg} at pos {exc.pos}"
+            ) from exc
+        if isinstance(parsed, dict):
+            return parsed
+        raise ValueError(
+            f"Remote router JSON object bekleniyordu, gelen tip: {type(parsed).__name__}"
+        )
+    raise ValueError(
+        f"Remote router response JSON object degil: {type(value).__name__}"
     )
-    if not isinstance(raw, dict):
-        raise ValueError("Remote router response JSON object degil.")
+
+
+def _normalize_router_entities(raw: dict, original_message: str) -> dict:
+    entities = raw.get("entities") if isinstance(raw.get("entities"), dict) else {}
+    product_name = (
+        entities.get("product_name")
+        or raw.get("product_name")
+        or raw.get("product")
+    )
+    if not product_name and str(raw.get("domain") or "").strip().upper() == "PRODUCT":
+        product_name = _extract_product_name(original_message)
+    return {
+        "product_id": entities.get("product_id") or raw.get("product_id"),
+        "product_name": product_name,
+        "order_id": entities.get("order_id") or raw.get("order_id"),
+        "order_no": entities.get("order_no") or raw.get("order_no"),
+        "coupon_code": entities.get("coupon_code") or raw.get("coupon_code"),
+        "category": entities.get("category") or raw.get("entity_category"),
+    }
+
+
+def _parse_router_payload(payload: dict, original_message: str) -> ClassificationResult:
+    raw = _coerce_router_json(_router_payload_candidate(payload))
     domain = str(raw.get("domain") or "").strip().upper() or None
     requested_information = _requested_information_list(
         raw.get("requested_information") or raw.get("requested_info")
     )
     requested_info = _requested_info_scalar(requested_information)
-    category = str(raw.get("category") or "").strip().upper() or "GENEL_DESTEK"
+    category = _normalize_category(raw.get("category"), text=original_message, domain=domain)
     intent = str(raw.get("intent") or "").strip().upper() or "RAG_ANSWER"
-    entities = raw.get("entities") if isinstance(raw.get("entities"), dict) else {}
     confidence = raw.get("confidence")
     try:
         confidence_value = float(confidence) if confidence is not None else 0.85
     except (TypeError, ValueError):
         confidence_value = 0.85
-    expected_action_raw = str(raw.get("expected_action") or "").strip().upper()
-    if expected_action_raw in VALID_EXPECTED_ACTIONS:
-        expected_action = expected_action_raw  # type: ignore[assignment]
-    elif domain in {"OUT_OF_DOMAIN", "NONSENSE", "UNSAFE"}:
-        expected_action = "REJECT"
-    elif intent == "UNCLEAR":
+    expected_action = _normalize_expected_action(
+        raw.get("expected_action"),
+        reject=domain in {"OUT_OF_DOMAIN", "NONSENSE", "UNSAFE"},
+    )
+    if intent == "UNCLEAR" and not raw.get("expected_action"):
         expected_action = "ASK_CLARIFICATION"
-    else:
-        expected_action = "RAG_ANSWER"
+    provider = str(payload.get("provider") or raw.get("provider") or "qwen_remote").strip()
+    entities = _normalize_router_entities(raw, original_message)
     return ClassificationResult(
         category=category,
         subcategory=str(raw.get("subcategory") or intent or category).strip().upper(),
         priority=_normalize_priority(raw.get("priority")),
         expected_action=expected_action,
         confidence=max(0.0, min(confidence_value, 1.0)),
-        provider="qwen_remote",
+        provider=provider or "qwen_remote",
         domain=domain,
         intent=intent,
-        entities={
-            "product_id": entities.get("product_id"),
-            "product_name": entities.get("product_name"),
-            "order_id": entities.get("order_id"),
-            "order_no": entities.get("order_no"),
-            "coupon_code": entities.get("coupon_code"),
-            "category": entities.get("category"),
-        },
+        entities=entities,
         requested_info=requested_info,
         requested_information=requested_information,
         routing_hints=raw.get("routing_hints") if isinstance(raw.get("routing_hints"), dict) else {},
@@ -374,13 +564,9 @@ class RuleBasedClassifier:
                 intent="OUT_OF_DOMAIN",
             )
 
-        if has_product_signal and requested_info in {"attribute", "capacity", "price", "stock", "reviews"}:
-            product_name = _extract_product_name(safe_original)
-            intent = {
-                "price": "PRODUCT_PRICE",
-                "stock": "PRODUCT_STOCK",
-                "reviews": "PRODUCT_REVIEWS",
-            }.get(requested_info, "PRODUCT_ATTRIBUTE")
+        if has_product_signal and requested_info in {"attribute", "capacity", "price", "stock", "reviews", "warranty"}:
+            product_name = _clean_product_name(safe_original)
+            intent = _product_intent(requested_info, text)
             return ClassificationResult(
                 category="GENEL_DESTEK",
                 subcategory=intent,
@@ -392,7 +578,7 @@ class RuleBasedClassifier:
                 intent=intent,
                 entities={"product_name": product_name},
                 requested_info=requested_info,
-                requested_information=[requested_info],
+                requested_information=_product_requested_information(requested_info),
             )
 
         if has_product_signal and category == "IADE":
@@ -441,11 +627,11 @@ class RuleBasedClassifier:
             term in text
             for term in (
                 "para cekildi",
-                "para Ã§ekildi",
+                "para çekildi",
                 "kartimdan para",
-                "kartÄ±mdan para",
+                "kartımdan para",
                 "ucret cekildi",
-                "Ã¼cret Ã§ekildi",
+                "ücret çekildi",
             )
         ):
             return ClassificationResult(
@@ -509,6 +695,10 @@ class QwenRemoteClassifier:
         self.timeout = settings.qwen_remote_router_timeout_seconds or 30
         self.last_usage: dict = {}
         self.last_adapter_loaded = False
+        self.last_request_body: dict = {}
+        self.last_raw_response: str = ""
+        self.last_status_code: int | None = None
+        self.last_parsed_output: dict = {}
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -527,6 +717,7 @@ class QwenRemoteClassifier:
             raise RuntimeError("QWEN_REMOTE_ROUTER_URL tanimli degil.")
         headers = {"content-type": "application/json"}
         request_body = {"message": safe_original}
+        self.last_request_body = request_body
         logger.info(
             "remote_qwen_request url=%s request_body=%s",
             self.url,
@@ -535,12 +726,15 @@ class QwenRemoteClassifier:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(self.url, headers=headers, json=request_body)
         logger.info("remote_qwen_response status_code=%s", response.status_code)
+        self.last_status_code = response.status_code
+        self.last_raw_response = response.text
         raw_text = response.text[:500].replace("\n", " ")
         logger.info("remote_qwen_response_raw short=%s", raw_text)
         response.raise_for_status()
         payload = response.json()
         self.last_usage = payload.get("usage", {}) if isinstance(payload, dict) else {}
         result = _parse_router_payload(payload if isinstance(payload, dict) else {}, safe_original)
+        self.last_parsed_output = result.as_dict()
         logger.info(
             "remote_qwen_parsed domain=%s intent=%s requested_information=%s",
             result.domain,
@@ -561,6 +755,7 @@ class ClassifierService:
         self.last_fallback_reason = ""
         self.last_remote_url = ""
         self.last_adapter_loaded = False
+        self.last_router_trace: dict = {}
 
     def _provider_for_name(self, provider_name: str) -> ClassifierProvider:
         provider = provider_name.casefold()
@@ -578,20 +773,72 @@ class ClassifierService:
             return "timeout"
         if isinstance(exc, httpx.HTTPStatusError):
             return f"http_{exc.response.status_code}"
+        if isinstance(exc, ValueError):
+            return f"parse_error:{exc}"
         return type(exc).__name__
 
     async def classify(
         self, safe_original: str, pii_masked: str
     ) -> ClassificationResult:
+        fast_path = _product_fast_path_result(
+            safe_original, provider="product_fast_path"
+        )
+        if fast_path is not None:
+            self.last_usage = {}
+            self.last_provider = fast_path.provider
+            self.last_fallback_used = False
+            self.last_fallback_reason = ""
+            self.last_remote_url = ""
+            self.last_adapter_loaded = False
+            self.last_router_trace = {
+                "provider": self.last_provider,
+                "fallback_used": self.last_fallback_used,
+                "fallback_reason": self.last_fallback_reason,
+                "remote_url": self.last_remote_url,
+                "request_body": {},
+                "status_code": None,
+                "raw_response": "",
+                "parsed_output": fast_path.as_dict(),
+            }
+            logger.info(
+                "router_classification provider=%s fallback_used=%s domain=%s intent=%s requested_information=%s",
+                self.last_provider,
+                self.last_fallback_used,
+                fast_path.domain,
+                fast_path.intent,
+                json.dumps(fast_path.requested_information, ensure_ascii=False),
+            )
+            return fast_path
         provider = self._provider()
         try:
             result = await provider.classify(safe_original, pii_masked)
+            rescue = None
+            if (result.domain or "").strip().upper() == "OUT_OF_DOMAIN" or (
+                result.intent or ""
+            ).strip().upper() == "OUT_OF_DOMAIN":
+                rescue = _product_fast_path_result(
+                    safe_original,
+                    provider="product_rescue",
+                    original_result=result,
+                )
+            if rescue is not None:
+                result = rescue
             self.last_usage = dict(getattr(provider, "last_usage", {}))
-            self.last_provider = getattr(provider, "provider_name", "rule_based")
+            self.last_provider = result.provider or getattr(provider, "provider_name", "rule_based")
             self.last_fallback_used = False
             self.last_fallback_reason = ""
             self.last_remote_url = getattr(provider, "url", "")
             self.last_adapter_loaded = bool(getattr(provider, "last_adapter_loaded", False))
+            self.last_router_trace = {
+                "provider": self.last_provider,
+                "fallback_used": self.last_fallback_used,
+                "fallback_reason": self.last_fallback_reason,
+                "remote_url": self.last_remote_url,
+                "request_body": getattr(provider, "last_request_body", {}),
+                "status_code": getattr(provider, "last_status_code", None),
+                "raw_response": getattr(provider, "last_raw_response", ""),
+                "parsed_output": getattr(provider, "last_parsed_output", result.as_dict()),
+            }
             logger.info(
                 "router_classification provider=%s fallback_used=%s domain=%s intent=%s requested_information=%s",
                 self.last_provider,
@@ -614,6 +861,16 @@ class ClassifierService:
             self.last_fallback_reason = self._fallback_reason(exc)
             self.last_remote_url = getattr(provider, "url", "")
             self.last_adapter_loaded = bool(getattr(provider, "last_adapter_loaded", False))
+            self.last_router_trace = {
+                "provider": self.last_provider,
+                "fallback_used": self.last_fallback_used,
+                "fallback_reason": self.last_fallback_reason,
+                "remote_url": self.last_remote_url,
+                "request_body": getattr(provider, "last_request_body", {}),
+                "status_code": getattr(provider, "last_status_code", None),
+                "raw_response": getattr(provider, "last_raw_response", ""),
+                "parsed_output": result.as_dict(),
+            }
             logger.info(
                 "router_classification provider=%s fallback_used=%s domain=%s intent=%s requested_information=%s fallback_reason=%s",
                 self.last_provider,

@@ -5,6 +5,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from decimal import Decimal
+from difflib import SequenceMatcher
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,7 @@ from ..models import (
     DemoOrderItem,
     DemoPaymentAttempt,
     DemoProduct,
+    DemoProductAlias,
     DemoProductFavorite,
     DemoProductReview,
     DemoRefund,
@@ -35,32 +37,16 @@ from .embedding import get_embedding_service
 
 
 PRODUCT_HINTS = {
-    "çay",
-    "kahve",
-    "bardak",
-    "kupa",
-    "termos",
-    "çanta",
-    "çantası",
-    "ayakkabı",
-    "kulaklık",
-    "blender",
-    "sweatshirt",
-    "mat",
-    "filtre",
-    "demlik",
-    "saklama",
-    "gram",
-    "ürün",
-    "urun",
-    "powerbank",
-    "şarj",
-    "sarj",
-    "mouse",
-    "fare",
-    "lamba",
-    "aydınlatma",
-    "aydinlatma",
+    "fiyat",
+    "stok",
+    "iade",
+    "garanti",
+    "yorum",
+    "puan",
+    "ozellik",
+    "özellik",
+    "bilgi",
+    "detay",
 }
 
 QUERY_STOPWORDS = {
@@ -131,6 +117,15 @@ FOLLOWUP_HINTS = {
     "yeniden",
     "favoriye ekle",
     "sepete ekle",
+    "yorum",
+    "puan",
+    "değerlendirme",
+    "degerlendirme",
+    "stok",
+    "iade",
+    "garanti",
+    "watt",
+    "fiyat",
 }
 
 ATTRIBUTE_LABELS = {
@@ -276,6 +271,10 @@ class ProductMatchResult:
     score: int
     explicit_product_mention: bool
     top_candidates: list[dict]
+    product_id_source: str = ""
+    alias_type_match_source: str = ""
+    selected_group: dict | None = None
+    candidate_groups: list[dict] | None = None
 
 
 class ProductContextService:
@@ -425,6 +424,123 @@ class ProductContextService:
         ]
 
     @staticmethod
+    def _alias_phrase_matches(normalized_query: str, normalized_alias: str) -> bool:
+        if not normalized_alias:
+            return False
+        if normalized_query == normalized_alias:
+            return True
+        return re.search(
+            rf"(^|\s){re.escape(normalized_alias)}(\s|$)",
+            normalized_query,
+        ) is not None
+
+    def _alias_candidate_debug(self, aliases: list[DemoProductAlias]) -> list[dict]:
+        return [
+            {
+                "alias_id": alias.id,
+                "alias": alias.alias,
+                "alias_type": alias.alias_type,
+                "product_id": alias.product_id,
+                "category": alias.category,
+                "subcategory": alias.subcategory,
+                "priority": alias.priority,
+            }
+            for alias in aliases[:5]
+        ]
+
+    async def _selected_products_by_alias(
+        self,
+        session: AsyncSession,
+        query: str,
+    ) -> list[DemoProduct]:
+        normalized = _normalize(query)
+        if not normalized:
+            return []
+        aliases = (
+            await session.scalars(
+                select(DemoProductAlias)
+                .where(DemoProductAlias.is_active.is_(True))
+                .order_by(
+                    func.length(DemoProductAlias.normalized_alias).desc(),
+                    DemoProductAlias.priority.desc(),
+                    DemoProductAlias.id.asc(),
+                )
+            )
+        ).all()
+        matched_aliases = [
+            alias
+            for alias in aliases
+            if self._alias_phrase_matches(normalized, alias.normalized_alias)
+        ]
+        if not matched_aliases:
+            return []
+
+        product_aliases = [
+            alias
+            for alias in matched_aliases
+            if alias.alias_type == "PRODUCT" and alias.product_id is not None
+        ]
+        if product_aliases:
+            alias = product_aliases[0]
+            product = await session.scalar(
+                select(DemoProduct).where(
+                    DemoProduct.id == alias.product_id,
+                    DemoProduct.is_active.is_(True),
+                )
+            )
+            if product is None:
+                return []
+            self._last_product_match = ProductMatchResult(
+                [product],
+                "product_alias_match",
+                98,
+                True,
+                self._candidate_debug([ProductMatch(product, 98, "product_alias_match")]),
+                product_id_source="product_alias",
+                alias_type_match_source="PRODUCT",
+            )
+            return [product]
+
+        group_aliases = [
+            alias for alias in matched_aliases if alias.alias_type == "PRODUCT_GROUP"
+        ]
+        if not group_aliases:
+            return []
+        alias = group_aliases[0]
+        statement = select(DemoProduct).where(DemoProduct.is_active.is_(True))
+        if alias.category:
+            statement = statement.where(DemoProduct.category == alias.category)
+        if alias.subcategory:
+            statement = statement.where(DemoProduct.subcategory == alias.subcategory)
+        products = (
+            await session.scalars(
+                statement.order_by(DemoProduct.name.asc()).limit(8)
+            )
+        ).all()
+        if not products:
+            return []
+        selected_group = {
+            "alias": alias.alias,
+            "category": alias.category,
+            "subcategory": alias.subcategory,
+            "product_count": len(products),
+        }
+        self._last_product_match = ProductMatchResult(
+            list(products),
+            "product_group_alias_match",
+            92,
+            True,
+            self._candidate_debug(
+                [ProductMatch(product, 92, "product_group_alias_match") for product in products]
+            ),
+            product_id_source="product_group_alias",
+            alias_type_match_source="PRODUCT_GROUP",
+            selected_group=selected_group,
+            candidate_groups=self._alias_candidate_debug(group_aliases),
+        )
+        return list(products)
+
+    @staticmethod
     def _product_search_text(product: DemoProduct) -> str:
         attribute_text = " ".join(
             f"{key} {value}" for key, value in (product.attributes or {}).items()
@@ -469,6 +585,9 @@ class ProductContextService:
             product_id: {
                 "rating_average": None,
                 "review_count": 0,
+                "rating_distribution": {},
+                "positive_review_count": 0,
+                "negative_review_count": 0,
                 "favorite_count": 0,
                 "is_favorited": False,
             }
@@ -531,14 +650,68 @@ class ProductContextService:
             )
         ).all()
         for product_id, rating, title, body in review_rows:
+            if rating is not None:
+                bucket = str(int(rating))
+                distribution = stats[product_id].setdefault("rating_distribution", {})
+                distribution[bucket] = int(distribution.get(bucket, 0)) + 1
+                if int(rating) >= 4:
+                    stats[product_id]["positive_review_count"] += 1
+                elif int(rating) <= 2:
+                    stats[product_id]["negative_review_count"] += 1
             samples = stats[product_id].setdefault("review_samples", [])
-            if len(samples) < 2:
+            if len(samples) < 3:
                 review_text = " - ".join(
                     part for part in [str(title or "").strip(), str(body or "").strip()] if part
                 )
                 if review_text:
-                    samples.append(f"{rating}/5: {review_text}" if rating is not None else review_text)
+                    samples.append({"rating": rating, "text": review_text})
         return stats
+
+    @staticmethod
+    def _product_evidence_data(product: DemoProduct, stats: dict) -> dict:
+        return {
+            "name": product.name,
+            "sku": product.sku,
+            "brand": product.brand,
+            "category": product.category,
+            "subcategory": product.subcategory,
+            "description": product.description,
+            "search_text": product.search_text,
+            "ai_context": product.ai_context,
+            "tags": product.tags,
+            "attributes": product.attributes,
+            "price": product.price,
+            "currency": product.currency,
+            "stock": product.stock,
+            "returnable": product.returnable,
+            "return_policy_note": product.return_policy_note,
+            "warranty_months": product.warranty_months,
+            "warranty_note": product.warranty_note,
+            "rating_average": stats.get("rating_average"),
+            "review_count": stats.get("review_count", 0),
+        }
+
+    @staticmethod
+    def _review_evidence_data(stats: dict) -> dict:
+        reviews = [
+            {
+                "rating": sample.get("rating"),
+                "title": "",
+                "body": sample.get("text", ""),
+                "verified": None,
+            }
+            for sample in (stats.get("review_samples") or [])
+            if isinstance(sample, dict)
+        ]
+        return {
+            "rating_average": stats.get("rating_average"),
+            "review_count": stats.get("review_count", 0),
+            "rating_distribution": stats.get("rating_distribution") or {},
+            "positive_review_count": stats.get("positive_review_count", 0),
+            "negative_review_count": stats.get("negative_review_count", 0),
+            "sample_reviews": reviews[:3],
+            "reviews": reviews[:3],
+        }
 
     def _product_line(self, product: DemoProduct, stats: dict) -> str:
         attributes = _clean_dict(product.attributes)
@@ -571,7 +744,15 @@ class ProductContextService:
         if attribute_preview:
             parts.append(f"özellikler={attribute_preview}")
         if stats.get("review_samples"):
-            parts.append(f"yorum özeti={' | '.join(stats['review_samples'])}")
+            sample_text = []
+            for sample in stats["review_samples"]:
+                if isinstance(sample, dict):
+                    rating = sample.get("rating")
+                    text = sample.get("text")
+                    sample_text.append(f"{rating}/5: {text}" if rating is not None else str(text))
+                elif sample:
+                    sample_text.append(str(sample))
+            parts.append(f"yorum özeti={' | '.join(sample_text)}")
         return "; ".join(parts)
 
     async def _selected_products(
@@ -588,7 +769,12 @@ class ProductContextService:
             product = await session.scalar(statement)
             if product:
                 self._last_product_match = ProductMatchResult(
-                    [product], "trusted_context_match", 100, False, []
+                    [product],
+                    "trusted_context_match",
+                    100,
+                    False,
+                    [],
+                    product_id_source="current_product_id",
                 )
             return [product] if product else []
         normalized = _normalize(query)
@@ -731,16 +917,29 @@ class ProductContextService:
         query: str,
         selected_product_id: int | None = None,
     ) -> list[DemoProduct]:
+        if selected_product_id is not None:
+            primary_products = await self._selected_products(
+                session,
+                user,
+                query,
+                selected_product_id=selected_product_id,
+            )
+            if primary_products:
+                return primary_products
+            if self._last_product_match.reason == "trusted_context_match":
+                return primary_products
+
+        alias_products = await self._selected_products_by_alias(session, query)
+        if alias_products:
+            return alias_products
+
         primary_products = await self._selected_products(
             session,
             user,
             query,
-            selected_product_id=selected_product_id,
         )
         primary_match = self._last_product_match
         if primary_products:
-            return primary_products
-        if selected_product_id is not None and primary_match.reason == "trusted_context_match":
             return primary_products
 
         normalized = _normalize(query)
@@ -949,6 +1148,7 @@ class ProductContextService:
         selected_order_no: str | None = None,
         frontend_context: dict | None = None,
         original_query: str | None = None,
+        allow_alias_probe: bool = False,
     ) -> dict:
         state = await self._load_state(session, conversation)
         context_query = f"{canonical_query} {original_query or ''}".strip()
@@ -985,9 +1185,8 @@ class ProductContextService:
             "return_refund_mixed",
             "followup_resolved",
         }
-        selected_product_id = current_product_id or (
-            state.last_product_id if state and is_followup else None
-        )
+        selected_product_id = current_product_id
+        followup_product_id = state.last_product_id if state and is_followup else None
         selected_order_id = current_order_id or (state.last_order_id if state and is_followup else None)
         selected_cart_id = current_cart_id or (state.last_cart_id if state and is_followup else None)
         selected_return_id = current_return_id or (state.last_return_id if state and is_followup else None)
@@ -1008,10 +1207,14 @@ class ProductContextService:
         product_match_score = 0
         explicit_product_mention = False
         top_candidates: list[dict] = []
+        match_result = ProductMatchResult([], "not_applicable", 0, False, [])
 
         if route_mode in product_context_modes:
             selected_products = await self._selected_products_hybrid(
-                session, user, context_query
+                session,
+                user,
+                context_query,
+                selected_product_id=selected_product_id,
             )
             match_result = self._last_product_match
             product_match_reason = match_result.reason
@@ -1020,9 +1223,12 @@ class ProductContextService:
             top_candidates = match_result.top_candidates
             if selected_products:
                 product_match_reason = match_result.reason
-            elif selected_product_id is not None and not explicit_product_mention:
-                selected_products = await self._selected_products_hybrid(
-                    session, user, context_query, selected_product_id=selected_product_id
+            elif followup_product_id is not None and not explicit_product_mention:
+                selected_products = await self._selected_products(
+                    session,
+                    user,
+                    context_query,
+                    selected_product_id=followup_product_id,
                 )
                 if selected_products:
                     match_result = self._last_product_match
@@ -1044,54 +1250,68 @@ class ProductContextService:
                     else "clarification_needed"
                 )
 
-            if route_mode == "order_product_mixed" or selected_order_id or selected_order_no:
-                selected_orders = await self._selected_orders(
-                    session,
-                    user,
-                    context_query,
-                    selected_order_no=selected_order_no,
-                    selected_order_id=selected_order_id,
-                )
-            elif route_mode == "return_refund_mixed" and selected_order_id:
-                selected_orders = await self._selected_orders(
-                    session,
-                    user,
-                    canonical_query,
-                    selected_order_id=selected_order_id,
-                )
-            if route_mode == "cart_coupon_mixed" or selected_cart_id:
-                cart = await self._active_cart(session, user, selected_cart_id)
-                if cart and cart.coupon_code:
-                    coupon = await session.scalar(
-                        select(DemoCoupon).where(DemoCoupon.code == cart.coupon_code)
-                    )
-            if route_mode == "return_refund_mixed" or selected_return_id:
-                returns = await self._selected_returns(
-                    session,
-                    user,
-                    selected_return_id=selected_return_id,
-                    selected_order_id=selected_order_id,
-                )
-            if route_mode in {"payment_account_mixed", "cart_coupon_mixed"}:
-                wallet = await session.scalar(
-                    select(DemoWallet).where(DemoWallet.user_id == user.id)
-                )
-                saved_cards = (
-                    await session.scalars(
-                        select(DemoSavedCard)
-                        .where(
-                            DemoSavedCard.user_id == user.id,
-                            DemoSavedCard.is_active.is_(True),
-                        )
-                        .order_by(
-                            DemoSavedCard.is_default.desc(),
-                            DemoSavedCard.created_at.desc(),
-                        )
-                    )
-                ).all()
-            selected_payment = await self._selected_payment(
-                session, user, selected_payment_id, context_query
+        if allow_alias_probe and not selected_products and selected_product_id is None:
+            alias_probe_products = await self._selected_products_by_alias(
+                session, context_query
             )
+            if alias_probe_products:
+                selected_products = alias_probe_products
+                match_result = self._last_product_match
+                product_match_reason = match_result.reason
+                product_match_score = match_result.score
+                explicit_product_mention = match_result.explicit_product_mention
+                top_candidates = match_result.top_candidates
+                product_context_modes = set(product_context_modes)
+                product_context_modes.add(route_mode)
+
+        if route_mode == "order_product_mixed" or selected_order_id or selected_order_no:
+            selected_orders = await self._selected_orders(
+                session,
+                user,
+                context_query,
+                selected_order_no=selected_order_no,
+                selected_order_id=selected_order_id,
+            )
+        elif route_mode == "return_refund_mixed" and selected_order_id:
+            selected_orders = await self._selected_orders(
+                session,
+                user,
+                canonical_query,
+                selected_order_id=selected_order_id,
+            )
+        if route_mode == "cart_coupon_mixed" or selected_cart_id:
+            cart = await self._active_cart(session, user, selected_cart_id)
+            if cart and cart.coupon_code:
+                coupon = await session.scalar(
+                    select(DemoCoupon).where(DemoCoupon.code == cart.coupon_code)
+                )
+        if route_mode == "return_refund_mixed" or selected_return_id:
+            returns = await self._selected_returns(
+                session,
+                user,
+                selected_return_id=selected_return_id,
+                selected_order_id=selected_order_id,
+            )
+        if route_mode in {"payment_account_mixed", "cart_coupon_mixed"}:
+            wallet = await session.scalar(
+                select(DemoWallet).where(DemoWallet.user_id == user.id)
+            )
+            saved_cards = (
+                await session.scalars(
+                    select(DemoSavedCard)
+                    .where(
+                        DemoSavedCard.user_id == user.id,
+                        DemoSavedCard.is_active.is_(True),
+                    )
+                    .order_by(
+                        DemoSavedCard.is_default.desc(),
+                        DemoSavedCard.created_at.desc(),
+                    )
+                )
+            ).all()
+        selected_payment = await self._selected_payment(
+            session, user, selected_payment_id, context_query
+        )
         if route_mode == "payment_account_mixed":
             wallet = await session.scalar(
                 select(DemoWallet).where(DemoWallet.user_id == user.id)
@@ -1124,6 +1344,20 @@ class ProductContextService:
             )
 
         product_stats = await self._product_stats(session, [p.id for p in selected_products], user)
+        product_evidence = [
+            {
+                "product_id": product.id,
+                "data": self._product_evidence_data(product, product_stats.get(product.id, {})),
+            }
+            for product in selected_products
+        ]
+        review_evidence = [
+            {
+                "product_id": product.id,
+                "data": self._review_evidence_data(product_stats.get(product.id, {})),
+            }
+            for product in selected_products
+        ]
         product_lines = [
             self._product_line(product, product_stats.get(product.id, {}))
             for product in selected_products
@@ -1243,6 +1477,26 @@ class ProductContextService:
             "product_match_score": product_match_score,
             "explicit_product_mention": explicit_product_mention,
             "top_candidates": top_candidates,
+            "product_id_source": match_result.product_id_source,
+            "alias_type_match_source": match_result.alias_type_match_source,
+            "selected_group": match_result.selected_group or {},
+            "candidate_groups": match_result.candidate_groups or [],
+            "selected_product": (
+                {
+                    "id": selected_products[0].id,
+                    "sku": selected_products[0].sku,
+                    "name": selected_products[0].name,
+                }
+                if selected_products and not match_result.selected_group
+                else {}
+            ),
+            "answer_mode": (
+                "PRODUCT_GROUP"
+                if match_result.alias_type_match_source == "PRODUCT_GROUP"
+                else "SPECIFIC_PRODUCT"
+                if selected_products
+                else "CLARIFICATION"
+            ),
             "selected_counts": {
                 "products": len(selected_products),
                 "orders": len(selected_orders),
@@ -1255,6 +1509,8 @@ class ProductContextService:
             "selected_order_ids": [order.id for order in selected_orders],
             "selected_return_ids": [item.id for item in returns],
             "selected_payment_ids": [selected_payment.id] if selected_payment else [],
+            "product_evidence": product_evidence,
+            "review_evidence": review_evidence,
             "cart_summary": (
                 {
                     "id": cart.id,

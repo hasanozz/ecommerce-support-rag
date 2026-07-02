@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +29,33 @@ from ..services.rate_limit import rate_limiter
 from ..services.security import sanitize_query
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
+
+
+def _timeout_fallback_answer(state: dict, evidence_pack: dict, safe_query: str) -> str:
+    rag_evidence = evidence_pack.get("rag_evidence") or []
+    db_evidence = evidence_pack.get("db_evidence") or []
+    if rag_evidence:
+        first = rag_evidence[0]
+        title = str(first.get("title_or_name") or "").strip()
+        excerpt = str(first.get("raw_excerpt") or "").strip()
+        if title and excerpt:
+            return f"{title}: {excerpt[:220]}"
+        if excerpt:
+            return excerpt[:220]
+    if db_evidence:
+        first = db_evidence[0]
+        title = str(first.get("title_or_name") or "").strip()
+        excerpt = str(first.get("raw_excerpt") or "").strip()
+        if title and excerpt:
+            return f"{title}: {excerpt[:220]}"
+        if excerpt:
+            return excerpt[:220]
+    canonical = str(state.get("canonical_query") or safe_query).strip()
+    if canonical:
+        return "İşleminiz hazırlanıyor, lütfen tekrar deneyin."
+    return "İşleminiz hazırlanıyor, lütfen tekrar deneyin."
 
 
 async def owned_conversation(
@@ -139,6 +169,16 @@ async def send_message(
         f"chat:ip:{ip_hash}", settings.chat_rate_limit, settings.chat_rate_window_seconds
     )
     safe_query = sanitize_query(payload.message, settings)
+    trace_id = uuid.uuid4().hex[:12]
+    logger.info(
+        "endpoint_enter trace_id=%s route=/api/conversations/%s/messages conversation_id=%s user_id=%s message_len=%s question=%s",
+        trace_id,
+        conversation_id,
+        conversation_id,
+        user.id,
+        len(safe_query),
+        safe_query,
+    )
     conversation = await owned_conversation(session, conversation_id, user.id)
     frontend_context = payload.model_dump(
         include={
@@ -148,17 +188,121 @@ async def send_message(
             "current_return_id",
             "current_payment_id",
             "page_context",
-        },
-        exclude_none=True,
+            },
+            exclude_none=True,
+        )
+    pipeline = SupportPipeline(settings)
+    logger.info(
+        "pipeline_start trace_id=%s route=/api/conversations/%s/messages conversation_id=%s user_id=%s",
+        trace_id,
+        conversation_id,
+        conversation_id,
+        user.id,
     )
-    assistant, canonical, grouped, similar, classification = await SupportPipeline(settings).run(
-        session,
-        conversation,
-        user,
-        safe_query,
-        ip_hash,
-        frontend_context=frontend_context,
-    )
+    try:
+        assistant, canonical, grouped, similar, classification = await asyncio.wait_for(
+            pipeline.run(
+                session,
+                conversation,
+                user,
+                safe_query,
+                ip_hash,
+                frontend_context=frontend_context,
+                trace_id=trace_id,
+            ),
+            timeout=25,
+        )
+    except asyncio.TimeoutError:
+        timeout_state = getattr(pipeline, "last_timeout_state", {}) or {}
+        evidence_pack = timeout_state.get("structured_evidence_pack") or {}
+        evidence_count = int(evidence_pack.get("selected_evidence_count", 0) or 0)
+        if not evidence_count:
+            evidence_count = len(evidence_pack.get("rag_evidence") or []) + len(
+                evidence_pack.get("db_evidence") or []
+            )
+        stage = getattr(pipeline, "last_stage", "unknown")
+        logger.warning(
+            "pipeline_timeout trace_id=%s route=/api/conversations/%s/messages conversation_id=%s stage=%s evidence_count=%s",
+            trace_id,
+            conversation_id,
+            conversation_id,
+            stage,
+            evidence_count,
+        )
+        canonical = str(timeout_state.get("canonical_query") or safe_query).strip() or safe_query
+        classification_data = timeout_state.get("classification") or {}
+        category = str(classification_data.get("category") or "GENEL_DESTEK")
+        subcategory = str(classification_data.get("subcategory") or "")
+        domain = classification_data.get("domain")
+        intent = classification_data.get("intent")
+        expected_action = str(classification_data.get("expected_action") or "RAG_ANSWER").upper()
+        requested_information = classification_data.get("requested_information") or []
+        if isinstance(requested_information, str):
+            requested_information = [requested_information]
+        answer = _timeout_fallback_answer(timeout_state, evidence_pack, safe_query)
+        rag_sources = evidence_pack.get("rag_evidence") or []
+        sources = [
+            SourceResponse(
+                doc_id=str(item.get("source_id") or item.get("doc_id") or ""),
+                title=str(item.get("title_or_name") or item.get("title") or ""),
+                category=str(item.get("category") or category),
+                subcategory=str(item.get("subcategory") or subcategory),
+                best_score=float(item.get("confidence") or item.get("best_score") or 0.0),
+                matched_sections=list(item.get("matched_fields") or item.get("matched_sections") or []),
+                combined_context=str(item.get("raw_excerpt") or item.get("combined_context") or ""),
+            )
+            for item in rag_sources[:3]
+            if str(item.get("source_id") or item.get("doc_id") or "").strip()
+        ]
+        assistant = Message(
+            conversation_id=conversation.id,
+            role="ASSISTANT",
+            safe_content=answer,
+            canonical_query=canonical,
+            category=category,
+            confidence="LOW",
+            confidence_score=0.0,
+            sources=[item.model_dump(mode="json") for item in sources],
+            ip_hash=ip_hash,
+            security_metadata={
+                "timeout": True,
+                "timeout_stage": stage,
+                "evidence_count": evidence_count,
+                "evidence_pack": evidence_pack,
+                "debug": {
+                    "answer_source": "timeout_fallback",
+                    "route_family": timeout_state.get("route_family"),
+                    "category": category,
+                    "subcategory": subcategory,
+                    "domain": domain,
+                    "intent": intent,
+                    "expected_action": expected_action,
+                },
+            },
+        )
+        session.add(assistant)
+        await session.flush()
+        await session.commit()
+        await session.refresh(assistant)
+        return AssistantAnswerResponse(
+            assistant_message_id=assistant.id,
+            answer=assistant.safe_content,
+            canonical_query=canonical,
+            category=category,
+            subcategory=subcategory or None,
+            domain=domain,
+            intent=intent,
+            expected_action=expected_action,
+            requested_information=requested_information,
+            answer_source="timeout_fallback",
+            sources=sources,
+            confidence="LOW",
+            confidence_score=0.0,
+            priority=str(classification_data.get("priority") or "MEDIUM").upper(),
+            ticket_available=True,
+            ticket_recommended=False,
+            similar_solutions=[],
+        )
     debug_trace = (
         assistant.security_metadata.get("debug", {})
         if isinstance(assistant.security_metadata, dict)

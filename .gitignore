@@ -20,3 +20,4 @@ models/**/*.gguf
 model/**/*.safetensors
 model/**/*.bin
 model/**/*.gguf
+logs/

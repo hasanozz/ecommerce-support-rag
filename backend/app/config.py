@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = 60
     gemini_max_retries: int = 2
     gemini_retry_base_seconds: float = 1.0
+    gemini_polish_enabled: bool = True
     gemini_prompt_cost_per_million: float | None = None
     gemini_completion_cost_per_million: float | None = None
 
@@ -70,9 +71,9 @@ class Settings(BaseSettings):
     router_fallback_enabled: bool = True
     router_fallback_provider: str = "rule_based"
     qwen_remote_router_url: str | None = None
-    qwen_remote_router_timeout_seconds: int | None = 30
+    qwen_remote_router_timeout_seconds: int | None = 60
     remote_qwen_router_url: str | None = None
-    remote_qwen_timeout_seconds: int | None = 30
+    remote_qwen_timeout_seconds: int | None = 60
 
     similar_solution_min_views: int = 10
     similar_solution_min_helpful: int = 5
@@ -85,6 +86,11 @@ class Settings(BaseSettings):
     feedback_rate_limit: int = 30
     feedback_rate_window_seconds: int = 3600
     ticket_daily_limit: int = 5
+
+    pipeline_debug_logs: bool = True
+    pipeline_trace_json: bool = True
+    pipeline_trace_dir: Path = PROJECT_ROOT / "logs" / "pipeline_traces"
+    pipeline_trace_prompts: bool = False
 
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,7 +14,9 @@ from ..models import (
     DemoOrder,
     DemoPaymentAttempt,
     DemoProduct,
+    DemoProductReview,
     DemoReturnRequest,
+    DemoShipment,
 )
 
 from ..schemas.evidence_fetcher import (
@@ -216,6 +218,12 @@ class EvidenceFetcherAdapter(Protocol):
         user_id: int,
     ) -> EvidenceRecord | None: ...
 
+    async def fetch_recent_user_order_context(
+        self,
+        user_id: int,
+        limit: int = 5,
+    ) -> EvidenceFetcherOutput: ...
+
 
 class InMemoryEvidenceFetcherAdapter:
     """Read-only adapter for contract tests and future DB adapter replacement."""
@@ -243,6 +251,14 @@ class InMemoryEvidenceFetcherAdapter:
             None,
         )
 
+    async def fetch_recent_user_order_context(
+        self,
+        user_id: int,
+        limit: int = 5,
+    ) -> EvidenceFetcherOutput:
+        del user_id, limit
+        return EvidenceFetcherOutput()
+
 
 class SqlAlchemyEvidenceFetcherAdapter:
     """Read-only ID-based evidence adapter for existing commerce models."""
@@ -262,9 +278,11 @@ class SqlAlchemyEvidenceFetcherAdapter:
         if self.session is None:
             raise RuntimeError("SQL evidence adapter is not bound to a session")
         if purpose in {
+            EvidencePurpose.PRODUCT_PROFILE,
             EvidencePurpose.PRODUCT_CAPACITY,
             EvidencePurpose.PRODUCT_PRICE,
             EvidencePurpose.PRODUCT_STOCK,
+            EvidencePurpose.PRODUCT_REVIEWS,
             EvidencePurpose.PRODUCT_RETURN_ELIGIBILITY,
         }:
             return await self._product(purpose, entity_id)
@@ -289,6 +307,143 @@ class SqlAlchemyEvidenceFetcherAdapter:
         if purpose == EvidencePurpose.RETURN_STATUS:
             return await self._return(purpose, entity_id, user_id)
         return None
+
+    async def fetch_recent_user_order_context(
+        self,
+        user_id: int,
+        limit: int = 5,
+    ) -> EvidenceFetcherOutput:
+        if self.session is None:
+            raise RuntimeError("SQL evidence adapter is not bound to a session")
+        orders = (
+            await self.session.scalars(
+                select(DemoOrder)
+                .options(
+                    selectinload(DemoOrder.items),
+                    selectinload(DemoOrder.shipment),
+                    selectinload(DemoOrder.return_request),
+                )
+                .where(DemoOrder.user_id == user_id)
+                .order_by(DemoOrder.created_at.desc())
+                .limit(limit)
+            )
+        ).all()
+        output = EvidenceFetcherOutput()
+        for order in orders:
+            item_names = [
+                item.product_name
+                for item in order.items
+                if str(item.product_name or "").strip()
+            ]
+            order_items = [
+                {
+                    "product_id": item.product_id,
+                    "product_name": item.product_name,
+                    "category": item.category,
+                    "quantity": item.quantity,
+                }
+                for item in order.items
+                if str(item.product_name or "").strip() or item.product_id is not None
+            ]
+            output.order_evidence.append(
+                EvidenceItem(
+                    source="ORDER_LEDGER",
+                    entity_type=EvidenceEntityType.ORDER,
+                    entity_id=order.id,
+                    purpose=EvidencePurpose.ORDER_STATUS,
+                    data={
+                        "order_no": order.order_no,
+                        "order_status": order.order_status,
+                        "shipping_status": order.shipping_status,
+                        "payment_status": order.payment_status,
+                        "total": order.total,
+                        "items": item_names,
+                        "order_items": order_items,
+                    },
+                    provenance=EvidenceProvenance(
+                        source="ORDER_LEDGER",
+                        record_id=order.id,
+                    ),
+                )
+            )
+            if order.shipment is not None:
+                output.shipment_evidence.append(
+                    EvidenceItem(
+                        source="SHIPMENT_LEDGER",
+                        entity_type=EvidenceEntityType.SHIPMENT,
+                        entity_id=order.shipment.id,
+                        purpose=EvidencePurpose.ORDER_SHIPPING_STATUS,
+                        data={
+                            "order_id": order.id,
+                            "order_no": order.order_no,
+                            "carrier": order.shipment.carrier,
+                            "tracking_number": order.shipment.tracking_number,
+                            "shipping_status": order.shipment.status,
+                            "estimated_delivery_at": order.shipment.estimated_delivery_at,
+                            "delivered_at": order.shipment.delivered_at,
+                            "delay_reason": order.shipment.delay_reason,
+                        },
+                        provenance=EvidenceProvenance(
+                            source="SHIPMENT_LEDGER",
+                            record_id=order.shipment.id,
+                        ),
+                    )
+                )
+            if order.return_request is not None:
+                output.return_evidence.append(
+                    EvidenceItem(
+                        source="RETURN_LEDGER",
+                        entity_type=EvidenceEntityType.RETURN,
+                        entity_id=order.return_request.id,
+                        purpose=EvidencePurpose.RETURN_STATUS,
+                        data={
+                            "order_id": order.id,
+                            "order_no": order.order_no,
+                            "return_code": order.return_request.return_code,
+                            "return_status": order.return_request.return_status,
+                            "refund_status": order.return_request.refund_status,
+                            "return_reason": order.return_request.return_reason,
+                            "return_tracking_no": order.return_request.return_tracking_no,
+                        },
+                        provenance=EvidenceProvenance(
+                            source="RETURN_LEDGER",
+                            record_id=order.return_request.id,
+                        ),
+                    )
+                )
+        if orders:
+            output.warnings.append("USER_RECENT_ORDER_CONTEXT")
+        payments = (
+            await self.session.scalars(
+                select(DemoPaymentAttempt)
+                .where(DemoPaymentAttempt.user_id == user_id)
+                .order_by(DemoPaymentAttempt.created_at.desc())
+                .limit(limit)
+            )
+        ).all()
+        for payment in payments:
+            output.payment_evidence.append(
+                EvidenceItem(
+                    source="PAYMENT_LEDGER",
+                    entity_type=EvidenceEntityType.PAYMENT,
+                    entity_id=payment.id,
+                    purpose=EvidencePurpose.PAYMENT_STATUS,
+                    data={
+                        "status": payment.status,
+                        "amount": payment.amount,
+                        "provider_reference": payment.provider_reference,
+                        "order_id": payment.order_id,
+                        "failure_reason": payment.failure_reason,
+                    },
+                    provenance=EvidenceProvenance(
+                        source="PAYMENT_LEDGER",
+                        record_id=payment.id,
+                    ),
+                )
+            )
+        if payments:
+            output.warnings.append("USER_RECENT_PAYMENT_CONTEXT")
+        return output
 
     async def _product(
         self, purpose: EvidencePurpose, product_id: int
@@ -343,12 +498,96 @@ class SqlAlchemyEvidenceFetcherAdapter:
                 "stock": product.stock,
                 "availability": "IN_STOCK" if product.stock > 0 else "OUT_OF_STOCK",
             }
+        elif purpose == EvidencePurpose.PRODUCT_REVIEWS:
+            aggregate = (
+                await self.session.execute(
+                    select(
+                        func.avg(DemoProductReview.rating),
+                        func.count(DemoProductReview.id),
+                    ).where(
+                        DemoProductReview.product_id == product_id,
+                        DemoProductReview.is_visible.is_(True),
+                    )
+                )
+            ).one()
+            distribution_rows = (
+                await self.session.execute(
+                    select(
+                        DemoProductReview.rating,
+                        func.count(DemoProductReview.id),
+                    )
+                    .where(
+                        DemoProductReview.product_id == product_id,
+                        DemoProductReview.is_visible.is_(True),
+                        DemoProductReview.rating.is_not(None),
+                    )
+                    .group_by(DemoProductReview.rating)
+                )
+            ).all()
+            review_rows = (
+                await self.session.execute(
+                    select(
+                        DemoProductReview.rating,
+                        DemoProductReview.title,
+                        DemoProductReview.body,
+                        DemoProductReview.is_verified_purchase,
+                    )
+                    .where(
+                        DemoProductReview.product_id == product_id,
+                        DemoProductReview.is_visible.is_(True),
+                    )
+                    .order_by(DemoProductReview.created_at.desc())
+                    .limit(3)
+                )
+            ).all()
+            rating_distribution = {
+                str(int(rating)): int(count)
+                for rating, count in distribution_rows
+                if rating is not None
+            }
+            positive_review_count = sum(
+                count for rating, count in distribution_rows if rating is not None and int(rating) >= 4
+            )
+            negative_review_count = sum(
+                count for rating, count in distribution_rows if rating is not None and int(rating) <= 2
+            )
+            data = {
+                "rating_average": round(float(aggregate[0]), 2)
+                if aggregate[0] is not None
+                else None,
+                "review_count": int(aggregate[1] or 0),
+                "rating_distribution": rating_distribution,
+                "positive_review_count": int(positive_review_count),
+                "negative_review_count": int(negative_review_count),
+                "sample_reviews": [
+                    {
+                        "rating": rating,
+                        "title": title,
+                        "body": body,
+                        "verified": is_verified_purchase,
+                    }
+                    for rating, title, body, is_verified_purchase in review_rows
+                ],
+                "reviews": [
+                    {
+                        "rating": rating,
+                        "title": title,
+                        "body": body,
+                        "verified": is_verified_purchase,
+                    }
+                    for rating, title, body, is_verified_purchase in review_rows
+                ],
+            }
         elif purpose == EvidencePurpose.PRODUCT_RETURN_ELIGIBILITY:
             data = {
                 "returnable": product.returnable,
                 "return_policy_note": product.return_policy_note,
                 "category": product.category,
             }
+        if purpose == EvidencePurpose.PRODUCT_REVIEWS:
+            return self._record(
+                purpose, EvidenceEntityType.REVIEW, product_id, "REVIEW_STORE", data
+            )
         return self._record(
             purpose, EvidenceEntityType.PRODUCT, product_id, "PRODUCT_CATALOG", data
         )

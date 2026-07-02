@@ -14,7 +14,8 @@ async def main() -> None:
         "DEMO_SEED_OK "
         f"products={summary['products']} "
         f"coupons={summary['coupons']} "
-        f"reviews={summary['reviews']}"
+        f"reviews={summary['reviews']} "
+        f"aliases={summary.get('aliases', 0)}"
     )
 
 

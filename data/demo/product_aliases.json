@@ -1,0 +1,77 @@
+[
+  {
+    "alias": "blender",
+    "alias_type": "PRODUCT",
+    "sku": "WHITE-BLENDER-001",
+    "priority": 120
+  },
+  {
+    "alias": "çay bardağı",
+    "alias_type": "PRODUCT",
+    "sku": "HOME-CAY-BARDAGI-6",
+    "priority": 140
+  },
+  {
+    "alias": "çay bardağı seti",
+    "alias_type": "PRODUCT",
+    "sku": "HOME-CAY-BARDAGI-6",
+    "priority": 145
+  },
+  {
+    "alias": "kablosuz kulaklık",
+    "alias_type": "PRODUCT",
+    "sku": "ELECTRONICS-HEADPHONE-001",
+    "priority": 130
+  },
+  {
+    "alias": "yeşil çay",
+    "alias_type": "PRODUCT",
+    "sku": "MARKET-CAY-YESIL-250",
+    "priority": 135
+  },
+  {
+    "alias": "siyah çay",
+    "alias_type": "PRODUCT",
+    "sku": "MARKET-CAY-SIYAH-500",
+    "priority": 135
+  },
+  {
+    "alias": "türk kahvesi",
+    "alias_type": "PRODUCT",
+    "sku": "MARKET-KAHVE-TURK-100",
+    "priority": 130
+  },
+  {
+    "alias": "filtre kahve",
+    "alias_type": "PRODUCT_GROUP",
+    "category": "coffee_equipment",
+    "subcategory": "coffee",
+    "priority": 115
+  },
+  {
+    "alias": "çay",
+    "alias_type": "PRODUCT_GROUP",
+    "category": "market",
+    "subcategory": "tea",
+    "priority": 100
+  },
+  {
+    "alias": "kahve",
+    "alias_type": "PRODUCT_GROUP",
+    "subcategory": "coffee",
+    "priority": 100
+  },
+  {
+    "alias": "bardak",
+    "alias_type": "PRODUCT_GROUP",
+    "category": "home_kitchen",
+    "subcategory": "glassware",
+    "priority": 90
+  },
+  {
+    "alias": "kupa",
+    "alias_type": "PRODUCT",
+    "sku": "HOME-CAM-KUPA-001",
+    "priority": 110
+  }
+]

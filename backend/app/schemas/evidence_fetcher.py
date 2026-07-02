@@ -29,6 +29,7 @@ class EvidencePurpose(str, Enum):
 class EvidenceEntityType(str, Enum):
     PRODUCT = "PRODUCT"
     ORDER = "ORDER"
+    SHIPMENT = "SHIPMENT"
     PAYMENT = "PAYMENT"
     COUPON = "COUPON"
     CART = "CART"
@@ -87,6 +88,7 @@ class MissingEvidence(BaseModel):
 class EvidenceFetcherOutput(BaseModel):
     product_evidence: list[EvidenceItem] = Field(default_factory=list)
     order_evidence: list[EvidenceItem] = Field(default_factory=list)
+    shipment_evidence: list[EvidenceItem] = Field(default_factory=list)
     payment_evidence: list[EvidenceItem] = Field(default_factory=list)
     coupon_evidence: list[EvidenceItem] = Field(default_factory=list)
     cart_evidence: list[EvidenceItem] = Field(default_factory=list)

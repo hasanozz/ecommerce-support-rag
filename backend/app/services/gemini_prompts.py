@@ -49,6 +49,8 @@ ANSWER_SYSTEM_INSTRUCTION = (
     + """
 
 Bu çağrıda müşteri destek cevabı üret:
+- DETERMINISTIC_ANSWER_DRAFT verildiyse backend kararı zaten üretmiştir; kararı
+  değiştirme, yalnızca metni doğal Türkçe ile cilala.
 - Router JSON ana yönlendiricidir; domain, intent, category, subcategory,
   requested_information ve routing_hints alanlarını koru.
 - Kayıt/ürün/sipariş/ödeme/kupon gerçekleri için öncelikle EVIDENCE_PACK içindeki
@@ -152,7 +154,50 @@ def build_answer_user_prompt(
     evidence_pack: dict | None = None,
     router_json: dict | None = None,
     answer_scope: dict | None = None,
+    compact_context: dict | None = None,
+    deterministic_draft: str | None = None,
 ) -> str:
+    if deterministic_draft is not None:
+        question = json.dumps(
+            {
+                "original_user_message": original_user_message or canonical_query,
+                "canonical_user_query": canonical_query,
+            },
+            ensure_ascii=False,
+        )
+        compact = json.dumps(compact_context or {}, ensure_ascii=False, default=str)
+        draft = json.dumps({"answer_draft": deterministic_draft}, ensure_ascii=False)
+        sources = json.dumps(available_sources or [], ensure_ascii=False)
+        policy = json.dumps({"policy_summary": llm_context[:1200]}, ensure_ascii=False)
+        return f"""
+<QUESTION>
+{question}
+</QUESTION>
+
+<COMPACT_CONTEXT>
+{compact}
+</COMPACT_CONTEXT>
+
+<DETERMINISTIC_ANSWER_DRAFT>
+{draft}
+</DETERMINISTIC_ANSWER_DRAFT>
+
+<SHORT_POLICY_CONTEXT>
+{policy}
+</SHORT_POLICY_CONTEXT>
+
+<AVAILABLE_SOURCES>
+{sources}
+</AVAILABLE_SOURCES>
+
+Görev: DETERMINISTIC_ANSWER_DRAFT içindeki kararı değiştirmeden yalnızca Türkçeyi daha doğal, kısa ve müşteri temsilcisi tonunda cilala.
+Kurallar:
+- Yeni karar, yeni kayıt, yeni kaynak veya yeni işlem iddiası ekleme.
+- Raw enum, JSON alan adı, snake_case, "status/order_status/payment_status" gibi teknik adlar yazma.
+- Kullanıcının yapabileceği aksiyon draftta varsa koru.
+- cited_doc_ids yalnızca AVAILABLE_SOURCES içindeki doc_id değerlerinden oluşsun; kaynak kullanmadıysan boş liste yaz.
+""".strip()
+
     evidence_pack = _safe_evidence_pack(evidence_pack or {})
     resolved_entities = _safe_resolved_entities(resolved_entities or {})
     router = json.dumps(router_json or evidence_pack.get("router", {}), ensure_ascii=False)
