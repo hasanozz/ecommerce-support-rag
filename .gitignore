@@ -21,3 +21,4 @@ model/**/*.safetensors
 model/**/*.bin
 model/**/*.gguf
 logs/
+prompt.md

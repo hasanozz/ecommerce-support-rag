@@ -1242,7 +1242,7 @@ function productDetailModal() {
   const technicalEntries = productTechnicalEntries(item);
   const technicalCount = technicalEntries.length;
   const ratingValue = item.rating_average ? Number(item.rating_average).toFixed(1) : "4.8";
-  const primaryPrompt = "Bu ürün hakkında bilgi almak istiyorum.";
+  const primaryPrompt = `${item.name} ürünü hakkında bilgi almak istiyorum.`;
   const descriptionHelper = technicalEntries.find(entry =>
     ["uyumlu_kullanim", "kapasite_mah", "hacim_ml", "olcu", "kumas"].includes(entry.key)
   ) || technicalEntries[0];

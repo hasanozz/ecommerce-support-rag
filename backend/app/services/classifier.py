@@ -780,35 +780,6 @@ class ClassifierService:
     async def classify(
         self, safe_original: str, pii_masked: str
     ) -> ClassificationResult:
-        fast_path = _product_fast_path_result(
-            safe_original, provider="product_fast_path"
-        )
-        if fast_path is not None:
-            self.last_usage = {}
-            self.last_provider = fast_path.provider
-            self.last_fallback_used = False
-            self.last_fallback_reason = ""
-            self.last_remote_url = ""
-            self.last_adapter_loaded = False
-            self.last_router_trace = {
-                "provider": self.last_provider,
-                "fallback_used": self.last_fallback_used,
-                "fallback_reason": self.last_fallback_reason,
-                "remote_url": self.last_remote_url,
-                "request_body": {},
-                "status_code": None,
-                "raw_response": "",
-                "parsed_output": fast_path.as_dict(),
-            }
-            logger.info(
-                "router_classification provider=%s fallback_used=%s domain=%s intent=%s requested_information=%s",
-                self.last_provider,
-                self.last_fallback_used,
-                fast_path.domain,
-                fast_path.intent,
-                json.dumps(fast_path.requested_information, ensure_ascii=False),
-            )
-            return fast_path
         provider = self._provider()
         try:
             result = await provider.classify(safe_original, pii_masked)

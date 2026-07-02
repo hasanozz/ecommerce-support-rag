@@ -597,17 +597,46 @@ class SqlAlchemyEvidenceFetcherAdapter:
     ) -> EvidenceRecord | None:
         order = await self.session.scalar(
             select(DemoOrder)
-            .options(selectinload(DemoOrder.shipment))
+            .options(
+                selectinload(DemoOrder.items),
+                selectinload(DemoOrder.shipment),
+                selectinload(DemoOrder.return_request),
+            )
             .where(DemoOrder.id == order_id, DemoOrder.user_id == user_id)
         )
         if order is None:
             return None
+        item_names = [
+            item.product_name
+            for item in order.items
+            if str(item.product_name or "").strip()
+        ]
+        order_items = [
+            {
+                "product_id": item.product_id,
+                "product_name": item.product_name,
+                "category": item.category,
+                "quantity": item.quantity,
+            }
+            for item in order.items
+            if str(item.product_name or "").strip() or item.product_id is not None
+        ]
         data = {
             "order_no": order.order_no,
             "order_status": order.order_status,
             "shipping_status": order.shipping_status,
             "payment_status": order.payment_status,
+            "items": item_names,
+            "order_items": order_items,
         }
+        if order.return_request is not None:
+            data["return_request"] = {
+                "return_code": order.return_request.return_code,
+                "return_status": order.return_request.return_status,
+                "refund_status": order.return_request.refund_status,
+                "return_reason": order.return_request.return_reason,
+                "return_tracking_no": order.return_request.return_tracking_no,
+            }
         if purpose == EvidencePurpose.ORDER_SHIPPING_STATUS and order.shipment:
             data.update(
                 {

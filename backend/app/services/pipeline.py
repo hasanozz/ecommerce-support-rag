@@ -529,6 +529,126 @@ class SupportPipeline:
         )
 
     @staticmethod
+    def _is_generic_policy_question(
+        classification: ClassificationResult,
+        context_plan: ContextResolverOutput,
+        query: str,
+        frontend_context: dict,
+    ) -> bool:
+        entities = context_plan.resolved_entities
+        if any(
+            value is not None
+            for value in (
+                entities.order_no,
+                entities.order_id,
+                entities.product_id,
+                entities.product_name,
+                getattr(entities, "payment_id", None),
+                getattr(entities, "return_id", None),
+            )
+        ):
+            return False
+        if any(
+            frontend_context.get(key)
+            for key in ("current_product_id", "current_order_id", "current_return_id", "current_payment_id")
+        ):
+            return False
+        normalized = SupportPipeline._normalize_match_text(query)
+        personal_terms = {
+            "benim",
+            "siparisim",
+            "siparisimi",
+            "kargom",
+            "odemem",
+            "iadem",
+            "siparişim",
+            "siparişimi",
+            "ödemem",
+        }
+        if any(term in normalized for term in personal_terms):
+            return False
+        procedure_terms = {"nasil", "nasıl", "olustur", "oluştur", "baslat", "başlat"}
+        category = str(classification.category or "").strip().upper()
+        return (
+            category in {"IADE", "SIPARIS", "KARGO_TESLIMAT", "ODEME", "GENEL_DESTEK"}
+            and any(term in normalized for term in procedure_terms)
+        )
+
+    @staticmethod
+    def _planning_result(
+        classification: ClassificationResult,
+        context_plan: ContextResolverOutput,
+        *,
+        query: str,
+        frontend_context: dict,
+        route_family: str,
+        generic_policy_question: bool,
+        followup_catalog_question: bool,
+    ) -> dict:
+        entities = context_plan.resolved_entities.model_dump(mode="json")
+        sources = set(context_plan.data_sources)
+        current_product_id = frontend_context.get("current_product_id")
+        has_order_reference = bool(entities.get("order_no") or entities.get("order_id"))
+        explicit_product_mention = bool(
+            entities.get("product_id")
+            or (entities.get("product_name") and not has_order_reference)
+            or current_product_id
+        )
+        should_use_order_db = bool(
+            not generic_policy_question
+            and (
+                "order_db" in sources
+                or entities.get("order_no")
+                or entities.get("order_id")
+                or frontend_context.get("current_order_id")
+            )
+        )
+        should_use_product_db = bool(
+            not generic_policy_question
+            and (
+                "product_db" in sources
+                or route_family in {"PRODUCT", "MIXED"}
+                or current_product_id
+                or explicit_product_mention
+                or followup_catalog_question
+            )
+        )
+        return {
+            "domain": classification.domain,
+            "intent": classification.intent,
+            "entities": {
+                "order_no": entities.get("order_no"),
+                "explicit_product_mention": explicit_product_mention,
+                "current_product_id": current_product_id,
+            },
+            "required_data": context_plan.fields,
+            "should_use_rag": bool(context_plan.needs_support_rag or generic_policy_question),
+            "should_use_order_db": should_use_order_db,
+            "should_use_product_db": should_use_product_db,
+            "should_use_return_db": bool(not generic_policy_question and "return_db" in sources),
+            "should_use_payment_db": bool(not generic_policy_question and "payment_db" in sources),
+            "should_use_product_fuzzy": bool(
+                should_use_product_db
+                and explicit_product_mention
+                and not current_product_id
+                and not has_order_reference
+            ),
+            "generic_policy_question": generic_policy_question,
+        }
+
+    @staticmethod
+    def _canonical_product_from_order_evidence(
+        evidence_output: EvidenceFetcherOutput,
+    ) -> int | None:
+        for item in evidence_output.order_evidence:
+            data = item.data or {}
+            for order_item in data.get("order_items") or []:
+                product_id = SupportPipeline._safe_int(order_item.get("product_id"))
+                if product_id is not None:
+                    return product_id
+        return None
+
+    @staticmethod
     def _merge_evidence_output(
         target: EvidenceFetcherOutput, source: EvidenceFetcherOutput
     ) -> EvidenceFetcherOutput:
@@ -642,6 +762,27 @@ class SupportPipeline:
         if "product_db" in sources:
             purposes.append("PRODUCT_PROFILE")
         return [{"purpose": purpose} for purpose in dict.fromkeys(purposes)]
+
+    @staticmethod
+    def _planned_required_contexts(
+        required_contexts: list[dict],
+        planning_result: dict,
+        context_plan: ContextResolverOutput,
+    ) -> list[dict]:
+        entities = context_plan.resolved_entities
+        filtered: list[dict] = []
+        for item in required_contexts:
+            purpose = str(item.get("purpose") or "").upper()
+            if purpose.startswith("PRODUCT_") and not (
+                planning_result.get("should_use_product_fuzzy")
+                or planning_result.get("entities", {}).get("current_product_id")
+                or entities.product_id is not None
+            ):
+                continue
+            if purpose == "RETURN_STATUS" and getattr(entities, "return_id", None) is None:
+                continue
+            filtered.append(item)
+        return filtered
 
     @staticmethod
     def _router_payload(classification: ClassificationResult) -> dict:
@@ -1739,12 +1880,68 @@ class SupportPipeline:
                 "warnings": context_plan.warnings,
             },
         )
+        route_family = self._route_family(classification)
+        if frontend_context.get("current_product_id"):
+            route_family = "PRODUCT"
+        product_followup_rescue_allowed = bool(
+            getattr(conversation_state, "last_product_id", None)
+        ) and self._looks_like_catalog_question(f"{canonical} {safe_query}")
+        generic_policy_question = self._is_generic_policy_question(
+            classification,
+            context_plan,
+            safe_query,
+            frontend_context,
+        )
+        planning_result = self._planning_result(
+            classification,
+            context_plan,
+            query=safe_query,
+            frontend_context=frontend_context,
+            route_family=route_family,
+            generic_policy_question=generic_policy_question,
+            followup_catalog_question=product_followup_rescue_allowed,
+        )
+        required_contexts = self._planned_required_contexts(
+            self._evidence_required_contexts(context_plan),
+            planning_result,
+            context_plan,
+        )
+        suppressed_data_sources = []
+        if generic_policy_question:
+            suppressed_data_sources.extend(
+                source
+                for source in ("order_db", "product_db", "return_db", "payment_db", "review_db")
+                if source in set(context_plan.data_sources)
+            )
+            if not suppressed_data_sources:
+                suppressed_data_sources.append("user_context_for_generic_policy")
+        trace.set("planning_result", planning_result)
+        trace.add_stage(
+            "planning",
+            {
+                "planning_result": planning_result,
+                "required_contexts": required_contexts,
+                "suppressed_data_sources": suppressed_data_sources,
+            },
+        )
         needs_user_order_context = self._needs_user_order_context(
             classification, context_plan
+        ) and not generic_policy_question
+        deterministic_db_lookup_needed = bool(
+            planning_result["should_use_order_db"]
+            or planning_result["should_use_return_db"]
+            or planning_result["should_use_payment_db"]
+            or "coupon_db" in set(context_plan.data_sources)
+            or "cart_db" in set(context_plan.data_sources)
+            or context_plan.resolved_entities.product_id is not None
+            or frontend_context.get("current_order_id")
+            or frontend_context.get("current_payment_id")
+            or frontend_context.get("current_return_id")
         )
         resolver_fetches_context = (
             context_plan.next_step == "FETCH_CONTEXT"
             and not context_plan.needs_clarification
+            and deterministic_db_lookup_needed
         ) or needs_user_order_context
         data_resolution = self._skipped_data_resolution()
         data_started = None
@@ -1826,9 +2023,7 @@ class SupportPipeline:
                             "user_id": user.id,
                             "context_plan": context_plan.model_dump(mode="json"),
                             "data_resolution": data_resolution.model_dump(mode="json"),
-                            "required_contexts": self._evidence_required_contexts(
-                                context_plan
-                            ),
+                            "required_contexts": required_contexts,
                         }
                     ),
                     timeout=self._stage_timeout("evidence_fetcher", self.settings.llm_timeout_seconds),
@@ -1880,10 +2075,18 @@ class SupportPipeline:
         )
         effective_frontend_context = dict(frontend_context)
         resolved_data_entities = data_resolution.resolved_entities
+        order_canonical_product_id = self._canonical_product_from_order_evidence(
+            evidence_output
+        )
         if resolved_data_entities.product_id is not None:
             effective_frontend_context["current_product_id"] = (
                 resolved_data_entities.product_id
             )
+        elif (
+            order_canonical_product_id is not None
+            and not effective_frontend_context.get("current_product_id")
+        ):
+            effective_frontend_context["current_product_id"] = order_canonical_product_id
         if resolved_data_entities.order_id is not None:
             effective_frontend_context["current_order_id"] = (
                 resolved_data_entities.order_id
@@ -1904,10 +2107,6 @@ class SupportPipeline:
         legacy_context_allowed = (
             pipeline_fetches_context and not explicit_coupon_resolution
         )
-        route_family = self._route_family(classification)
-        if frontend_context.get("current_product_id"):
-            route_family = "PRODUCT"
-
         user_message = Message(
             conversation_id=conversation.id,
             role="USER",
@@ -1927,11 +2126,21 @@ class SupportPipeline:
         await session.flush()
 
         product_context_started = time.perf_counter()
+        has_canonical_product_context = bool(
+            effective_frontend_context.get("current_product_id")
+        )
         product_context_allowed = (
-            legacy_context_allowed
-            or route_family in {"PRODUCT", "MIXED"}
-            or bool(frontend_context.get("current_product_id"))
-            or route_family == "OUT_OF_DOMAIN"
+            (
+                legacy_context_allowed
+                and planning_result["should_use_product_db"]
+                and (
+                    has_canonical_product_context
+                    or planning_result["should_use_product_fuzzy"]
+                )
+            )
+            or (route_family == "PRODUCT" and planning_result["should_use_product_db"])
+            or has_canonical_product_context
+            or product_followup_rescue_allowed
         )
         if product_context_allowed:
             try:
@@ -2006,13 +2215,21 @@ class SupportPipeline:
                 self._log_stage("customer_context", customer_context_started, "timeout", type(exc).__name__)
         else:
             support_context = {"category": category, "items": [], "text": ""}
-        support_in_scope = pipeline_fetches_context and route_family in {"SUPPORT", "MIXED"}
+        support_in_scope = route_family in {"SUPPORT", "MIXED"} and (
+            pipeline_fetches_context or planning_result["should_use_rag"]
+        )
+        product_context_has_product = bool(
+            product_context.get("text") or product_context.get("selected_product_ids")
+        )
         product_in_scope = (
             (pipeline_fetches_context or product_context_allowed)
-            and route_family in {"PRODUCT", "MIXED"}
-            and bool(product_context.get("text") or product_context.get("selected_product_ids"))
+            and (
+                route_family in {"PRODUCT", "MIXED", "OUT_OF_DOMAIN"}
+                or product_followup_rescue_allowed
+            )
+            and product_context_has_product
         )
-        in_scope = pipeline_fetches_context and (support_in_scope or product_in_scope)
+        in_scope = support_in_scope or product_in_scope
         self.last_stage = "product_context"
         evidence_output = self._merge_product_context_evidence(
             evidence_output,
@@ -2030,6 +2247,17 @@ class SupportPipeline:
                 "confidence": product_context.get("product_match_score", 0),
                 "reason": product_context.get("product_match_reason", ""),
                 "answer_mode": product_context.get("answer_mode", ""),
+                "canonical_product_id": product_context.get("canonical_product_id"),
+                "canonical_product_source": product_context.get("canonical_product_source", ""),
+                "product_group_suppressed_reason": product_context.get("product_group_suppressed_reason", ""),
+                "fuzzy_suppressed_reason": product_context.get("fuzzy_suppressed_reason", ""),
+                "conflicting_product_ids": product_context.get("conflicting_product_ids", []),
+                "explicit_product_candidates": product_context.get("explicit_product_candidates", []),
+                "rejected_candidates": product_context.get("rejected_candidates", []),
+                "is_followup": product_context.get("is_followup", False),
+                "is_correction": product_context.get("is_correction", False),
+                "clarification_needed": product_context.get("clarification_needed", False),
+                "state_updated": product_context.get("state_updated", False),
             },
         )
         grouped = []
@@ -2051,6 +2279,17 @@ class SupportPipeline:
             "confidence": product_context.get("product_match_score", 0),
             "reason": product_context.get("product_match_reason", ""),
             "answer_mode": product_context.get("answer_mode", ""),
+            "canonical_product_id": product_context.get("canonical_product_id"),
+            "canonical_product_source": product_context.get("canonical_product_source", ""),
+            "product_group_suppressed_reason": product_context.get("product_group_suppressed_reason", ""),
+            "fuzzy_suppressed_reason": product_context.get("fuzzy_suppressed_reason", ""),
+            "conflicting_product_ids": product_context.get("conflicting_product_ids", []),
+            "explicit_product_candidates": product_context.get("explicit_product_candidates", []),
+            "rejected_candidates": product_context.get("rejected_candidates", []),
+            "is_followup": product_context.get("is_followup", False),
+            "is_correction": product_context.get("is_correction", False),
+            "clarification_needed": product_context.get("clarification_needed", False),
+            "state_updated": product_context.get("state_updated", False),
         }
         structured_evidence_pack["frontend_context"] = {
             key: effective_frontend_context[key]
@@ -2120,6 +2359,17 @@ class SupportPipeline:
                 "selected_product": product_context.get("selected_product", {}),
                 "selected_group": product_context.get("selected_group", {}),
                 "answer_mode": product_context.get("answer_mode", ""),
+                "canonical_product_id": product_context.get("canonical_product_id"),
+                "canonical_product_source": product_context.get("canonical_product_source", ""),
+                "product_group_suppressed_reason": product_context.get("product_group_suppressed_reason", ""),
+                "fuzzy_suppressed_reason": product_context.get("fuzzy_suppressed_reason", ""),
+                "conflicting_product_ids": product_context.get("conflicting_product_ids", []),
+                "explicit_product_candidates": product_context.get("explicit_product_candidates", []),
+                "rejected_candidates": product_context.get("rejected_candidates", []),
+                "is_followup": product_context.get("is_followup", False),
+                "is_correction": product_context.get("is_correction", False),
+                "clarification_needed": product_context.get("clarification_needed", False),
+                "state_updated": product_context.get("state_updated", False),
                 "selected_counts": product_context.get("selected_counts", {}),
                 "item_count": len(product_context.get("items", [])),
                 "decision_hint_count": len(product_context.get("decision_hints", [])),
@@ -2150,7 +2400,7 @@ class SupportPipeline:
         }
         grouped = []
         should_run_support_rag = (
-            (context_plan.needs_support_rag or bool(classification.routing_hints.get("rag_needed")))
+            planning_result["should_use_rag"]
             and (support_in_scope or product_in_scope)
             and route_family in {"SUPPORT", "MIXED", "PRODUCT"}
         )
@@ -2232,6 +2482,17 @@ class SupportPipeline:
             "confidence": product_context.get("product_match_score", 0),
             "reason": product_context.get("product_match_reason", ""),
             "answer_mode": product_context.get("answer_mode", ""),
+            "canonical_product_id": product_context.get("canonical_product_id"),
+            "canonical_product_source": product_context.get("canonical_product_source", ""),
+            "product_group_suppressed_reason": product_context.get("product_group_suppressed_reason", ""),
+            "fuzzy_suppressed_reason": product_context.get("fuzzy_suppressed_reason", ""),
+            "conflicting_product_ids": product_context.get("conflicting_product_ids", []),
+            "explicit_product_candidates": product_context.get("explicit_product_candidates", []),
+            "rejected_candidates": product_context.get("rejected_candidates", []),
+            "is_followup": product_context.get("is_followup", False),
+            "is_correction": product_context.get("is_correction", False),
+            "clarification_needed": product_context.get("clarification_needed", False),
+            "state_updated": product_context.get("state_updated", False),
         }
         structured_evidence_pack["frontend_context"] = {
             key: effective_frontend_context[key]
@@ -2298,6 +2559,64 @@ class SupportPipeline:
                 structured_evidence_pack, classification
             )
         )
+        data_sources_used = [
+            key
+            for key in (
+                "product_evidence",
+                "order_evidence",
+                "shipment_evidence",
+                "payment_evidence",
+                "coupon_evidence",
+                "cart_evidence",
+                "return_evidence",
+                "review_evidence",
+                "rag_evidence",
+            )
+            if answer_evidence_pack.get(key)
+        ]
+        selected_order_id = None
+        if answer_evidence_pack.get("order_evidence"):
+            selected_order_id = answer_evidence_pack["order_evidence"][0].get("entity_id")
+        selected_product_ids = [
+            item.get("entity_id")
+            for item in answer_evidence_pack.get("product_evidence", [])
+            if item.get("entity_id") is not None
+        ]
+        product_resolution_trace = answer_evidence_pack.get("product_resolution", {}) or {}
+        fuzzy_used = product_resolution_trace.get("product_id_source") == "explicit_fuzzy"
+        answer_evidence_pack["user_question"] = safe_query
+        answer_evidence_pack["intent"] = classification.intent
+        answer_evidence_pack["selected_entities"] = {
+            "order_id": selected_order_id,
+            "product_ids": selected_product_ids,
+            "resolved_entities": resolved_data_entities.model_dump(mode="json"),
+        }
+        answer_evidence_pack["fetched_data"] = {
+            key: answer_evidence_pack.get(key, [])
+            for key in (
+                "product_evidence",
+                "order_evidence",
+                "shipment_evidence",
+                "payment_evidence",
+                "coupon_evidence",
+                "cart_evidence",
+                "return_evidence",
+                "review_evidence",
+            )
+        }
+        answer_evidence_pack["rag_docs"] = answer_evidence_pack.get("rag_evidence", [])
+        answer_evidence_pack["missing_data"] = answer_evidence_pack.get("missing_evidence", [])
+        answer_evidence_pack["planning_result"] = planning_result
+        trace.set("evidence_pack", answer_evidence_pack)
+        trace.set("selected_order_id", selected_order_id)
+        trace.set("selected_product_ids", selected_product_ids)
+        trace.set("data_sources_used", data_sources_used)
+        trace.set("suppressed_data_sources", suppressed_data_sources)
+        trace.set("fuzzy_used", fuzzy_used)
+        trace.set(
+            "fuzzy_suppressed_reason",
+            product_resolution_trace.get("fuzzy_suppressed_reason", ""),
+        )
         trace.set("product_order_filter", product_order_filter_trace)
         trace.add_stage("product_order_filter", product_order_filter_trace)
         debug_metadata["db_called"] = bool(
@@ -2357,7 +2676,7 @@ class SupportPipeline:
         debug_metadata["final_answer_mode"] = final_answer_mode
         trace.set("compact_context", compact_context)
         trace.set(
-            "deterministic_answer_draft",
+            "deterministic_fallback_draft",
             {
                 "answer": deterministic_answer_draft,
                 "source": deterministic_result.get("source", ""),
@@ -2366,10 +2685,10 @@ class SupportPipeline:
         )
         trace.set("final_answer_mode", final_answer_mode)
         trace.add_stage(
-            "deterministic_answer",
+            "deterministic_fallback",
             {
                 "compact_context": compact_context,
-                "answer_draft": deterministic_answer_draft,
+                "fallback_draft": deterministic_answer_draft,
                 "source": deterministic_result.get("source", ""),
                 "answer_mode": final_answer_mode,
                 "elapsed_ms": trace_elapsed["deterministic"],
@@ -2434,12 +2753,16 @@ class SupportPipeline:
                     router_json=self._router_payload(classification),
                     answer_scope=answer_scope,
                     compact_context=compact_context,
-                    deterministic_draft=deterministic_answer_draft,
+                    deterministic_draft=None,
                     use_dev_model=True,
                 )
                 answer_usage = dict(self.gemini.last_usage)
                 trace_elapsed["gemini"] = round((time.perf_counter() - gemini_started) * 1000, 2)
                 trace.set("gemini", self.gemini.last_trace)
+                trace.set(
+                    "gemini_prompt_preview",
+                    self.gemini.last_trace.get("prompt_preview", ""),
+                )
                 trace.add_stage(
                     "gemini_answer",
                     {
@@ -2453,6 +2776,10 @@ class SupportPipeline:
                 trace_elapsed["gemini"] = round((time.perf_counter() - gemini_started) * 1000, 2)
                 pipeline_errors.append("GEMINI_ANSWER_TIMEOUT")
                 debug_metadata["gemini_error"] = "TimeoutError"
+                trace.set(
+                    "gemini_prompt_preview",
+                    self.gemini.last_trace.get("prompt_preview", ""),
+                )
                 trace.add_stage(
                     "gemini_answer",
                     {
@@ -2466,6 +2793,10 @@ class SupportPipeline:
                 trace_elapsed["gemini"] = round((time.perf_counter() - gemini_started) * 1000, 2)
                 pipeline_errors.append("GEMINI_ANSWER_UNAVAILABLE")
                 debug_metadata["gemini_error"] = "GeminiServiceError"
+                trace.set(
+                    "gemini_prompt_preview",
+                    self.gemini.last_trace.get("prompt_preview", ""),
+                )
                 trace.add_stage(
                     "gemini_answer",
                     {
@@ -2542,7 +2873,7 @@ class SupportPipeline:
             debug_metadata["formatter_mode"] = "data_resolver_clarification"
         elif (
             context_plan.next_step == "CLARIFY" or context_plan.needs_clarification
-        ) and not needs_user_order_context:
+        ) and not needs_user_order_context and not product_context_has_product:
             answer = self._resolver_clarification_message(
                 context_plan.clarification_reason
             )
@@ -2554,6 +2885,7 @@ class SupportPipeline:
             context_plan.next_step == "FALLBACK"
             and not product_context.get("text")
             and not product_group_answer
+            and not grouped
         ):
             if context_plan.fallback_reason == "UNCLEAR_INTENT":
                 answer = self._resolver_clarification_message(None)
@@ -2571,7 +2903,7 @@ class SupportPipeline:
             )
             debug_metadata["fallback_reason"] = "ask_clarification"
             debug_metadata["formatter_mode"] = "clarification_natural"
-        elif not in_scope and not product_group_answer:
+        elif not in_scope and not product_group_answer and not product_context_has_product:
             answer = "Bu asistan yalnızca e-ticaret müşteri destek konularını yanıtlar."
             debug_metadata["formatter_mode"] = "out_of_scope_plain"
         elif not answer:
@@ -2633,7 +2965,7 @@ class SupportPipeline:
         answer_source = (
             "gemini"
             if debug_metadata["formatter_mode"] == "gemini_natural"
-            else "deterministic"
+            else "deterministic_fallback"
             if debug_metadata["formatter_mode"] == "deterministic_draft"
             else "safe_fallback"
             if debug_metadata["formatter_mode"] in {
@@ -2649,6 +2981,7 @@ class SupportPipeline:
             else "safe_fallback"
         )
         debug_metadata["answer_source"] = answer_source
+        trace.set("final_answer_source", answer_source)
         logger.info(
             "router_evidence_trace trace_id=%s domain=%s intent=%s category=%s subcategory=%s entities=%s requested_information=%s db_called=%s rag_called=%s selected_evidence_count=%s gemini_called=%s answer_source=%s final_metadata=%s",
             self.current_trace_id,

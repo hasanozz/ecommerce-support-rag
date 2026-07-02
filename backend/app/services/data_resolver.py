@@ -352,6 +352,7 @@ class DataResolver:
         warnings: list[str] = []
         plan_entities = request.context_plan.resolved_entities
         sources = set(request.context_plan.data_sources)
+        has_order_reference = bool(plan_entities.order_no or plan_entities.order_id)
 
         existing_types = {reference.entity_type for reference in references}
         if EntityType.PRODUCT not in existing_types and (
@@ -360,25 +361,24 @@ class DataResolver:
             or "product_db" in sources
             or "review_db" in sources
         ):
-            product_id, reference_type = self._context_id(
-                plan_entities.product_id,
-                request.frontend_context.current_product_id,
-                request.conversation_state.last_product_id,
-            )
-            if product_id is not None:
+            if request.frontend_context.current_product_id is not None:
                 references.append(
                     EntityReference(
                         entity_type=EntityType.PRODUCT,
-                        type=reference_type,
-                        value=product_id,
+                        type=ReferenceType.FRONTEND_ID,
+                        value=request.frontend_context.current_product_id,
                     )
                 )
-                warnings.append(
-                    USED_FRONTEND_CONTEXT
-                    if reference_type == ReferenceType.FRONTEND_ID
-                    else USED_CONVERSATION_STATE
+                warnings.append(USED_FRONTEND_CONTEXT)
+            elif plan_entities.product_id is not None:
+                references.append(
+                    EntityReference(
+                        entity_type=EntityType.PRODUCT,
+                        type=ReferenceType.ID,
+                        value=plan_entities.product_id,
+                    )
                 )
-            elif plan_entities.product_name:
+            elif plan_entities.product_name and not has_order_reference:
                 references.append(
                     EntityReference(
                         entity_type=EntityType.PRODUCT,
@@ -386,6 +386,15 @@ class DataResolver:
                         value=plan_entities.product_name,
                     )
                 )
+            elif request.conversation_state.last_product_id is not None:
+                references.append(
+                    EntityReference(
+                        entity_type=EntityType.PRODUCT,
+                        type=ReferenceType.STATE_ID,
+                        value=request.conversation_state.last_product_id,
+                    )
+                )
+                warnings.append(USED_CONVERSATION_STATE)
             
         if EntityType.ORDER not in existing_types and (
             plan_entities.order_no or plan_entities.order_id

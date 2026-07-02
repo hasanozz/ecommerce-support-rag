@@ -417,7 +417,7 @@ def _product_answer_mode(
     general_profile_request = any(
         term in question_l for term in ("bilgi", "hakkında", "hakkinda", "detay")
     )
-    if product_resolution.get("selected_group"):
+    if product_resolution.get("selected_group") and not product_resolution.get("canonical_product_id"):
         return "PRODUCT_GROUP"
     if (
         "reviews" in requested
@@ -473,7 +473,10 @@ def build_deterministic_answer(
     question_l = question.casefold()
 
     products = _product_list(evidence_pack)
-    product_group = evidence_pack.get("product_resolution", {}).get("selected_group") or {}
+    product_resolution = evidence_pack.get("product_resolution", {}) or {}
+    product_group = product_resolution.get("selected_group") or {}
+    if product_resolution.get("canonical_product_id"):
+        product_group = {}
     if product_group and len(products) > 1:
         return {
             "answer": _product_group_answer(products, question_l),

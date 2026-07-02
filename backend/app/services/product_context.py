@@ -128,6 +128,22 @@ FOLLOWUP_HINTS = {
     "fiyat",
 }
 
+CORRECTION_HINTS = {
+    "hayir",
+    "hayır",
+    "degil",
+    "değil",
+    "demedim",
+    "sormadim",
+    "sormadım",
+    "kastettim",
+    "kastetmedim",
+    "baska",
+    "başka",
+    "yanlis",
+    "yanlış",
+}
+
 ATTRIBUTE_LABELS = {
     "guc_watt": "motor gücü",
     "hazne_litre": "hazne kapasitesi",
@@ -395,6 +411,12 @@ class ProductContextService:
             return False
         return any(term in normalized for term in FOLLOWUP_HINTS)
 
+    def _looks_like_correction(self, query: str) -> bool:
+        normalized = _normalize(query)
+        if not normalized:
+            return False
+        return any(term in normalized for term in CORRECTION_HINTS)
+
     def _query_tokens(self, query: str) -> list[str]:
         normalized = _normalize(query)
         tokens = [
@@ -496,7 +518,7 @@ class ProductContextService:
                 98,
                 True,
                 self._candidate_debug([ProductMatch(product, 98, "product_alias_match")]),
-                product_id_source="product_alias",
+                product_id_source="alias_product",
                 alias_type_match_source="PRODUCT",
             )
             return [product]
@@ -533,7 +555,7 @@ class ProductContextService:
             self._candidate_debug(
                 [ProductMatch(product, 92, "product_group_alias_match") for product in products]
             ),
-            product_id_source="product_group_alias",
+            product_id_source="alias_group",
             alias_type_match_source="PRODUCT_GROUP",
             selected_group=selected_group,
             candidate_groups=self._alias_candidate_debug(group_aliases),
@@ -761,6 +783,7 @@ class ProductContextService:
         user: User,
         query: str,
         selected_product_id: int | None = None,
+        product_id_source: str = "current_product_id",
     ) -> list[DemoProduct]:
         self._last_product_match = ProductMatchResult([], "not_applicable", 0, False, [])
         statement = select(DemoProduct).where(DemoProduct.is_active.is_(True))
@@ -774,7 +797,7 @@ class ProductContextService:
                     100,
                     False,
                     [],
-                    product_id_source="current_product_id",
+                    product_id_source=product_id_source,
                 )
             return [product] if product else []
         normalized = _normalize(query)
@@ -874,6 +897,7 @@ class ProductContextService:
                 explicit_scored[0].score,
                 True,
                 self._candidate_debug(explicit_scored),
+                product_id_source="explicit_fuzzy",
             )
             return [explicit_scored[0].product]
 
@@ -901,6 +925,7 @@ class ProductContextService:
                 weak_scored[0].score,
                 False,
                 self._candidate_debug(weak_scored),
+                product_id_source="explicit_fuzzy",
             )
             return [weak_scored[0].product]
 
@@ -917,18 +942,6 @@ class ProductContextService:
         query: str,
         selected_product_id: int | None = None,
     ) -> list[DemoProduct]:
-        if selected_product_id is not None:
-            primary_products = await self._selected_products(
-                session,
-                user,
-                query,
-                selected_product_id=selected_product_id,
-            )
-            if primary_products:
-                return primary_products
-            if self._last_product_match.reason == "trusted_context_match":
-                return primary_products
-
         alias_products = await self._selected_products_by_alias(session, query)
         if alias_products:
             return alias_products
@@ -940,6 +953,22 @@ class ProductContextService:
         )
         primary_match = self._last_product_match
         if primary_products:
+            return primary_products
+        if primary_match.reason in {
+            "ambiguous_catalog_match",
+            "ambiguous_weak_match",
+            "ambiguous_semantic_match",
+        }:
+            return []
+        if not primary_match.top_candidates:
+            if selected_product_id is not None:
+                return await self._selected_products(
+                    session,
+                    user,
+                    query,
+                    selected_product_id=selected_product_id,
+                )
+            self._last_product_match = primary_match
             return primary_products
 
         normalized = _normalize(query)
@@ -981,13 +1010,14 @@ class ProductContextService:
 
         top_score = scored[0].score
         close = [item for item in scored if top_score - item.score <= 5]
-        if len(close) > 1:
+        if len(close) > 1 or top_score < 70:
             self._last_product_match = ProductMatchResult(
                 [],
-                "ambiguous_semantic_match",
+                "ambiguous_semantic_match" if len(close) > 1 else "low_confidence_fuzzy_candidates",
                 top_score,
-                False,
+                True,
                 self._candidate_debug(close),
+                product_id_source="explicit_fuzzy",
             )
             return []
 
@@ -997,6 +1027,7 @@ class ProductContextService:
             scored[0].score,
             False,
             self._candidate_debug(scored),
+            product_id_source="explicit_fuzzy",
         )
         return [scored[0].product]
 
@@ -1161,6 +1192,7 @@ class ProductContextService:
         page_context = str(frontend_context.get("page_context") or "").strip()
         route_mode = self._detect_route_mode(category, context_query)
         is_followup = self._looks_like_followup(context_query)
+        is_correction = self._looks_like_correction(context_query)
         if page_context == "product" and current_product_id and route_mode in {
             "fallback_unclear",
             "support_only",
@@ -1186,7 +1218,16 @@ class ProductContextService:
             "followup_resolved",
         }
         selected_product_id = current_product_id
-        followup_product_id = state.last_product_id if state and is_followup else None
+        canonical_product_id = current_product_id
+        canonical_product_source = "current_product_id" if current_product_id else ""
+        product_group_suppressed_reason = (
+            "canonical_product_id" if canonical_product_id else ""
+        )
+        fuzzy_suppressed_reason = ""
+        conflicting_product_ids: list[int] = []
+        followup_product_id = (
+            state.last_product_id if state and is_followup and not is_correction else None
+        )
         selected_order_id = current_order_id or (state.last_order_id if state and is_followup else None)
         selected_cart_id = current_cart_id or (state.last_cart_id if state and is_followup else None)
         selected_return_id = current_return_id or (state.last_return_id if state and is_followup else None)
@@ -1207,34 +1248,59 @@ class ProductContextService:
         product_match_score = 0
         explicit_product_mention = False
         top_candidates: list[dict] = []
+        rejected_candidates: list[dict] = []
         match_result = ProductMatchResult([], "not_applicable", 0, False, [])
 
         if route_mode in product_context_modes:
-            selected_products = await self._selected_products_hybrid(
-                session,
-                user,
-                context_query,
-                selected_product_id=selected_product_id,
-            )
+            if canonical_product_id is not None:
+                selected_products = await self._selected_products(
+                    session,
+                    user,
+                    context_query,
+                    selected_product_id=canonical_product_id,
+                    product_id_source=canonical_product_source,
+                )
+            else:
+                selected_products = await self._selected_products_hybrid(
+                    session,
+                    user,
+                    context_query,
+                )
             match_result = self._last_product_match
             product_match_reason = match_result.reason
             product_match_score = match_result.score
             explicit_product_mention = match_result.explicit_product_mention
             top_candidates = match_result.top_candidates
+            if (
+                not selected_products
+                and match_result.reason in {"no_product_mention", "no_catalog_match"}
+            ):
+                fuzzy_suppressed_reason = "no_explicit_product_candidate"
+            elif match_result.reason == "low_confidence_fuzzy_candidates":
+                fuzzy_suppressed_reason = "low_confidence"
             if selected_products:
                 product_match_reason = match_result.reason
+            elif is_correction and state and state.last_product_id is not None:
+                rejected_candidates.append(
+                    {
+                        "product_id": state.last_product_id,
+                        "reason": "conversation_state_contested",
+                    }
+                )
             elif followup_product_id is not None and not explicit_product_mention:
+                canonical_product_id = followup_product_id
+                canonical_product_source = "followup_state"
+                product_group_suppressed_reason = "canonical_product_id"
                 selected_products = await self._selected_products(
                     session,
                     user,
                     context_query,
                     selected_product_id=followup_product_id,
+                    product_id_source="followup_state",
                 )
                 if selected_products:
                     match_result = self._last_product_match
-                    product_match_reason = (
-                        "frontend_context" if current_product_id else "followup_state"
-                    )
+                    product_match_reason = "followup_state"
                     product_match_score = match_result.score
                     top_candidates = match_result.top_candidates
             elif route_mode == "product_only":
@@ -1250,7 +1316,12 @@ class ProductContextService:
                     else "clarification_needed"
                 )
 
-        if allow_alias_probe and not selected_products and selected_product_id is None:
+        if (
+            allow_alias_probe
+            and not selected_products
+            and selected_product_id is None
+            and canonical_product_id is None
+        ):
             alias_probe_products = await self._selected_products_by_alias(
                 session, context_query
             )
@@ -1263,6 +1334,31 @@ class ProductContextService:
                 top_candidates = match_result.top_candidates
                 product_context_modes = set(product_context_modes)
                 product_context_modes.add(route_mode)
+
+        if (
+            is_correction
+            and not selected_products
+            and state
+            and state.last_product_id is not None
+            and not rejected_candidates
+        ):
+            rejected_candidates.append(
+                {
+                    "product_id": state.last_product_id,
+                    "reason": "conversation_state_contested",
+                }
+            )
+
+        clarification_needed = (
+            route_mode in {"fallback_unclear", "product_only", "followup_resolved"}
+            and not selected_products
+        ) or product_match_reason in {
+            "ambiguous_catalog_match",
+            "ambiguous_weak_match",
+            "ambiguous_semantic_match",
+            "low_confidence_fuzzy_candidates",
+            "clarification_needed",
+        }
 
         if route_mode == "order_product_mixed" or selected_order_id or selected_order_no:
             selected_orders = await self._selected_orders(
@@ -1428,6 +1524,31 @@ class ProductContextService:
                 "Bu ödeme başarılı alınmış görünüyor ancak sipariş kaydıyla eşleşmiyor; kullanıcıya tekrar ödeme denetmek yerine destek/ödeme incelemesi öner."
             )
 
+        if canonical_product_id is not None:
+            conflicting_product_ids = [
+                int(item["product_id"])
+                for item in top_candidates
+                if item.get("product_id") is not None
+                and int(item["product_id"]) != canonical_product_id
+            ]
+        selected_group = (
+            {}
+            if canonical_product_id is not None
+            else (match_result.selected_group or {})
+        )
+        candidate_groups = (
+            []
+            if canonical_product_id is not None
+            else (match_result.candidate_groups or [])
+        )
+        answer_mode = (
+            "PRODUCT_GROUP"
+            if selected_group and match_result.alias_type_match_source == "PRODUCT_GROUP"
+            else "SPECIFIC_PRODUCT"
+            if selected_products
+            else "CLARIFICATION"
+        )
+
         text_parts = []
         if selected_products:
             text_parts.append("ÜRÜN BAĞLAMI:")
@@ -1476,27 +1597,36 @@ class ProductContextService:
             "product_match_reason": product_match_reason,
             "product_match_score": product_match_score,
             "explicit_product_mention": explicit_product_mention,
+            "canonical_product_id": canonical_product_id,
+            "canonical_product_source": canonical_product_source,
+            "product_group_suppressed_reason": product_group_suppressed_reason,
+            "fuzzy_suppressed_reason": fuzzy_suppressed_reason,
+            "conflicting_product_ids": conflicting_product_ids,
+            "explicit_product_candidates": top_candidates,
+            "rejected_candidates": rejected_candidates,
+            "is_followup": is_followup,
+            "is_correction": is_correction,
+            "clarification_needed": clarification_needed,
+            "state_updated": bool(
+                selected_products
+                and not match_result.selected_group
+                and match_result.product_id_source != "followup_state"
+            ),
             "top_candidates": top_candidates,
             "product_id_source": match_result.product_id_source,
             "alias_type_match_source": match_result.alias_type_match_source,
-            "selected_group": match_result.selected_group or {},
-            "candidate_groups": match_result.candidate_groups or [],
+            "selected_group": selected_group,
+            "candidate_groups": candidate_groups,
             "selected_product": (
                 {
                     "id": selected_products[0].id,
                     "sku": selected_products[0].sku,
                     "name": selected_products[0].name,
                 }
-                if selected_products and not match_result.selected_group
+                if selected_products and not selected_group
                 else {}
             ),
-            "answer_mode": (
-                "PRODUCT_GROUP"
-                if match_result.alias_type_match_source == "PRODUCT_GROUP"
-                else "SPECIFIC_PRODUCT"
-                if selected_products
-                else "CLARIFICATION"
-            ),
+            "answer_mode": answer_mode,
             "selected_counts": {
                 "products": len(selected_products),
                 "orders": len(selected_orders),
@@ -1526,7 +1656,7 @@ class ProductContextService:
             "security_status": security.security_status if security else "",
         }
 
-        if selected_products:
+        if selected_products and not selected_group:
             context["primary_product"] = {
                 "id": selected_products[0].id,
                 "sku": selected_products[0].sku,
